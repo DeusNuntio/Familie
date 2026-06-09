@@ -154,6 +154,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
 
 /* ---- Chips ---- */
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 12px}
+.wg-titel{padding:10px 18px 2px;font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:.03em}
 .chip{background:var(--surface);border:1px solid var(--line);border-radius:20px;
   padding:9px 15px;font-size:14px;cursor:pointer;transition:.12s;color:var(--ink)}
 .chip:active{transform:scale(.94);background:var(--accent-soft);border-color:var(--accent)}
@@ -263,6 +264,10 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .poi .pn{flex:1;font-size:14px}
 .poi .pn small{display:block;color:var(--ink2);font-size:12px;margin-top:1px}
 .poi .pdel{color:var(--ink2);opacity:.5;cursor:pointer;font-size:16px}
+.poi-foto{width:48px;height:48px;border-radius:8px;object-fit:cover;cursor:pointer;flex-shrink:0}
+.poi-autor{font-style:italic;opacity:.8;margin-top:3px!important}
+.poi-fremd{border-left:3px solid var(--highlight,#85b7eb);padding-left:8px;background:var(--highlight-bg,#e8f2fb);border-radius:0 8px 8px 0}
+@media(prefers-color-scheme:dark){.poi-fremd{background:rgba(91,141,239,.12)}}
 .geo-status{font-size:12px;color:var(--ink2);margin-top:6px;min-height:16px}
 .dragging{opacity:.5}
 .drop-target{border-top:2px solid var(--accent)!important}
@@ -283,7 +288,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
     <div class="topbar">
       <div class="ti-wrap">
         <h1>Familie</h1>
-        <div class="sync" onclick="syncTap()"><span class="dot"></span><span id="syncTxt">Verbinde…</span></div>
+        <div class="sync" onclick="syncTap()"><span class="dot"></span><span id="syncTxt">Verbinde…</span> <span id="verTxt" style="opacity:.6;margin-left:4px"></span></div>
       </div>
       <div class="me" onclick="meMenu()">
         <div class="av" id="meAv">?</div>
@@ -328,6 +333,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
+const APP_VERSION = "1.1.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -340,9 +346,15 @@ function seed(){
     nutzer: ["Ellen","Alexander","Julia","Isabella"],
     todos: [], todoListen: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
     listen: [ {id:uid(),name:"Allgemein",artikel:[],createdAt:now(),updatedAt:now()} ],
-    einkaufStamm: ["Milch","Butter","Eier","Brot","Brötchen","Käse","Joghurt",
-      "Quark","Sahne","Mehl","Zucker","Öl","Nudeln","Reis","Kartoffeln","Zwiebeln",
-      "Tomaten","Bananen","Äpfel","Wasser","Spülmittel","Toilettenpapier"],
+    einkaufStamm: ["Äpfel","Bananen","Tomaten","Gurke","Salat","Kartoffeln","Zwiebeln","Karotten","Paprika",
+      "Hackfleisch","Hähnchen","Wurst","Schinken","Lachs",
+      "Nudeln","Reis","Mehl","Zucker","Öl","Tomaten in der Dose","Müsli","Brot","Brötchen",
+      "Schokolade","Kekse","Chips",
+      "Wasser","Saft","Kaffee","Tee",
+      "Bier","Wein",
+      "Toilettenpapier","Küchenrolle","Deo","Zahnpasta","Spülmittel","Müllbeutel klein","Müllbeutel groß","Gummihandschuhe",
+      "Milch","Butter","Eier","Joghurt","Quark","Sahne","Käse",
+      "TK-Pizza","TK-Gemüse"],
     ideenKategorien: ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"],
     wohnmobil: [
       {kat:"Fahrzeugtechnik",pkte:["Reifendruck geprüft","Ölstand","Gas abgedreht","Außenspiegel eingestellt","Stützen eingefahren"]},
@@ -449,6 +461,21 @@ function downscale(dataUrl, cb){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function empty(ic,txt){ return `<div class="empty"><div class="ei">${ICON[ic]||""}</div>${txt}</div>`; }
 function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr); }
+// Schneidet alles vor dem ersten http(s):// ab und liefert einen sauberen Link – oder "" wenn keiner drin ist.
+function cleanLink(text){
+  if(!text) return "";
+  const m = String(text).match(/https?:\/\/\S+/);
+  return m ? m[0] : "";
+}
+// Liefert das beste Ziel zum Öffnen: echter Link bevorzugt, sonst Maps-Suche aus Adresse/Koordinaten/Name.
+function openTarget(obj){
+  const lk = cleanLink(obj.link);
+  if(lk) return lk;
+  if(obj.adresse) return mapsLink(obj.adresse);
+  if(obj.lat!=null) return mapsLink(obj.lat+","+obj.lon);
+  if(obj.name) return mapsLink(obj.name);
+  return "";
+}
 function fmtDate(iso){ if(!iso)return ""; const d=new Date(iso); return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
 function daysUntil(iso){ if(!iso)return null; const d=new Date(iso); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
 
@@ -754,17 +781,85 @@ RENDER.reparaturen = () => {
 // ============================================================
 let AKT_LISTE = null;  // aktuell geöffnete Liste-ID
 
+// Warengruppen in gewünschter Sortier-Reihenfolge.
+// Jede Gruppe: key, Titel, Erkennungsmuster, Icon-Zuordnung, Standard-Artikel.
+// WICHTIG: Reihenfolge der Prüfung = Reihenfolge hier (Hygiene VOR "öl",
+//   damit "Toilettenpapier" nicht fälschlich als Öl/Olive erkannt wird).
+const WARENGRUPPEN = [
+  { key:"obst_gemuese", titel:"Obst & Gemüse",
+    match:/apfel|äpfel|banane|orange|zitrone|trauben|erdbeer|beere|birne|pfirsich|melone|kartoffel|erdapfel|zwiebel|knoblauch|tomate|gurke|salat|karotte|möhre|paprika|brokkoli|blumenkohl|mais|avocado|pilz|champignon|spinat|lauch|sellerie|kürbis|zucchini|aubergine|ingwer|kräuter|petersilie/i },
+  { key:"fleisch_fisch", titel:"Fleisch & Fisch",
+    match:/fleisch|hack|steak|schnitzel|hähnchen|huhn|chicken|pute|wurst|salami|schinken|speck|fisch|lachs|thunfisch|garnele|frikadelle|gulasch/i },
+  { key:"konserven", titel:"Konserven & Verpacktes",
+    match:/nudel|pasta|spaghetti|reis|mehl|dose|konserve|tomaten in|passierte|brühe|suppe|soße|sauce|öl|essig|zucker|salz|pfeffer|gewürz|honig|marmelade|konfitüre|müsli|haferflocken|cornflakes|brot|brötchen|toast|knäcke/i },
+  { key:"suessigkeiten", titel:"Süßigkeiten & Snacks",
+    match:/schoko|kakao|kuchen|torte|keks|cookie|bonbon|gummi|chips|nüsse|riegel|eis\b|pudding|waffel/i },
+  { key:"getraenke", titel:"Getränke",
+    match:/wasser|water|saft|juice|limo|cola|kaffee|coffee|tee|tea|milch.*haltbar|sirup/i },
+  { key:"alkohol", titel:"Alkoholische Getränke",
+    match:/bier|beer|wein|wine|sekt|prosecco|schnaps|likör|vodka|whisky|gin|rum/i },
+  { key:"hygiene", titel:"Hygiene & Haushalt",
+    match:/toiletten|klopapier|küchenrolle|deo|zahnpasta|zahnbürste|shampoo|duschgel|seife|spülmittel|waschmittel|weichspüler|putz|reiniger|müllbeutel|müllsack|mülltüte|gummihandschuh|handschuh|taschentuch|windel|binden|tampon|wattestäbchen/i },
+  { key:"milchprodukte", titel:"Milchprodukte & Käse",
+    match:/milch\b|butter|ei(er)?\b|joghurt|jogurt|quark|sahne|rahm|käse|cheese|frischkäse|mozzarella|feta|margarine/i },
+  { key:"tiefkuehl", titel:"Tiefkühl",
+    match:/tiefkühl|tk\b|gefrier|pizza|pommes|fischstäbchen|eiscreme/i },
+];
+// Icon-Zuordnung (genauer als zuvor; Toilettenpapier korrekt)
+const FOOD_ICONS = [
+  [/toiletten|klopapier/i,"🧻"],[/küchenrolle|taschentuch/i,"🧻"],[/müllbeutel|müllsack|mülltüte/i,"🗑️"],
+  [/gummihandschuh|handschuh/i,"🧤"],[/deo|shampoo|duschgel|seife/i,"🧴"],[/zahnpasta|zahnbürste/i,"🪥"],
+  [/spülmittel|waschmittel|weichspüler|putz|reiniger/i,"🧼"],
+  [/milch\b/i,"🥛"],[/butter|margarine/i,"🧈"],[/ei(er)?\b/i,"🥚"],[/brötchen|semmel/i,"🥐"],[/brot|toast|knäcke/i,"🍞"],
+  [/käse|cheese|mozzarella|feta|frischkäse/i,"🧀"],[/joghurt|jogurt/i,"🥛"],[/quark|sahne|rahm/i,"🥛"],
+  [/mehl/i,"🌾"],[/zucker/i,"🧂"],[/salz/i,"🧂"],[/honig/i,"🍯"],
+  [/nudel|pasta|spaghetti/i,"🍝"],[/reis/i,"🍚"],[/kartoffel|erdapfel/i,"🥔"],[/zwiebel/i,"🧅"],[/knoblauch/i,"🧄"],
+  [/tomate/i,"🍅"],[/banane/i,"🍌"],[/apfel|äpfel/i,"🍎"],[/orange/i,"🍊"],[/zitrone/i,"🍋"],[/erdbeer|beere/i,"🍓"],
+  [/trauben/i,"🍇"],[/salat|gurke/i,"🥗"],[/karotte|möhre/i,"🥕"],[/paprika/i,"🫑"],[/brokkoli|blumenkohl/i,"🥦"],
+  [/mais/i,"🌽"],[/avocado/i,"🥑"],[/pilz|champignon/i,"🍄"],[/kürbis/i,"🎃"],
+  [/fleisch|hack|steak|schnitzel|frikadelle|gulasch/i,"🥩"],[/hähnchen|huhn|chicken|pute/i,"🍗"],
+  [/wurst|salami|schinken|speck/i,"🥓"],[/fisch|lachs|thunfisch/i,"🐟"],[/garnele/i,"🦐"],
+  [/wasser|water/i,"💧"],[/saft|juice|limo|cola/i,"🧃"],[/kaffee|coffee/i,"☕"],[/tee|tea/i,"🍵"],
+  [/bier|beer/i,"🍺"],[/wein|wine|sekt|prosecco/i,"🍷"],[/schnaps|likör|vodka|whisky|gin|rum/i,"🥃"],
+  [/schoko|kakao/i,"🍫"],[/kuchen|torte/i,"🍰"],[/keks|cookie|waffel/i,"🍪"],[/chips/i,"🥨"],[/nüsse/i,"🥜"],
+  [/öl/i,"🫗"],[/essig/i,"🫗"],[/pfeffer|gewürz/i,"🌶️"],[/müsli|haferflocken|cornflakes/i,"🥣"],
+  [/tiefkühl|gefrier|pizza/i,"🧊"],[/pommes/i,"🍟"],[/eis\b|eiscreme/i,"🍦"],[/marmelade|konfitüre/i,"🍯"],
+];
+function foodIcon(name){ for(const [re,ic] of FOOD_ICONS) if(re.test(name)) return ic; return "🛒"; }
+// Welche Warengruppe? Gibt den Index zurück (für Sortierung), sonst hoch (ans Ende).
+function warenGruppeIndex(name){
+  // Sonderfall: alles mit "Dose/Konserve/in der ..." zuerst zu Konserven
+  if(/dose|konserve|in der dose|eingelegt|passierte/i.test(name)){
+    const ki=WARENGRUPPEN.findIndex(g=>g.key==="konserven"); if(ki>=0)return ki;
+  }
+  for(let i=0;i<WARENGRUPPEN.length;i++) if(WARENGRUPPEN[i].match.test(name)) return i;
+  return WARENGRUPPEN.length;
+}
+function warenGruppeTitel(name){
+  const i=warenGruppeIndex(name);
+  return i<WARENGRUPPEN.length ? WARENGRUPPEN[i].titel : "Sonstiges";
+}
+
 RENDER.einkauf = () => {
   if(!AKT_LISTE || !DB.listen.find(l=>l.id===AKT_LISTE)) AKT_LISTE = DB.listen[0] ? DB.listen[0].id : null;
   const liste = DB.listen.find(l=>l.id===AKT_LISTE);
   setHead("Einkaufslisten", DB.listen.length+" Listen", {label:"+ Liste", fn:newListe});
   if(!liste){ vBody().innerHTML = empty("cart","Noch keine Liste"); document.getElementById("addbar").style.display="none"; return; }
-  const offen = liste.artikel.filter(a=>!a.d), erledigt = liste.artikel.filter(a=>a.d);
+  // Stammartikel nach Warengruppe gruppieren (in definierter Reihenfolge)
+  const grouped = {};
+  DB.einkaufStamm.forEach(s=>{ const t=warenGruppeTitel(s); (grouped[t]=grouped[t]||[]).push(s); });
+  const ordered = [...WARENGRUPPEN.map(g=>g.titel), "Sonstiges"].filter(t=>grouped[t]);
+  const schnellHtml = ordered.map(t=>`
+    <div class="wg-titel">${t}</div>
+    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="addEin('${esc(s)}')"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
+  // Artikel der Liste nach Warengruppe sortieren (offen zuerst, erledigt ans Ende)
+  const offen = liste.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
+  const erledigt = liste.artikel.filter(a=>a.d);
   vBody().innerHTML =
     `<div class="chips" style="padding-top:0">${DB.listen.map(l=>`<div class="chip ${l.id===AKT_LISTE?'on':''}" onclick="selListe('${l.id}')">${esc(l.name)}</div>`).join("")}</div>`
     + `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
-        <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="renameListe('${liste.id}')">Liste umbenennen</span></div>`
-    + `<div class="chips">${DB.einkaufStamm.map(s=>`<div class="chip" onclick="addEin('${esc(s)}')">${esc(s)}</div>`).join("")}</div>`
+        <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="editStamm()">Bearbeiten</span></div>`
+    + schnellHtml
     + (liste.artikel.length? `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">${esc(liste.name)}
         <span style="text-transform:none;font-weight:600;color:var(--danger)" onclick="clearListe('${liste.id}')">Leeren</span></div>
        <div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>` : empty("cart","Liste ist leer"));
@@ -772,7 +867,7 @@ RENDER.einkauf = () => {
 };
 const einRow = a => `<div class="row ${a.d?'done':''}">
   <div class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')">${a.d?'✓':''}</div>
-  <div class="tx">${esc(a.tx)}</div>
+  <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}</div>
   <div class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')">${a.menge?esc(a.menge):'+ Menge'}</div>
   <div class="del" onclick="delEin('${a.id}')">×</div></div>`;
 const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
@@ -794,6 +889,31 @@ window.renameListe = id => { const l=DB.listen.find(x=>x.id===id); openSheet(`<h
   ${DB.listen.length>1?`<button class="btn danger" onclick="delListe('${id}')">Liste löschen</button>`:""}`); };
 window.doRenameListe = id => { const l=DB.listen.find(x=>x.id===id); l.name=document.getElementById("listrename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); RENDER.einkauf(); };
 window.delListe = id => { if(confirm("Liste wirklich löschen?")){ DB.listen=DB.listen.filter(x=>x.id!==id); AKT_LISTE=DB.listen[0]?DB.listen[0].id:null; save(); closeModal(); RENDER.einkauf(); } };
+
+// Schnellauswahl (Stammartikel) bearbeiten und ergänzen
+window.editStamm = () => {
+  openSheet(`<h3>Schnellauswahl bearbeiten</h3>
+    <div class="ml">Artikel entfernen oder neue hinzufügen. Das passende Symbol erscheint automatisch.</div>
+    <div id="stammlist"></div>
+    <div style="display:flex;gap:8px;margin:10px 0">
+      <input id="stammnew" placeholder="Neuer Artikel…" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px" enterkeyhint="done">
+      <button class="addbtn" style="position:static" onclick="addStamm()">+</button></div>
+    <div class="ml">Tipp: auch eigene Lieblingsartikel lassen sich dauerhaft hinzufügen.</div>
+    <button class="btn ghost" onclick="renameListe(AKT_LISTE)">Aktuelle Liste umbenennen</button>`);
+  renderStammList();
+  const inp=document.getElementById("stammnew");
+  if(inp) inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addStamm();}});
+};
+function renderStammList(){
+  const el=document.getElementById("stammlist"); if(!el)return;
+  el.innerHTML = DB.einkaufStamm.map((s,i)=>`<div class="itemrow"><div class="it"><span style="margin-right:8px">${foodIcon(s)}</span>${esc(s)}</div>
+    <div class="del" onclick="rmStamm(${i})">×</div></div>`).join("")
+    || `<div style="color:var(--ink2);font-size:13px;padding:6px 0">Leer</div>`;
+}
+window.addStamm = () => { const inp=document.getElementById("stammnew"); const v=inp.value.trim(); if(!v)return;
+  if(!DB.einkaufStamm.some(s=>s.toLowerCase()===v.toLowerCase())) DB.einkaufStamm.push(v);
+  save(); inp.value=""; renderStammList(); };
+window.rmStamm = i => { DB.einkaufStamm.splice(i,1); save(); renderStammList(); };
 window.editMenge = id => { const l=aktListe(); openSheet(mengeEditor(l.artikel.find(x=>x.id===id))); };
 function mengeEditor(a){
   setTimeout(()=>{const f=document.getElementById("mengeinput");if(f){f.focus();f.select();}},50);
@@ -902,8 +1022,8 @@ function reiseSheet(){
       <div class="opt ${r.art==='tour'?'on':''}" onclick="reiseSet('art','tour')">Tour</div></div></div>
     <div class="fld"><label>Titel</label><input id="r_titel" value="${esc(r.titel)}" placeholder="z.B. Sommer Italien"></div>
     <div class="fld" style="display:flex;gap:10px">
-      <div style="flex:1"><label>Von</label><input id="r_von" type="date" value="${r.von||""}"></div>
-      <div style="flex:1"><label>Bis</label><input id="r_bis" type="date" value="${r.bis||""}"></div></div>
+      <div style="flex:1"><label>Von</label><input id="r_von" type="date" value="${r.von||""}" onchange="document.getElementById('r_bis').min=this.value; if(document.getElementById('r_bis').value && document.getElementById('r_bis').value<this.value) document.getElementById('r_bis').value=this.value;"></div>
+      <div style="flex:1"><label>Bis</label><input id="r_bis" type="date" value="${r.bis||""}" min="${r.von||""}"></div></div>
     <div class="fld"><label>Unterkunftstyp</label>
       <div class="seg"><div class="opt ${r.unterkunft==='wohnmobil'?'on':''}" onclick="reiseSet('unterkunft','wohnmobil')">Wohnmobil</div>
       <div class="opt ${r.unterkunft==='hotel'?'on':''}" onclick="reiseSet('unterkunft','hotel')">Hotel</div></div></div>
@@ -973,7 +1093,8 @@ function renderCity(r,c,i){
   const total=stell.length+seh.length+rest.length;
   const utype = r.unterkunft==="wohnmobil" ? "Stellplätze" : "Hotels";
   // Was öffnet die Karte? Eigener Maps-Link, sonst Koordinaten, sonst Name.
-  const mapHref = c.link ? c.link : (c.lat!=null ? mapsLink(c.lat+","+c.lon) : mapsLink(c.name));
+  const mapHref = openTarget(c);
+  const istLink = !!cleanLink(c.link);
   return `<div class="city ${c._open?'':'collapsed'}" data-i="${i}">
     <div class="chead">
       ${r.art==="tour"?`<div class="cdrag" data-drag="${i}">⠿</div>`:""}
@@ -983,7 +1104,7 @@ function renderCity(r,c,i){
     </div>
     <div class="cbody">
       <div class="city-actions">
-        <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} Karte öffnen</a>
+        <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} ${istLink?"Link öffnen":"Karte öffnen"}</a>
         <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
       </div>
       ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
@@ -994,11 +1115,18 @@ function renderCity(r,c,i){
 }
 function poiGroup(rid,ci,key,titel,arr){
   return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
-    ${arr.length? arr.map((p,pi)=>`<div class="poi"><div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
-      ${(p.adresse||p.lat!=null)?`<a class="maplink" href="${mapsLink(p.adresse||((p.lat)+","+(p.lon)))}" target="_blank">${ICON.pin} Karte</a>`:""}</div>
-      <div class="pdel" onclick="delPoi('${rid}',${ci},'${key}',${pi})">×</div></div>`).join("")
+    ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME; return `<div class="poi ${fremd?'poi-fremd':''}">
+      ${p.foto?`<img class="poi-foto" src="${p.foto}" onclick="zoomFoto('${rid}',${ci},'${key}',${pi})">`:""}
+      <div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
+      ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
+      ${p.autor?`<small class="poi-autor">${fremd?'von '+esc(p.autor):'von dir'}</small>`:""}</div>
+      <div class="pdel" onclick="delPoi('${rid}',${ci},'${key}',${pi})">×</div></div>`;}).join("")
       : `<div style="color:var(--ink2);font-size:12.5px">—</div>`}</div>`;
 }
+window.zoomFoto = (rid,ci,key,pi) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi];
+  if(p.foto) openSheet(`<h3>${esc(p.name)}</h3><img src="${p.foto}" style="width:100%;border-radius:12px"><button class="btn ghost" onclick="closeModal()" style="margin-top:12px">Schließen</button>`);
+};
 function renderLeg(r,i){
   const a=r.staedte[i], b=r.staedte[i+1];
   r._legs = r._legs||{};
@@ -1065,7 +1193,7 @@ window.saveCity = async () => {
   const name = document.getElementById("c_name").value.trim();
   const plz  = document.getElementById("c_plz").value.trim();
   const land = document.getElementById("c_land").value.trim();
-  const link = document.getElementById("c_link").value.trim();
+  const link = cleanLink(document.getElementById("c_link").value);
   if(!name){ document.getElementById("c_geo").textContent="Bitte einen Stadtnamen eingeben."; return; }
   const st = document.getElementById("c_geo"); st.textContent="Suche Koordinaten…";
   // Suchtext für Geocoding: Name + PLZ + Land
@@ -1092,20 +1220,35 @@ window.saveCity = async () => {
 window.addPoi = (rid,ci,key,titel) => {
   window._poiCtx = {rid,ci,key};
   openSheet(`<h3>${esc(titel.replace(/e$|n$/,""))} hinzufügen</h3>
-    <div class="ml">Name und optional Adresse oder Maps-Link</div>
+    <div class="ml">Name eingeben. Adresse und Link sind optional – ein Link öffnet sich direkt.</div>
     <div class="fld"><label>Name</label><input id="poi_name" placeholder="z.B. Kolosseum"></div>
-    <div class="fld"><label>Adresse / Maps-Link (optional)</label>
-      <textarea id="poi_addr" rows="2" placeholder="Adresse oder Link"></textarea></div>
+    <div class="fld"><label>Adresse (optional)</label><input id="poi_addr" placeholder="Straße, Ort"></div>
+    <div class="fld"><label>Link (optional)</label>
+      <textarea id="poi_link" rows="2" placeholder="https://… (auch mit Text davor – wird automatisch erkannt)"></textarea></div>
+    <div class="fld"><label>Foto (optional)</label><div id="poiFotoSlot"></div></div>
     <button class="btn" onclick="doAddPoi()">Hinzufügen</button>`);
+  window._poiFoto = "";
+  renderPoiFoto();
 };
+function renderPoiFoto(){
+  const slot=document.getElementById("poiFotoSlot"); if(!slot)return;
+  if(window._poiFoto){
+    slot.innerHTML=`<div class="photo-thumb"><img src="${window._poiFoto}"><button class="rm" onclick="window._poiFoto='';renderPoiFoto()">×</button></div>`;
+  } else {
+    slot.innerHTML=`<div class="photo-pick">
+      <button onclick="pickPhoto(true,d=>{window._poiFoto=d;renderPoiFoto()})">${ICON.cam}Kamera</button>
+      <button onclick="pickPhoto(false,d=>{window._poiFoto=d;renderPoiFoto()})">${ICON.image}Galerie</button></div>`;
+  }
+}
 window.doAddPoi = () => {
   const {rid,ci,key}=window._poiCtx;
   const name=document.getElementById("poi_name").value.trim(); if(!name)return;
   const addr=document.getElementById("poi_addr").value.trim();
+  const link=cleanLink(document.getElementById("poi_link").value);
   const g=parseGeo(addr);
   const r=DB.urlaub.find(x=>x.id===rid);
   r.staedte[ci][key]=r.staedte[ci][key]||[];
-  r.staedte[ci][key].push({ name, adresse:g.label||addr, lat:g.lat, lon:g.lon });
+  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME });
   r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
 window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
@@ -1330,41 +1473,92 @@ window.saveIdea = () => {
 };
 
 // ============================================================
-//  Rezepte (mit Link & Zutaten -> Einkaufsliste)
+//  Rezepte (Link, Zutaten, Zubereitung, Kategorie, Filter)
 // ============================================================
+const REZEPT_KATEGORIEN = ["Suppe","Vorspeise","Hauptspeise","Nachtisch","Beilage","Getränk"];
+let REZEPT_FILTER = "alle";      // Kategorie-Filter
+let REZEPT_SUCHE = "";           // Zutaten-/Titelsuche
+
 RENDER.rezepte = () => {
   setHead("Rezepte", DB.rezepte.length+" Rezepte");
-  vBody().innerHTML = DB.rezepte.length
-    ? `<div class="list">${DB.rezepte.map(rezeptCard).join("")}</div>`
-    : empty("chef","Noch keine Rezepte — unten mit + anlegen");
+  const kats = ["alle", ...REZEPT_KATEGORIEN];
+  let liste = DB.rezepte.slice();
+  if(REZEPT_FILTER!=="alle") liste = liste.filter(r=>r.kategorie===REZEPT_FILTER);
+  if(REZEPT_SUCHE.trim()){
+    const q=REZEPT_SUCHE.trim().toLowerCase();
+    liste = liste.filter(r => r.titel.toLowerCase().includes(q)
+      || (r.zutaten||[]).some(z=>z.toLowerCase().includes(q)));
+  }
+  vBody().innerHTML =
+    `<div class="list" style="margin-bottom:6px"><div class="row" style="padding:4px 15px">
+      <div style="color:var(--ink2)">${ICON.search}</div>
+      <input id="rezsuche" placeholder="Titel oder Zutat suchen…" value="${esc(REZEPT_SUCHE)}" oninput="rezSuche(this.value)"
+        style="border:none;background:transparent;color:var(--ink);font-size:15px;flex:1;outline:none;padding:9px 0"></div></div>`
+    + `<div class="chips">${kats.map(k=>`<div class="chip ${k===REZEPT_FILTER?'on':''}" onclick="rezFilter('${esc(k)}')">${k==='alle'?'Alle':esc(k)}</div>`).join("")}</div>`
+    + (liste.length? `<div class="list">${liste.map(rezeptCard).join("")}</div>`
+        : empty("chef", DB.rezepte.length? "Keine Treffer" : "Noch keine Rezepte — unten mit + anlegen"));
   showFab(()=>openRezept(null));
 };
+window.rezFilter = k => { REZEPT_FILTER=k; RENDER.rezepte(); };
+window.rezSuche = v => {
+  REZEPT_SUCHE = v;
+  const q = v.trim().toLowerCase();
+  let liste = DB.rezepte.slice();
+  if(REZEPT_FILTER!=="alle") liste = liste.filter(r=>r.kategorie===REZEPT_FILTER);
+  if(q) liste = liste.filter(r => r.titel.toLowerCase().includes(q)
+    || (r.zutaten||[]).some(z=>z.toLowerCase().includes(q)));
+  // nur die Ergebnis-Liste neu zeichnen, Suchfeld behält den Fokus
+  const lists = vBody().querySelectorAll(".list");
+  const resultList = lists[lists.length-1];
+  const html = liste.length ? `<div class="list">${liste.map(rezeptCard).join("")}</div>`
+                            : empty("chef", q?"Keine Treffer":"Noch keine Rezepte");
+  const wrap = document.createElement("div"); wrap.innerHTML = html;
+  // Wenn die letzte .list die Suchleiste ist (keine Treffer-Liste vorhanden), anhängen
+  if(resultList && resultList!==lists[0]){ resultList.replaceWith(wrap.firstChild); }
+  else {
+    const empties = vBody().querySelector(".empty");
+    if(empties) empties.replaceWith(wrap.firstChild); else vBody().appendChild(wrap.firstChild);
+  }
+};
 function rezeptCard(r){
+  const est = r.einstufung ? `<span class="pill ${r.einstufung==='leicht'?'prio-niedrig':'prio-mittel'}">${r.einstufung==='leicht'?'leicht':'herzhaft'}</span>` : "";
   return `<div class="card" onclick="openRezept('${r.id}')">
     <div class="cttl">${esc(r.titel)}</div>
-    <div class="cmeta"><span class="pill cat">${(r.zutaten||[]).length} Zutaten</span>
-      ${r.link?`<span class="pill who">${ICON.link} Link</span>`:""}</div>
+    <div class="cmeta">
+      ${r.kategorie?`<span class="pill cat">${esc(r.kategorie)}</span>`:""}
+      ${est}
+      <span class="pill who">${(r.zutaten||[]).length} Zutaten</span>
+      ${cleanLink(r.link)?`<span class="pill who">${ICON.link} Link</span>`:""}</div>
     ${r.autor?`<div class="byline">von ${esc(r.autor)}</div>`:""}</div>`;
 }
 
 let REZEPT = null;
 window.openRezept = id => {
   REZEPT = id ? JSON.parse(JSON.stringify(DB.rezepte.find(x=>x.id===id)))
-              : { id:uid(), titel:"", link:"", zutaten:[], neu:true };
+              : { id:uid(), titel:"", link:"", kategorie:"Hauptspeise", einstufung:"", zutaten:[], zubereitung:"", neu:true };
   if(!REZEPT.zutaten) REZEPT.zutaten=[];
   rezeptSheet();
 };
 function rezeptSheet(){
   const r = REZEPT;
   setTimeout(()=>renderZutaten(),0);
+  const lk = cleanLink(r.link);
   openSheet(`<h3>${r.neu?"Neues Rezept":"Rezept"}</h3>
     <div class="fld"><label>Titel</label><input id="rz_titel" value="${esc(r.titel)}" placeholder="z.B. Spaghetti Bolognese"></div>
-    <div class="fld"><label>Link (optional)</label><input id="rz_link" value="${esc(r.link||"")}" placeholder="https://… zum Rezept"></div>
-    ${r.link?`<a class="maplink" href="${esc(r.link)}" target="_blank" style="margin-bottom:12px">${ICON.link} Rezept öffnen</a>`:""}
+    <div class="fld" style="display:flex;gap:10px">
+      <div style="flex:2"><label>Kategorie</label>
+        <select id="rz_kat">${REZEPT_KATEGORIEN.map(k=>`<option ${r.kategorie===k?'selected':''}>${esc(k)}</option>`).join("")}</select></div>
+      <div style="flex:1"><label>Art</label>
+        <select id="rz_einst"><option value="">—</option><option value="leicht" ${r.einstufung==='leicht'?'selected':''}>leicht</option><option value="herzhaft" ${r.einstufung==='herzhaft'?'selected':''}>herzhaft</option></select></div></div>
+    <div class="fld"><label>Link (optional)</label>
+      <textarea id="rz_link" rows="2" placeholder="https://… (Text davor wird automatisch entfernt)">${esc(r.link||"")}</textarea></div>
+    ${lk?`<a class="maplink" href="${esc(lk)}" target="_blank" rel="noopener" style="margin-bottom:12px">${ICON.link} Rezept öffnen</a>`:""}
     <div class="fld"><label>Zutaten</label><div id="zutatenSlot"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <input id="rz_zutat" placeholder="Zutat, z.B. 500 g Hackfleisch" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px" enterkeyhint="done">
         <button class="addbtn" style="position:static" onclick="addZutat()">+</button></div></div>
+    <div class="fld"><label>Zubereitung</label>
+      <textarea id="rz_zub" rows="5" placeholder="Schritt für Schritt…">${esc(r.zubereitung||"")}</textarea></div>
     <button class="btn" onclick="saveRezept()">Speichern</button>
     ${!r.neu?`<button class="btn ghost" onclick="zutatenZuEinkauf('${r.id}')">${ICON.cart} Zutaten zur Einkaufsliste</button>
       <button class="btn danger" onclick="delRezept('${r.id}')">Rezept löschen</button>`:""}`);
@@ -1381,8 +1575,10 @@ window.addZutat = () => { const inp=document.getElementById("rz_zutat"); const v
 window.rmZutat = i => { REZEPT.zutaten.splice(i,1); renderZutaten(); };
 window.saveRezept = () => {
   REZEPT.titel = document.getElementById("rz_titel").value.trim() || "Rezept";
-  REZEPT.link = document.getElementById("rz_link").value.trim();
-  if(REZEPT.link && !/^https?:\/\//.test(REZEPT.link)) REZEPT.link="https://"+REZEPT.link;
+  REZEPT.kategorie = document.getElementById("rz_kat").value;
+  REZEPT.einstufung = document.getElementById("rz_einst").value;
+  REZEPT.link = cleanLink(document.getElementById("rz_link").value);   // ab https: starten
+  REZEPT.zubereitung = document.getElementById("rz_zub").value.trim();
   REZEPT.updatedAt = now();
   if(REZEPT.neu){ delete REZEPT.neu; REZEPT.autor=ME; REZEPT.createdAt=now(); DB.rezepte.push(REZEPT); }
   else { const ex=DB.rezepte.find(x=>x.id===REZEPT.id); Object.assign(ex,REZEPT); }
@@ -1432,7 +1628,7 @@ window.Sync = (() => {
   const GRAPH = "https://graph.microsoft.com/v1.0";
   const LISTEN = ["todos","todoListen","reparaturen","urlaub","ideen","keller","listen","rezepte"];
   const OBJEKTE = ["nutzer","einkaufStamm","ideenKategorien","wohnmobil","wohnmobilCheck"];
-  let app=null, account=null, saveTimer=null, busy=false, online=false, pollTimer=null;
+  let app=null, account=null, saveTimer=null, busy=false, online=false, pollTimer=null, _lastSync=null;
 
   function setStatus(t,ok){ const e=document.getElementById("syncTxt"); if(e)e.textContent=t;
     const d=document.querySelector(".sync .dot"); if(d)d.style.background=ok?"var(--ok)":"var(--ink2)"; }
@@ -1470,35 +1666,85 @@ window.Sync = (() => {
     for(const e of fern){ if(!e||!e.id)continue; const d=m.get(e.id);
       if(!d||new Date(e.updatedAt||0)>new Date(d.updatedAt||0))m.set(e.id,e); }
     return [...m.values()].filter(e=>!e.deleted); }
+  // POI-Listen einer Stadt eintragsweise zusammenführen (id-basiert, sonst nach Name)
+  function mergePois(lokal=[],fern=[]){
+    const m=new Map();
+    const keyOf=p=>p.id||("n:"+(p.name||"")+(p.adresse||""));
+    for(const p of lokal) m.set(keyOf(p),p);
+    for(const p of fern){ const k=keyOf(p); if(!m.has(k)) m.set(k,p); }
+    return [...m.values()];
+  }
+  // Reisen tief mergen: gleiche Reise -> Städte & deren POIs zusammenführen statt überschreiben
+  function mergeReisen(lokal=[],fern=[]){
+    const m=new Map();
+    for(const r of lokal) if(r&&r.id) m.set(r.id,r);
+    for(const fr of fern){ if(!fr||!fr.id)continue;
+      const lr=m.get(fr.id);
+      if(!lr){ m.set(fr.id,fr); continue; }
+      // jüngere Grunddaten gewinnen
+      const base = new Date(fr.updatedAt||0)>new Date(lr.updatedAt||0) ? {...fr} : {...lr};
+      // Städte zusammenführen
+      const cityMap=new Map();
+      (lr.staedte||[]).forEach(c=>cityMap.set(c.id||c.name,{...c}));
+      (fr.staedte||[]).forEach(c=>{ const k=c.id||c.name; const ex=cityMap.get(k);
+        if(!ex){ cityMap.set(k,{...c}); }
+        else { // POIs jeder Gruppe mergen
+          ["stellplaetze","sehens","restaurants"].forEach(g=>{ ex[g]=mergePois(ex[g]||[], c[g]||[]); });
+          if(new Date(c.updatedAt||0)>new Date(ex.updatedAt||0)){ ex.name=c.name; ex.lat=c.lat; ex.lon=c.lon; ex.link=c.link; ex.plz=c.plz; ex.land=c.land; }
+        }
+      });
+      base.staedte=[...cityMap.values()];
+      // Packliste eintragsweise
+      base.packliste = mergePois(lr.packliste||[], fr.packliste||[]);
+      m.set(fr.id, base);
+    }
+    return [...m.values()].filter(r=>!r.deleted);
+  }
   async function fullSync(){ if(!online||busy)return; busy=true; setStatus("Synchronisiere…",true);
     try{
       const fern=(await readFile("daten.json"))||{};
-      for(const k of LISTEN) DB[k]=mergeListe(DB[k]||[], fern[k]||[]);
+      for(const k of LISTEN){
+        if(k==="urlaub") DB.urlaub = mergeReisen(DB.urlaub||[], fern.urlaub||[]);
+        else DB[k]=mergeListe(DB[k]||[], fern[k]||[]);
+      }
       if(fern._sync && new Date(fern._sync)>new Date(DB._sync||0))
         for(const k of OBJEKTE) if(fern[k]!==undefined) DB[k]=fern[k];
       localStorage.setItem(KEY,JSON.stringify(DB));
       await writeFile("daten.json", DB);
+      _lastSync = new Date();
       setStatus("Verbunden",true);
-      if(CURRENT&&RENDER[CURRENT])RENDER[CURRENT](); else if(ME)renderHome();
+      if(CURRENT&&RENDER[CURRENT]&&!DETAIL_OPEN)RENDER[CURRENT](); else if(ME&&!CURRENT)renderHome();
     }catch(e){ console.warn("Sync:",e); setStatus("Sync-Fehler",false); }
     finally{ busy=false; } }
   function scheduleSave(){ if(!online)return; clearTimeout(saveTimer); setStatus("Speichere…",true); saveTimer=setTimeout(()=>fullSync(),1200); }
   function startPolling(){ clearInterval(pollTimer); pollTimer=setInterval(()=>{if(!busy)fullSync();},20000);
     document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&online&&!busy)fullSync(); }); }
-  return { start, login, logout, scheduleSave, fullSync, isOnline:()=>online };
+  return { start, login, logout, scheduleSave, fullSync, isOnline:()=>online,
+    lastSync:()=> _lastSync ? _lastSync.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}) : null };
 })();
 
 window.syncTap = () => {
-  if(Sync.isOnline()) openSheet(`<h3>Synchronisierung</h3>
-    <div class="ml">Daten werden über dein Microsoft-Konto auf OneDrive gesichert und auf allen Geräten abgeglichen.</div>
-    <button class="btn" onclick="Sync.fullSync();closeModal()">Jetzt abgleichen</button>
-    <button class="btn ghost" onclick="Sync.logout();closeModal()">Von OneDrive abmelden</button>`);
-  else Sync.login();
+  if(Sync.isOnline()){
+    const last = Sync.lastSync();
+    openSheet(`<h3>Synchronisierung</h3>
+      <div class="ml">Alle Familienmitglieder teilen denselben Stand über das gemeinsame Microsoft-Konto. Beim Abgleich wird nichts gelöscht – Einträge anderer bleiben erhalten und sind im Reise-Bereich farbig als „von …" markiert.</div>
+      <div class="fld" style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:13px;color:var(--ink2)">Status</div>
+        <div style="font-weight:650">Verbunden${last?" · zuletzt "+last:""}</div></div>
+      <button class="btn" onclick="Sync.fullSync();closeModal()">Jetzt abgleichen</button>
+      <button class="btn ghost" onclick="Sync.logout();closeModal()">Von OneDrive abmelden</button>`);
+  } else {
+    openSheet(`<h3>Synchronisierung einrichten</h3>
+      <div class="ml">Melde dich mit dem gemeinsamen Microsoft-Konto an, damit alle Handys denselben Stand sehen. Die Daten liegen geschützt in eurem OneDrive.</div>
+      <button class="btn" onclick="closeModal();Sync.login()">Mit Microsoft anmelden</button>`);
+  }
 };
 
 // ============================================================
 //  Start
 // ============================================================
+const _verEl = document.getElementById("verTxt");
+if(_verEl) _verEl.textContent = "v"+APP_VERSION;
 if(ME){
   document.getElementById("gate").style.display="none";
   document.getElementById("meAv").textContent=initials(ME);
@@ -1512,7 +1758,6 @@ Sync.start();
 <script>
 // ── PWA: Versions-Check + saubere Service-Worker-Bereinigung ──
 (function(){
-  const APP_VERSION = "1.0.0";
   // Alte Service Worker und Caches entfernen (vermeidet veraltete Stände)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister().catch(()=>{}))).catch(()=>{});
