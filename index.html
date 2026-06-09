@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Familie">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4ed8">
+<title>Familie</title>
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIkZhbWlsaWUiLCAic2hvcnRfbmFtZSI6ICJGYW1pbGllIiwgImRlc2NyaXB0aW9uIjogIkZhbWlsaWVuLU9yZ2FuaXplcjogVG8tZG8sIEVpbmthdWYsIFJlemVwdGUsIFVybGF1YiwgS2VsbGVyLCBXb2hubW9iaWwsIElkZWVuIiwgInN0YXJ0X3VybCI6ICIuIiwgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMxZDRlZDgiLCAidGhlbWVfY29sb3IiOiAiIzFkNGVkOCIsICJjYXRlZ29yaWVzIjogWyJsaWZlc3R5bGUiLCAicHJvZHVjdGl2aXR5Il0sICJpY29ucyI6IFt7InNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUIzYVdSMGFEMGlOVEV5SWlCb1pXbG5hSFE5SWpVeE1pSWdkbWxsZDBKdmVEMGlNQ0F3SURVeE1pQTFNVElpSUhodGJHNXpQU0pvZEhSd09pOHZkM2QzTG5jekxtOXlaeTh5TURBd0wzTjJaeUkrQ2p4eVpXTjBJSGRwWkhSb1BTSTFNVElpSUdobGFXZG9kRDBpTlRFeUlpQnllRDBpTVRFd0lpQm1hV3hzUFNJak1XUTBaV1E0SWk4K0NqeHdZWFJvSUdROUlrMHlOVFlnTVRJd0lFd3hOVEFnTWpFd0lGWXpPREFnWVRFMklERTJJREFnTUNBd0lERTJJREUySUVnek5EWWdZVEUySURFMklEQWdNQ0F3SURFMkxURTJJRll5TVRBZ1dpSWdabWxzYkQwaUkyWm1abVptWmlJZ2IzQmhZMmwwZVQwaU1DNDVOU0l2UGdvOGNHRjBhQ0JrUFNKTk1qVTJJREkxTUNCakxURTRMVEl5TFRVeUxURTBMVFV5SURFMElHTXdJREkySURVeUlEVTJJRFV5SURVMklHTXdJREFnTlRJdE16QWdOVEl0TlRZZ1l6QXRNamd0TXpRdE16WXROVEl0TVRRZ1dpSWdabWxzYkQwaUl6RmtOR1ZrT0NJdlBnbzhMM04yWno0PSIsICJzaXplcyI6ICI1MTJ4NTEyIiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9LCB7InNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUIzYVdSMGFEMGlNVGt5SWlCb1pXbG5hSFE5SWpFNU1pSWdkbWxsZDBKdmVEMGlNQ0F3SURVeE1pQTFNVElpSUhodGJHNXpQU0pvZEhSd09pOHZkM2QzTG5jekxtOXlaeTh5TURBd0wzTjJaeUkrQ2p4eVpXTjBJSGRwWkhSb1BTSTFNVElpSUdobGFXZG9kRDBpTlRFeUlpQnllRDBpTVRFd0lpQm1hV3hzUFNJak1XUTBaV1E0SWk4K0NqeHdZWFJvSUdROUlrMHlOVFlnTVRJd0lFd3hOVEFnTWpFd0lGWXpPREFnWVRFMklERTJJREFnTUNBd0lERTJJREUySUVnek5EWWdZVEUySURFMklEQWdNQ0F3SURFMkxURTJJRll5TVRBZ1dpSWdabWxzYkQwaUkyWm1abVptWmlJZ2IzQmhZMmwwZVQwaU1DNDVOU0l2UGdvOGNHRjBhQ0JrUFNKTk1qVTJJREkxTUNCakxURTRMVEl5TFRVeUxURTBMVFV5SURFMElHTXdJREkySURVeUlEVTJJRFV5SURVMklHTXdJREFnTlRJdE16QWdOVEl0TlRZZ1l6QXRNamd0TXpRdE16WXROVEl0TVRRZ1dpSWdabWxzYkQwaUl6RmtOR1ZrT0NJdlBnbzhMM04yWno0PSIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9XX0=">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEwIiBmaWxsPSIjMWQ0ZWQ4Ii8+CjxwYXRoIGQ9Ik0yNTYgMTIwIEwxNTAgMjEwIFYzODAgYTE2IDE2IDAgMCAwIDE2IDE2IEgzNDYgYTE2IDE2IDAgMCAwIDE2LTE2IFYyMTAgWiIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45NSIvPgo8cGF0aCBkPSJNMjU2IDI1MCBjLTE4LTIyLTUyLTE0LTUyIDE0IGMwIDI2IDUyIDU2IDUyIDU2IGMwIDAgNTItMzAgNTItNTYgYzAtMjgtMzQtMzYtNTItMTQgWiIgZmlsbD0iIzFkNGVkOCIvPgo8L3N2Zz4=">
+<script>
+/* QRCode.js v1.0.0 (MIT, Sangmin Shim) – eingebettet für Offline-Betrieb */
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+</script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+:root{
+  --bg:#eef3fb; --surface:#ffffff; --ink:#172033; --ink2:#647089;
+  --line:#dde5f2; --accent:#1d4ed8; --accent-2:#2563eb; --accent-soft:#dfe9fd;
+  --warm:#d97706; --warm-soft:#fef0dc; --ok:#1d8a52; --ok-soft:#dcf2e6;
+  --danger:#dc2626; --r:16px;
+  --shadow:0 1px 3px rgba(23,32,51,.06),0 8px 22px rgba(29,78,216,.07);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#0e1626;--surface:#16203400;--surface:#172034;--ink:#e8edf7;--ink2:#8b97b0;
+  --line:#26324a;--accent:#5b8def;--accent-2:#6d9bf5;--accent-soft:#1c2c4d;
+  --warm:#e0934a;--warm-soft:#32261a;--ok:#5cc08a;--ok-soft:#1a2e24;--danger:#f06464;
+  --shadow:0 1px 3px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.5;overscroll-behavior-y:none}
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+
+/* ---- Login-Gate ---- */
+.gate{position:fixed;inset:0;background:linear-gradient(160deg,#1d4ed8,#2563eb 55%,#1e3a8a);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;padding:30px;text-align:center}
+.gate h1{color:#fff;font-size:30px;font-weight:700;margin:0 0 6px;letter-spacing:-.5px}
+.gate p{color:rgba(255,255,255,.85);font-size:15px;margin:0 0 40px}
+.gate .who{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.gate .person{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+  backdrop-filter:blur(8px);border-radius:20px;padding:24px 28px;cursor:pointer;
+  transition:.15s;min-width:120px}
+.gate .person:active{transform:scale(.95);background:rgba(255,255,255,.25)}
+.gate .av{width:60px;height:60px;border-radius:50%;background:#fff;color:var(--accent);
+  font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px}
+.gate .nm{color:#fff;font-weight:600;font-size:16px}
+
+/* ---- Header ---- */
+.topbar{padding:16px 20px 10px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:20}
+.topbar .ti-wrap{display:flex;flex-direction:column}
+.topbar h1{margin:0;font-size:25px;font-weight:700;letter-spacing:-.5px}
+.topbar .sync{font-size:11.5px;color:var(--ink2);display:flex;align-items:center;gap:5px;margin-top:2px;cursor:pointer}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.me{display:flex;align-items:center;gap:8px;cursor:pointer}
+.me .av{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ---- Countdown-Banner ---- */
+.countdown{margin:4px 16px 12px;background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  border-radius:var(--r);padding:16px 18px;color:#fff;display:flex;align-items:center;
+  gap:14px;box-shadow:var(--shadow);cursor:pointer}
+.countdown .big{font-size:30px;font-weight:750;line-height:1}
+.countdown .ct-tx{font-size:13px;opacity:.92}
+.countdown .ct-nm{font-size:15px;font-weight:600;margin-top:1px}
+
+/* ---- Home grid ---- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 16px 100px}
+.tile{background:var(--surface);border-radius:var(--r);padding:17px 16px;position:relative;
+  box-shadow:var(--shadow);border:1px solid var(--line);cursor:pointer;
+  transition:transform .12s;min-height:104px;display:flex;flex-direction:column;justify-content:space-between}
+.tile:active{transform:scale(.97)}
+.tile .ic{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);
+  color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:21px}
+.tile .nm{font-weight:650;font-size:15px;margin-top:13px;line-height:1.2}
+.tile .ct{font-size:12.5px;color:var(--ink2);margin-top:3px}
+
+/* ---- Detail view ---- */
+.view{display:none;flex-direction:column;flex:1;padding-bottom:100px}
+.view.active{display:flex}
+.vhead{padding:6px 16px 12px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;background:var(--bg);z-index:15}
+.back{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vhead h2{margin:0;font-size:21px;font-weight:700;letter-spacing:-.3px}
+.vhead .sub{font-size:12.5px;color:var(--ink2);margin-top:1px}
+
+.list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.row .cb{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;transition:.12s}
+.row .cb.on{background:var(--accent);border-color:var(--accent)}
+.row .tx{flex:1;font-size:15px}
+.row.done .tx{text-decoration:line-through;color:var(--ink2)}
+.row .meta{font-size:12px;color:var(--ink2)}
+.row .qty{font-size:13px;font-weight:600;padding:5px 11px;border-radius:20px;cursor:pointer;
+  white-space:nowrap;border:1px solid var(--line);color:var(--ink2);transition:.12s}
+.row .qty.set{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.row .qty:active{transform:scale(.93)}
+.row.done .qty{opacity:.5}
+.row .del{color:var(--ink2);font-size:18px;cursor:pointer;opacity:.5;padding:4px}
+.row .del:active{opacity:1}
+
+.section-label{padding:16px 18px 6px;font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+
+/* ---- Karten-Eintrag (To-do, Reparatur, Urlaub) ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px 15px;box-shadow:var(--shadow);position:relative}
+.card .ch{display:flex;align-items:flex-start;gap:11px}
+.card .cbx{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);flex-shrink:0;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;margin-top:1px}
+.card .cbx.on{background:var(--accent);border-color:var(--accent)}
+.card .cttl{font-weight:650;font-size:15.5px;flex:1}
+.card.done .cttl{text-decoration:line-through;color:var(--ink2)}
+.card .cdesc{font-size:13.5px;color:var(--ink2);margin-top:5px;white-space:pre-wrap}
+.card .cmeta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.pill{font-size:11.5px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.pill.due{background:var(--warm-soft);color:var(--warm)}
+.pill.due.over{background:#fde8e8;color:var(--danger)}
+.pill.prio-hoch{background:#fde8e8;color:var(--danger)}
+.pill.prio-mittel{background:var(--warm-soft);color:var(--warm)}
+.pill.prio-niedrig{background:var(--ok-soft);color:var(--ok)}
+.pill.who{background:var(--accent-soft);color:var(--accent)}
+.pill.cat{background:var(--accent-soft);color:var(--accent)}
+.card .cphoto{margin-top:10px;border-radius:10px;width:100%;max-height:200px;object-fit:cover;display:block}
+.card .cdel{position:absolute;top:12px;right:12px;color:var(--ink2);opacity:.5;font-size:18px;cursor:pointer}
+
+/* ---- Add bar / FAB ---- */
+.addbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 72%,transparent);display:flex;gap:9px;z-index:18}
+.addbar input{flex:1;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);border-radius:13px;padding:13px 15px;font-size:15px;font-family:inherit}
+.addbar input:focus{outline:none;border-color:var(--accent)}
+.addbtn{width:50px;border:none;background:var(--accent);color:#fff;border-radius:13px;
+  font-size:24px;cursor:pointer;flex-shrink:0}
+.addbtn:active{opacity:.85}
+.fab{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));right:max(22px,calc(50% - 218px));
+  width:58px;height:58px;border-radius:50%;background:var(--accent);color:#fff;border:none;
+  font-size:30px;box-shadow:0 6px 18px rgba(29,78,216,.4);cursor:pointer;z-index:19;
+  display:flex;align-items:center;justify-content:center}
+.fab:active{transform:scale(.92)}
+
+/* ---- Chips ---- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 12px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:9px 15px;font-size:14px;cursor:pointer;transition:.12s;color:var(--ink)}
+.chip:active{transform:scale(.94);background:var(--accent-soft);border-color:var(--accent)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---- Keller ---- */
+.boxcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:15px;box-shadow:var(--shadow);cursor:pointer}
+.boxcard .bn{font-weight:700;font-size:16px}
+.boxcard .bl{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.boxcard .items{font-size:13px;color:var(--ink2);margin-top:8px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.boxcard .qr{font-size:11.5px;color:var(--accent);margin-top:8px;font-weight:600}
+
+/* ---- Modal ---- */
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;
+  align-items:flex-end;justify-content:center}
+.modal.active{display:flex}
+.sheet{background:var(--surface);width:100%;max-width:480px;border-radius:22px 22px 0 0;
+  padding:8px 18px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.handle{width:40px;height:4px;background:var(--line);border-radius:2px;margin:8px auto 16px}
+.sheet h3{margin:0 0 4px;font-size:21px;font-weight:700}
+.sheet .ml{font-size:13px;color:var(--ink2);margin-bottom:16px}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.fld input,.fld textarea,.fld select{width:100%;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);border-radius:12px;padding:12px 14px;font-size:15px;font-family:inherit}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--accent)}
+.fld textarea{resize:none}
+.seg{display:flex;gap:8px}
+.seg .opt{flex:1;text-align:center;padding:11px;border:1px solid var(--line);border-radius:12px;
+  font-size:14px;font-weight:600;cursor:pointer;color:var(--ink2);background:var(--bg)}
+.seg .opt.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.whopick{display:flex;gap:8px;flex-wrap:wrap}
+.whopick .w{padding:9px 15px;border:1px solid var(--line);border-radius:20px;font-size:14px;
+  cursor:pointer;color:var(--ink2);background:var(--bg);display:flex;align-items:center;gap:6px}
+.whopick .w.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+#qrbox{display:flex;justify-content:center;padding:18px;background:#fff;border-radius:12px;margin:10px 0}
+.label-preview{border:1.5px dashed var(--line);border-radius:8px;padding:10px;display:flex;gap:12px;align-items:center;margin:12px 0}
+.label-preview .lqr{width:54px;height:54px;flex-shrink:0;background:#fff;border-radius:4px;padding:3px}
+.label-preview .lqr img,.label-preview .lqr canvas{width:100%!important;height:100%!important}
+.label-preview .ltx .lh{font-weight:700;font-size:14px}
+.label-preview .ltx .ls{font-size:11px;color:var(--ink2);margin-top:2px}
+.btn{width:100%;border:none;background:var(--accent);color:#fff;border-radius:13px;
+  padding:14px;font-size:15px;font-weight:650;cursor:pointer;margin-top:8px}
+.btn:active{opacity:.88}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.photo-pick{display:flex;gap:10px;margin-bottom:12px}
+.photo-pick button{flex:1;border:1px dashed var(--line);background:var(--bg);color:var(--accent);
+  border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;gap:6px}
+.photo-thumb{position:relative;margin-bottom:12px}
+.photo-thumb img{width:100%;border-radius:12px;max-height:220px;object-fit:cover;display:block}
+.photo-thumb .rm{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;
+  width:30px;height:30px;border-radius:50%;border:none;font-size:18px;cursor:pointer}
+.subitem{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.subitem .it{flex:1;font-size:14px}
+.subitem .it small{color:var(--ink2);display:block}
+.itemrow{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.itemrow .it{flex:1}
+.maplink{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:12.5px;font-weight:600;text-decoration:none}
+
+/* ---- Ideen ---- */
+.idea{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow);position:relative}
+.idea .ih{font-weight:650;font-size:16px}
+.idea .id{font-size:13.5px;color:var(--ink2);margin-top:4px}
+.idea a.lnk{display:inline-flex;align-items:center;gap:5px;margin-top:10px;color:var(--accent);font-size:13.5px;font-weight:600;text-decoration:none}
+.idea .tags{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
+.idea .tag{background:var(--accent-soft);color:var(--accent);font-size:11px;padding:3px 9px;border-radius:20px}
+.idea .cdel{position:absolute;top:12px;right:12px;color:var(--ink2);opacity:.5;font-size:18px;cursor:pointer}
+
+.empty{text-align:center;color:var(--ink2);padding:50px 30px;font-size:14.5px}
+.empty .ei{font-size:34px;opacity:.4;margin-bottom:10px}
+.toolbtn{margin-left:auto;border:1px solid var(--line);background:var(--surface);color:var(--accent);
+  border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+.byline{font-size:11.5px;color:var(--ink2);margin-top:8px;font-style:italic}
+
+/* ---- Städte / Etappen ---- */
+.city{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);margin-bottom:0;overflow:hidden}
+.city .chead{padding:14px 15px;display:flex;align-items:center;gap:11px;cursor:pointer}
+.city .cnum{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.city .cname{font-weight:650;font-size:16px;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere}
+.city .cdel{flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;color:var(--ink2);font-size:20px;cursor:pointer;background:var(--bg)}
+.city .cdel:active{background:var(--line)}
+.city .ccount{font-size:12px;color:var(--ink2)}
+.city .cdrag{color:var(--ink2);font-size:18px;cursor:grab;padding:0 4px;touch-action:none}
+.city .cbody{padding:0 15px 14px;border-top:1px solid var(--line)}
+.city.collapsed .cbody{display:none}
+.city-actions{display:flex;gap:8px;margin:12px 0 4px}
+.city-actions .cbtn{flex:1;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;
+  font-size:13px;font-weight:600;color:var(--accent);background:var(--bg);cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.city-actions .cbtn:active{background:var(--accent-soft)}
+.leg{display:flex;align-items:center;gap:10px;padding:8px 16px;margin:2px 0}
+.leg .lline{flex:1;height:0;border-top:2px dashed var(--line)}
+.leg .linfo{font-size:12.5px;color:var(--ink2);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.subgroup{margin-top:12px}
+.subgroup .sgh{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.subgroup .sgh span.add{cursor:pointer;font-size:18px;line-height:1}
+.poi{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.poi:last-child{border-bottom:none}
+.poi .pn{flex:1;font-size:14px}
+.poi .pn small{display:block;color:var(--ink2);font-size:12px;margin-top:1px}
+.poi .pdel{color:var(--ink2);opacity:.5;cursor:pointer;font-size:16px}
+.geo-status{font-size:12px;color:var(--ink2);margin-top:6px;min-height:16px}
+.dragging{opacity:.5}
+.drop-target{border-top:2px solid var(--accent)!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- LOGIN-GATE: wer bin ich? -->
+  <div class="gate" id="gate">
+    <h1>Familie</h1>
+    <p>Wer bist du?</p>
+    <div class="who" id="whoList"></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home">
+    <div class="topbar">
+      <div class="ti-wrap">
+        <h1>Familie</h1>
+        <div class="sync" onclick="syncTap()"><span class="dot"></span><span id="syncTxt">Verbinde…</span></div>
+      </div>
+      <div class="me" onclick="meMenu()">
+        <div class="av" id="meAv">?</div>
+      </div>
+    </div>
+    <div id="countdownSlot"></div>
+    <div class="grid" id="tiles"></div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="view" id="view">
+    <div class="vhead">
+      <button class="back" onclick="goBack()">‹</button>
+      <div style="flex:1">
+        <h2 id="vtitle"></h2>
+        <div class="sub" id="vsub"></div>
+      </div>
+      <button class="toolbtn" id="vtool" style="display:none"></button>
+    </div>
+    <div id="vbody"></div>
+  </div>
+</div>
+
+<!-- ADD BAR (einfache Listen) -->
+<div class="addbar" id="addbar" style="display:none">
+  <input id="addinput" placeholder="Hinzufügen…" enterkeyhint="done">
+  <button class="addbtn" onclick="addCurrent()">+</button>
+</div>
+
+<!-- FAB (Karten-Module mit Formular) -->
+<button class="fab" id="fab" style="display:none" onclick="fabAction()">+</button>
+
+<!-- MODAL -->
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<!-- verstecktes Datei-Input für Fotos -->
+<input type="file" id="photoInput" accept="image/*" style="display:none">
+
+<script>
+// ============================================================
+//  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
+// ============================================================
+const KEY = "familienapp.v2";
+const now = () => new Date().toISOString();
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
+
+// Aktueller Nutzer (wer bin ich auf diesem Handy)
+let ME = localStorage.getItem("familienapp.me") || null;
+
+function seed(){
+  return {
+    nutzer: ["Ellen","Alexander","Julia","Isabella"],
+    todos: [], todoListen: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
+    listen: [ {id:uid(),name:"Allgemein",artikel:[],createdAt:now(),updatedAt:now()} ],
+    einkaufStamm: ["Milch","Butter","Eier","Brot","Brötchen","Käse","Joghurt",
+      "Quark","Sahne","Mehl","Zucker","Öl","Nudeln","Reis","Kartoffeln","Zwiebeln",
+      "Tomaten","Bananen","Äpfel","Wasser","Spülmittel","Toilettenpapier"],
+    ideenKategorien: ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"],
+    wohnmobil: [
+      {kat:"Fahrzeugtechnik",pkte:["Reifendruck geprüft","Ölstand","Gas abgedreht","Außenspiegel eingestellt","Stützen eingefahren"]},
+      {kat:"Innenraum",pkte:["Kühlschrank","Fenster geschlossen","Dachluken zu","lose Gegenstände verstaut","Türen verriegelt"]},
+      {kat:"Versorgung",pkte:["Frischwasser gefüllt","Abwasser geleert","Strom getrennt","Markise eingefahren"]},
+      {kat:"Dokumente",pkte:["Führerschein","Fahrzeugschein","Stellplatzbestätigung","Versicherungskarte"]},
+      {kat:"Sicherheit",pkte:["Verbandskasten","Feuerlöscher","Warndreieck","Gaswarnmelder"]},
+    ],
+    wohnmobilCheck: {},
+    _sync: now(),
+  };
+}
+
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(KEY)); return d || seed(); }
+  catch { return seed(); }
+}
+function save(){
+  DB._sync = now();
+  localStorage.setItem(KEY, JSON.stringify(DB));
+  if(window.Sync) Sync.scheduleSave();
+}
+let DB = load();
+// Migrationen für fehlende Felder
+if(!DB.nutzer) DB.nutzer = ["Ellen","Alexander","Julia","Isabella"];
+if(!DB.listen) DB.listen = [{id:uid(),name:"Allgemein",artikel:[],createdAt:now(),updatedAt:now()}];
+if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
+if(!DB.todoListen) DB.todoListen = [];
+if(!DB.rezepte) DB.rezepte = [];
+// Reparatur: Städte, deren Name versehentlich ein Link ist
+(DB.urlaub||[]).forEach(r=>{
+  (r.staedte||[]).forEach(c=>{
+    if(typeof c.name==="string" && /^https?:\/\//.test(c.name.trim())){
+      if(!c.link) c.link = c.name.trim();
+      c.name = "Unbenannter Ort";   // bitte über „Bearbeiten" benennen
+    }
+  });
+});
+
+const initials = n => (n||"?").trim().slice(0,1).toUpperCase();
+
+// ---- Icons ----
+const ICON = {
+  checkbox:'<svg class="i" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  cart:'<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>',
+  tool:'<svg class="i" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18v3h3l6.1-6.1a4 4 0 0 0 5.6-5.6l-2.5 2.5-2.1-2.1z"/></svg>',
+  plane:'<svg class="i" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5a2 2 0 0 0-3-3L13 8 4.8 6.2a1 1 0 0 0-.9.3l-1 1 5 3-2 2-3-1-1 1 4 3 3 4 1-1-1-3 2-2 3 5 1-1a1 1 0 0 0 .3-.9z"/></svg>',
+  box:'<svg class="i" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
+  car:'<svg class="i" viewBox="0 0 24 24"><path d="M3 12h18M5 12V7a2 2 0 0 1 2-2h7l4 5v2"/><rect x="3" y="12" width="18" height="6" rx="1"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg>',
+  checklist:'<svg class="i" viewBox="0 0 24 24"><path d="M11 4h10M11 12h10M11 20h10"/><path d="M3 4l1.5 1.5L7 3M3 12l1.5 1.5L7 11M3 20l1.5 1.5L7 19"/></svg>',
+  bulb:'<svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>',
+  link:'<svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+  printer:'<svg class="i" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  search:'<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  pin:'<svg class="i" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  cam:'<svg class="i" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  chef:'<svg class="i" viewBox="0 0 24 24"><path d="M6 13a4 4 0 0 1-1-7.9A4 4 0 0 1 12 4a4 4 0 0 1 7 1.1A4 4 0 0 1 18 13z"/><path d="M6 13v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6"/></svg>',
+  lists:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h2M7 12h2M7 16h2M12 8h5M12 12h5M12 16h5"/></svg>',
+  image:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>',
+};
+
+// ---- Foto: nativ (Capacitor) oder Web-Datei-Dialog ----
+function pickPhoto(useCamera, cb){
+  // Native App? Dann echte Kamera/Galerie via Capacitor.
+  if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()){
+    pickPhotoNative(useCamera, cb);
+    return;
+  }
+  // Web-Fallback: Datei-Dialog (bietet auf dem Handy Kamera/Galerie an)
+  const inp = document.getElementById("photoInput");
+  inp.value = "";
+  if(useCamera) inp.setAttribute("capture","environment"); else inp.removeAttribute("capture");
+  inp.onchange = () => {
+    const f = inp.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = e => downscale(e.target.result, cb);
+    r.readAsDataURL(f);
+  };
+  inp.click();
+}
+async function pickPhotoNative(useCamera, cb){
+  try{
+    const { Camera } = window.Capacitor.Plugins;
+    const photo = await Camera.getPhoto({
+      quality: 75, resultType: "dataUrl", allowEditing: false,
+      source: useCamera ? "CAMERA" : "PHOTOS",
+      saveToGallery: false
+    });
+    downscale(photo.dataUrl, cb);
+  }catch(e){ /* Nutzer hat abgebrochen */ }
+}
+function downscale(dataUrl, cb){
+  const img = new Image();
+  img.onload = () => {
+    const max = 1000, sc = Math.min(1, max/Math.max(img.width,img.height));
+    const c = document.createElement("canvas");
+    c.width = img.width*sc; c.height = img.height*sc;
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    cb(c.toDataURL("image/jpeg",0.75));
+  };
+  img.src = dataUrl;
+}
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function empty(ic,txt){ return `<div class="empty"><div class="ei">${ICON[ic]||""}</div>${txt}</div>`; }
+function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr); }
+function fmtDate(iso){ if(!iso)return ""; const d=new Date(iso); return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+function daysUntil(iso){ if(!iso)return null; const d=new Date(iso); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+
+// ============================================================
+//  Login-Gate (wer bin ich)
+// ============================================================
+function renderGate(){
+  document.getElementById("whoList").innerHTML = DB.nutzer.map(n=>`
+    <div class="person" onclick="chooseMe('${esc(n)}')">
+      <div class="av">${initials(n)}</div><div class="nm">${esc(n)}</div>
+    </div>`).join("");
+}
+window.chooseMe = n => {
+  ME = n; localStorage.setItem("familienapp.me", n);
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("meAv").textContent = initials(n);
+  renderHome();
+};
+window.meMenu = () => {
+  openSheet(`<h3>Angemeldet als ${esc(ME)}</h3>
+    <div class="ml">Beiträge wie Ideen oder Reisen werden mit deinem Namen markiert.</div>
+    <button class="btn ghost" onclick="switchUser()">Nutzer wechseln</button>`);
+};
+window.switchUser = () => {
+  closeModal();
+  localStorage.removeItem("familienapp.me"); ME = null;
+  document.getElementById("gate").style.display = "flex";
+  renderGate();
+};
+
+// ============================================================
+//  Module-Definitionen für Home
+// ============================================================
+const MODULES = [
+  {id:"todos",       nm:"To-do",          ic:ICON.checkbox, count:()=>DB.todos.filter(t=>!t.done).length+" offen · "+DB.todoListen.length+" Listen"},
+  {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>DB.listen.reduce((s,l)=>s+l.artikel.filter(a=>!a.d).length,0)+" Artikel"},
+  {id:"rezepte",     nm:"Rezepte",        ic:ICON.chef,     count:()=>DB.rezepte.length+" Rezepte"},
+  {id:"reparaturen", nm:"Reparaturen",    ic:ICON.tool,     count:()=>DB.reparaturen.filter(r=>!r.done).length+" offen"},
+  {id:"urlaub",      nm:"Urlaubsplanung", ic:ICON.plane,    count:()=>DB.urlaub.length+" Reisen"},
+  {id:"keller",      nm:"Kellerinventar", ic:ICON.box,      count:()=>DB.keller.length+" Kisten"},
+  {id:"wohnmobil",   nm:"Wohnmobil",      ic:ICON.car,      count:()=>wmTotal()+" Punkte"},
+  {id:"ideen",       nm:"Ideen",          ic:ICON.bulb,     count:()=>DB.ideen.length+" Ideen"},
+];
+function wmTotal(){ return DB.wohnmobil.reduce((s,k)=>s+k.pkte.length,0); }
+
+// nächste Reise für Countdown
+function nextTrip(){
+  const fut = DB.urlaub
+    .filter(u=>u.von && daysUntil(u.von)>=0)
+    .sort((a,b)=>new Date(a.von)-new Date(b.von));
+  return fut[0] || null;
+}
+
+function renderHome(){
+  // Countdown
+  const slot = document.getElementById("countdownSlot");
+  const trip = nextTrip();
+  if(trip){
+    const d = daysUntil(trip.von);
+    slot.innerHTML = `<div class="countdown" onclick="open_('urlaub')">
+      <div class="big">${d===0?"Heute":d}</div>
+      <div><div class="ct-tx">${d===0?"Es geht los:":"Tage bis"}</div>
+      <div class="ct-nm">${esc(trip.titel||trip.ziel||"nächste Reise")}</div></div></div>`;
+  } else slot.innerHTML = "";
+  // Kacheln
+  document.getElementById("tiles").innerHTML = MODULES.map(m=>`
+    <div class="tile" onclick="open_('${m.id}')">
+      <div class="ic">${m.ic}</div>
+      <div><div class="nm">${m.nm}</div><div class="ct">${m.count()}</div></div>
+    </div>`).join("");
+}
+
+// ============================================================
+//  Navigation
+// ============================================================
+let CURRENT = null;
+let DETAIL_OPEN = null;   // wenn eine Reise-Detailansicht offen ist
+window.goBack = () => {
+  if(DETAIL_OPEN==="todoliste"){ DETAIL_OPEN=null; TODO_TAB="listen"; open_("todos"); return; }
+  if(DETAIL_OPEN){ DETAIL_OPEN=null; open_("urlaub"); return; }
+  goHome();
+};
+window.goHome = () => {
+  CURRENT = null; DETAIL_OPEN = null;
+  document.getElementById("home").style.display="block";
+  document.getElementById("view").classList.remove("active");
+  document.getElementById("addbar").style.display="none";
+  document.getElementById("fab").style.display="none";
+  renderHome();
+};
+window.open_ = id => {
+  CURRENT = id; DETAIL_OPEN = null;
+  document.getElementById("home").style.display="none";
+  document.getElementById("view").classList.add("active");
+  document.getElementById("addbar").style.display="none";
+  document.getElementById("fab").style.display="none";
+  RENDER[id]();
+  window.scrollTo(0,0);
+};
+const vBody = () => document.getElementById("vbody");
+function setHead(title, sub, tool){
+  document.getElementById("vtitle").textContent = title;
+  document.getElementById("vsub").textContent = sub || "";
+  const tb = document.getElementById("vtool");
+  if(tool){ tb.style.display="block"; tb.textContent=tool.label; tb.onclick=tool.fn; }
+  else tb.style.display="none";
+}
+function showAddBar(placeholder, fn){
+  const bar=document.getElementById("addbar"), inp=document.getElementById("addinput");
+  bar.style.display="flex"; inp.placeholder=placeholder; inp.value=""; window._addFn=fn;
+}
+function showFab(fn){ const f=document.getElementById("fab"); f.style.display="flex"; window._fabFn=fn; }
+window.fabAction = () => { if(window._fabFn) window._fabFn(); };
+window.addCurrent = () => {
+  const inp=document.getElementById("addinput");
+  if(inp.value.trim() && window._addFn){ window._addFn(inp.value.trim()); inp.value=""; }
+};
+document.getElementById("addinput").addEventListener("keydown",e=>{if(e.key==="Enter")addCurrent();});
+
+// ---- Modal ----
+const modal=document.getElementById("modal"), sheet=document.getElementById("sheet");
+window.closeModal=()=>modal.classList.remove("active");
+function openSheet(html){ sheet.innerHTML='<div class="handle"></div>'+html; modal.classList.add("active"); sheet.scrollTop=0; }
+
+const RENDER = {};
+
+// gemeinsames Formular-Builder für To-do & Reparatur
+function aufgabeEditor(typ, eintrag){
+  const e = eintrag || {titel:"",notiz:"",faellig:"",prio:"mittel",wer:"",foto:""};
+  window._formFoto = e.foto || "";
+  setTimeout(()=>renderFotoSlot(),0);
+  const prios = ["niedrig","mittel","hoch"];
+  return `<h3>${eintrag?"Bearbeiten":(typ==="todo"?"Neue Aufgabe":"Neue Reparatur")}</h3>
+    <div class="fld"><label>${typ==="todo"?"Aufgabe":"Was ist kaputt / zu tun"}</label>
+      <input id="f_titel" value="${esc(e.titel)}" placeholder="${typ==="todo"?"z.B. Rasen mähen":"z.B. Wasserhahn tropft"}"></div>
+    <div class="fld"><label>Beschreibung / Notizen</label>
+      <textarea id="f_notiz" rows="2" placeholder="Optional">${esc(e.notiz)}</textarea></div>
+    <div class="fld"><label>Bis wann fällig</label>
+      <input id="f_faellig" type="date" value="${e.faellig||""}"></div>
+    <div class="fld"><label>Dringlichkeit</label>
+      <div class="seg" id="f_prio">${prios.map(p=>`<div class="opt ${e.prio===p?'on':''}" data-v="${p}" onclick="segPick(this)">${p[0].toUpperCase()+p.slice(1)}</div>`).join("")}</div></div>
+    <div class="fld"><label>Wer</label>
+      <div class="whopick" id="f_wer">${DB.nutzer.map(n=>`<div class="w ${e.wer===n?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`).join("")}</div></div>
+    <div class="fld"><label>Foto</label><div id="fotoSlot"></div></div>
+    <button class="btn" onclick="saveAufgabe('${typ}','${eintrag?eintrag.id:""}')">Speichern</button>`;
+}
+window.segPick = el => { el.parentNode.querySelectorAll(".opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); };
+window.whoPick = el => {
+  const on = el.classList.contains("on");
+  el.parentNode.querySelectorAll(".w").forEach(o=>o.classList.remove("on"));
+  if(!on) el.classList.add("on");
+};
+function renderFotoSlot(){
+  const slot = document.getElementById("fotoSlot"); if(!slot) return;
+  if(window._formFoto){
+    slot.innerHTML = `<div class="photo-thumb"><img src="${window._formFoto}">
+      <button class="rm" onclick="window._formFoto='';renderFotoSlot()">×</button></div>`;
+  } else {
+    slot.innerHTML = `<div class="photo-pick">
+      <button onclick="pickPhoto(true,d=>{window._formFoto=d;renderFotoSlot()})">${ICON.cam}Kamera</button>
+      <button onclick="pickPhoto(false,d=>{window._formFoto=d;renderFotoSlot()})">${ICON.image}Galerie</button></div>`;
+  }
+}
+window.saveAufgabe = (typ, id) => {
+  const titel = document.getElementById("f_titel").value.trim(); if(!titel) return;
+  const prioEl = document.querySelector("#f_prio .opt.on");
+  const werEl = document.querySelector("#f_wer .w.on");
+  const obj = {
+    titel,
+    notiz: document.getElementById("f_notiz").value.trim(),
+    faellig: document.getElementById("f_faellig").value,
+    prio: prioEl ? prioEl.dataset.v : "mittel",
+    wer: werEl ? werEl.dataset.v : "",
+    foto: window._formFoto || "",
+    updatedAt: now(),
+  };
+  const arr = typ==="todo" ? DB.todos : DB.reparaturen;
+  if(id){ const ex = arr.find(x=>x.id===id); Object.assign(ex, obj); }
+  else { arr.push({id:uid(), done:false, autor:ME, createdAt:now(), ...obj}); }
+  save(); closeModal();
+  typ==="todo" ? RENDER.todos() : RENDER.reparaturen();
+};
+
+// Karte rendern (To-do & Reparatur teilen Layout)
+function aufgabeKarte(e, typ){
+  const dUntil = e.faellig ? daysUntil(e.faellig) : null;
+  const over = dUntil!==null && dUntil<0 && !e.done;
+  return `<div class="card ${e.done?'done':''}">
+    <div class="cdel" onclick="delAufgabe('${typ}','${e.id}')">×</div>
+    <div class="ch">
+      <div class="cbx ${e.done?'on':''}" onclick="toggleAufgabe('${typ}','${e.id}')">${e.done?'✓':''}</div>
+      <div style="flex:1" onclick="editAufgabe('${typ}','${e.id}')">
+        <div class="cttl">${esc(e.titel)}</div>
+        ${e.notiz?`<div class="cdesc">${esc(e.notiz)}</div>`:""}
+        ${e.foto?`<img class="cphoto" src="${e.foto}">`:""}
+        <div class="cmeta">
+          ${e.faellig?`<span class="pill due ${over?'over':''}">${ICON.checklist} ${over?'überfällig ':''}${fmtDate(e.faellig)}</span>`:""}
+          <span class="pill prio-${e.prio||'mittel'}">${(e.prio||'mittel').toUpperCase()}</span>
+          ${e.wer?`<span class="pill who">${esc(e.wer)}</span>`:""}
+        </div>
+        ${e.autor?`<div class="byline">angelegt von ${esc(e.autor)}</div>`:""}
+      </div>
+    </div></div>`;
+}
+window.toggleAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; const e=arr.find(x=>x.id===id); e.done=!e.done; e.updatedAt=now(); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
+window.delAufgabe = (typ,id) => { if(typ==="todo")DB.todos=DB.todos.filter(x=>x.id!==id); else DB.reparaturen=DB.reparaturen.filter(x=>x.id!==id); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
+window.editAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; openSheet(aufgabeEditor(typ, arr.find(x=>x.id===id))); };
+
+// ---- To-do (mit Umschalter Aufgaben / Listen) ----
+let TODO_TAB = "aufgaben";
+RENDER.todos = () => {
+  setHead("To-do", "");
+  const tabs = `<div class="seg" style="margin:0 16px 12px">
+    <div class="opt ${TODO_TAB==='aufgaben'?'on':''}" onclick="todoTab('aufgaben')">Aufgaben</div>
+    <div class="opt ${TODO_TAB==='listen'?'on':''}" onclick="todoTab('listen')">Listen</div></div>`;
+  if(TODO_TAB==="aufgaben"){
+    document.getElementById("vsub").textContent = DB.todos.filter(t=>!t.done).length+" offen";
+    const open = DB.todos.filter(t=>!t.done).sort(sortByDue);
+    const done = DB.todos.filter(t=>t.done);
+    vBody().innerHTML = tabs + (DB.todos.length? "" : empty("checkbox","Noch keine Aufgaben"))
+      + `<div class="list">${open.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`
+      + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`:"");
+    showFab(()=>openSheet(aufgabeEditor("todo")));
+  } else {
+    document.getElementById("vsub").textContent = DB.todoListen.length+" Listen";
+    vBody().innerHTML = tabs + (DB.todoListen.length
+      ? `<div class="list">${DB.todoListen.map(todoListCard).join("")}</div>`
+      : empty("lists","Noch keine Listen — unten mit + anlegen"));
+    showFab(newTodoListe);
+  }
+};
+window.todoTab = t => { TODO_TAB=t; RENDER.todos(); };
+function sortByDue(a,b){ if(!a.faellig)return 1; if(!b.faellig)return -1; return new Date(a.faellig)-new Date(b.faellig); }
+
+// ---- To-do-Listen (Checklisten) ----
+function todoListCard(l){
+  const off = l.punkte.filter(p=>!p.d).length, total = l.punkte.length;
+  return `<div class="card" onclick="openTodoListe('${l.id}')">
+    <div class="cttl">${esc(l.name)}</div>
+    <div class="cmeta"><span class="pill ${off===0&&total>0?'prio-niedrig':'who'}">${total-off} / ${total} erledigt</span></div>
+    ${l.autor?`<div class="byline">von ${esc(l.autor)}</div>`:""}</div>`;
+}
+function newTodoListe(){
+  openSheet(`<h3>Neue Liste</h3><div class="ml">z.B. „Gartenprojekt" oder „Umzug"</div>
+    <div class="fld"><label>Name der Liste</label><input id="tl_name" placeholder="Listenname"></div>
+    <button class="btn" onclick="createTodoListe()">Anlegen</button>`);
+}
+window.createTodoListe = () => {
+  const n=document.getElementById("tl_name").value.trim(); if(!n)return;
+  const l={id:uid(),name:n,punkte:[],autor:ME,createdAt:now(),updatedAt:now()};
+  DB.todoListen.push(l); save(); closeModal(); openTodoListe(l.id);
+};
+let TLDETAIL=null;
+window.openTodoListe = id => {
+  const l=DB.todoListen.find(x=>x.id===id); if(!l)return;
+  TLDETAIL=id; CURRENT="todos"; DETAIL_OPEN="todoliste";
+  document.getElementById("home").style.display="none";
+  document.getElementById("view").classList.add("active");
+  document.getElementById("fab").style.display="none";
+  setHead(l.name, l.punkte.filter(p=>!p.d).length+" offen", {label:"⋯", fn:()=>todoListeMenu(id)});
+  renderTodoListe(l);
+  showAddBar("Punkt hinzufügen…", t=>addTLPunkt(id,t));
+  window.scrollTo(0,0);
+};
+function renderTodoListe(l){
+  const off=l.punkte.filter(p=>!p.d), done=l.punkte.filter(p=>p.d);
+  vBody().innerHTML = (l.punkte.length? "" : empty("checklist","Noch keine Punkte"))
+    + `<div class="list">${off.map(p=>tlRow(l.id,p)).join("")}</div>`
+    + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(p=>tlRow(l.id,p)).join("")}</div>`:"");
+}
+function tlRow(lid,p){
+  return `<div class="row ${p.d?'done':''}"><div class="cb ${p.d?'on':''}" onclick="toggleTL('${lid}','${p.id}')">${p.d?'✓':''}</div>
+    <div class="tx">${esc(p.t)}</div><div class="del" onclick="delTL('${lid}','${p.id}')">×</div></div>`;
+}
+window.addTLPunkt = (lid,t) => { const l=DB.todoListen.find(x=>x.id===lid); l.punkte.push({id:uid(),t,d:false}); l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=l.punkte.filter(p=>!p.d).length+" offen"; };
+window.toggleTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); const p=l.punkte.find(x=>x.id===pid); p.d=!p.d; l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=l.punkte.filter(p=>!p.d).length+" offen"; };
+window.delTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); l.punkte=l.punkte.filter(x=>x.id!==pid); l.updatedAt=now(); save(); renderTodoListe(l); };
+window.todoListeMenu = id => {
+  const l=DB.todoListen.find(x=>x.id===id);
+  openSheet(`<h3>${esc(l.name)}</h3>
+    <div class="fld"><label>Liste umbenennen</label><input id="tl_rename" value="${esc(l.name)}"></div>
+    <button class="btn" onclick="renameTodoListe('${id}')">Speichern</button>
+    <button class="btn ghost" onclick="resetTodoListe('${id}')">Alle Haken zurücksetzen</button>
+    <button class="btn danger" onclick="delTodoListe('${id}')">Liste löschen</button>`);
+};
+window.renameTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.name=document.getElementById("tl_rename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
+window.resetTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.punkte.forEach(p=>p.d=false); l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
+window.delTodoListe = id => { if(confirm("Liste löschen?")){ DB.todoListen=DB.todoListen.filter(x=>x.id!==id); save(); closeModal(); TODO_TAB="listen"; open_("todos"); } };
+
+// ---- Reparaturen ----
+RENDER.reparaturen = () => {
+  setHead("Reparaturen", DB.reparaturen.filter(r=>!r.done).length+" offen");
+  const open = DB.reparaturen.filter(r=>!r.done).sort(sortByDue);
+  const done = DB.reparaturen.filter(r=>r.done);
+  vBody().innerHTML = (DB.reparaturen.length? "" : empty("tool","Nichts zu reparieren"))
+    + `<div class="list">${open.map(e=>aufgabeKarte(e,"rep")).join("")}</div>`
+    + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(e=>aufgabeKarte(e,"rep")).join("")}</div>`:"");
+  showFab(()=>openSheet(aufgabeEditor("rep")));
+};
+
+// ============================================================
+//  Einkaufslisten — mehrere Läden/Listen
+// ============================================================
+let AKT_LISTE = null;  // aktuell geöffnete Liste-ID
+
+RENDER.einkauf = () => {
+  if(!AKT_LISTE || !DB.listen.find(l=>l.id===AKT_LISTE)) AKT_LISTE = DB.listen[0] ? DB.listen[0].id : null;
+  const liste = DB.listen.find(l=>l.id===AKT_LISTE);
+  setHead("Einkaufslisten", DB.listen.length+" Listen", {label:"+ Liste", fn:newListe});
+  if(!liste){ vBody().innerHTML = empty("cart","Noch keine Liste"); document.getElementById("addbar").style.display="none"; return; }
+  const offen = liste.artikel.filter(a=>!a.d), erledigt = liste.artikel.filter(a=>a.d);
+  vBody().innerHTML =
+    `<div class="chips" style="padding-top:0">${DB.listen.map(l=>`<div class="chip ${l.id===AKT_LISTE?'on':''}" onclick="selListe('${l.id}')">${esc(l.name)}</div>`).join("")}</div>`
+    + `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
+        <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="renameListe('${liste.id}')">Liste umbenennen</span></div>`
+    + `<div class="chips">${DB.einkaufStamm.map(s=>`<div class="chip" onclick="addEin('${esc(s)}')">${esc(s)}</div>`).join("")}</div>`
+    + (liste.artikel.length? `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">${esc(liste.name)}
+        <span style="text-transform:none;font-weight:600;color:var(--danger)" onclick="clearListe('${liste.id}')">Leeren</span></div>
+       <div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>` : empty("cart","Liste ist leer"));
+  showAddBar("Eigener Artikel…", t=>addEin(t));
+};
+const einRow = a => `<div class="row ${a.d?'done':''}">
+  <div class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')">${a.d?'✓':''}</div>
+  <div class="tx">${esc(a.tx)}</div>
+  <div class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')">${a.menge?esc(a.menge):'+ Menge'}</div>
+  <div class="del" onclick="delEin('${a.id}')">×</div></div>`;
+const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
+window.selListe = id => { AKT_LISTE=id; RENDER.einkauf(); };
+window.addEin = tx => { const l=aktListe(); if(l.artikel.some(a=>a.tx.toLowerCase()===tx.toLowerCase()&&!a.d))return;
+  l.artikel.push({id:uid(),tx,menge:"",d:false,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.toggleEin = id => { const l=aktListe(); const a=l.artikel.find(x=>x.id===id); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEin = id => { const l=aktListe(); l.artikel=l.artikel.filter(x=>x.id!==id); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.clearListe = id => { if(confirm("Liste leeren?")){ const l=DB.listen.find(x=>x.id===id); l.artikel=[]; l.updatedAt=now(); save(); RENDER.einkauf(); } };
+window.newListe = () => openSheet(`<h3>Neue Einkaufsliste</h3>
+  <div class="ml">z.B. ein Laden wie „Aldi" oder „Baumarkt"</div>
+  <div class="fld"><input id="listename" placeholder="Name der Liste"></div>
+  <button class="btn" onclick="createListe()">Anlegen</button>`);
+window.createListe = () => { const n=document.getElementById("listename").value.trim(); if(!n)return;
+  const l={id:uid(),name:n,artikel:[],createdAt:now(),updatedAt:now()}; DB.listen.push(l); AKT_LISTE=l.id; save(); closeModal(); RENDER.einkauf(); };
+window.renameListe = id => { const l=DB.listen.find(x=>x.id===id); openSheet(`<h3>Liste umbenennen</h3>
+  <div class="fld"><input id="listrename" value="${esc(l.name)}"></div>
+  <button class="btn" onclick="doRenameListe('${id}')">Speichern</button>
+  ${DB.listen.length>1?`<button class="btn danger" onclick="delListe('${id}')">Liste löschen</button>`:""}`); };
+window.doRenameListe = id => { const l=DB.listen.find(x=>x.id===id); l.name=document.getElementById("listrename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); RENDER.einkauf(); };
+window.delListe = id => { if(confirm("Liste wirklich löschen?")){ DB.listen=DB.listen.filter(x=>x.id!==id); AKT_LISTE=DB.listen[0]?DB.listen[0].id:null; save(); closeModal(); RENDER.einkauf(); } };
+window.editMenge = id => { const l=aktListe(); openSheet(mengeEditor(l.artikel.find(x=>x.id===id))); };
+function mengeEditor(a){
+  setTimeout(()=>{const f=document.getElementById("mengeinput");if(f){f.focus();f.select();}},50);
+  const presets=["1","2","3","250 g","500 g","1 kg","500 ml","1 l","6 Stück","1 Pck"];
+  return `<h3>Menge — ${esc(a.tx)}</h3><div class="ml">Stückzahl, Gewicht oder Volumen</div>
+    <div class="fld"><input id="mengeinput" value="${esc(a.menge||"")}" placeholder="z.B. 2 · 500 g · 1 l" enterkeyhint="done"></div>
+    <div class="chips" style="padding:0 0 14px">${presets.map(p=>`<div class="chip" onclick="document.getElementById('mengeinput').value='${p}'">${p}</div>`).join("")}</div>
+    <button class="btn" onclick="saveMenge('${a.id}')">Übernehmen</button>
+    ${a.menge?`<button class="btn ghost" onclick="saveMenge('${a.id}',true)">Menge entfernen</button>`:""}`;
+}
+window.saveMenge = (id,clear) => { const l=aktListe(); const a=l.artikel.find(x=>x.id===id);
+  a.menge = clear?"":document.getElementById("mengeinput").value.trim(); a.updatedAt=now(); l.updatedAt=now(); save(); closeModal(); RENDER.einkauf(); };
+
+// ============================================================
+//  Geo-Hilfen: Adresse -> Koordinaten, Routing (kostenlos)
+// ============================================================
+// Google-Teilen-Links auflösen wir nicht serverseitig (CORS),
+// aber wir extrahieren Koordinaten, falls im Link enthalten,
+// sonst wird der Klartext an Nominatim geschickt.
+function parseGeo(input){
+  const s = (input||"").trim();
+  // @lat,lng  oder  /lat,lng  in Google-Links
+  let m = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || s.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
+       || s.match(/(-?\d+\.\d{3,}),\s*(-?\d+\.\d{3,})/);
+  if(m) return { lat:parseFloat(m[1]), lon:parseFloat(m[2]), label:null, raw:s };
+  return { lat:null, lon:null, label:s, raw:s };
+}
+async function geocode(text){
+  // bereits Koordinaten?
+  const g = parseGeo(text);
+  if(g.lat!=null) return { lat:g.lat, lon:g.lon, name:text };
+  // Nominatim (OpenStreetMap) – kostenlos. Sprache als URL-Parameter,
+  // KEIN Custom-Header (würde CORS-Preflight auslösen und scheitern).
+  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q="+encodeURIComponent(g.label);
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("Geocoding fehlgeschlagen");
+  const j = await r.json();
+  if(!j.length) throw new Error("Adresse nicht gefunden");
+  return { lat:parseFloat(j[0].lat), lon:parseFloat(j[0].lon), name:j[0].display_name.split(",")[0] };
+}
+// Routing zwischen zwei Punkten. Standard: OSRM (kostenlos, PKW).
+// Optional: OpenRouteService mit Schlüssel -> Wohnmobil-Profil (hgv).
+async function routeBetween(a, b){
+  const orsKey = localStorage.getItem("familienapp.orsKey");
+  if(orsKey){
+    const url = "https://api.openrouteservice.org/v2/directions/driving-hgv";
+    const r = await fetch(url, { method:"POST",
+      headers:{ "Authorization":orsKey, "Content-Type":"application/json" },
+      body: JSON.stringify({ coordinates:[[a.lon,a.lat],[b.lon,b.lat]] }) });
+    if(r.ok){ const j=await r.json(); const sum=j.routes[0].summary;
+      return { km: sum.distance/1000, min: sum.duration/60, profil:"Wohnmobil" }; }
+  }
+  // OSRM-Demo (PKW)
+  const url = `https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("Route fehlgeschlagen");
+  const j = await r.json();
+  if(!j.routes || !j.routes.length) throw new Error("keine Route");
+  return { km: j.routes[0].distance/1000, min: j.routes[0].duration/60, profil:"PKW" };
+}
+function fmtDauer(min){ const h=Math.floor(min/60), m=Math.round(min%60); return h?`${h} h ${m} min`:`${m} min`; }
+
+// ============================================================
+//  Urlaubsplanung
+// ============================================================
+RENDER.urlaub = () => {
+  setHead("Urlaubsplanung", DB.urlaub.length+" Reisen", {label:"⚙︎", fn:routingSettings});
+  const sorted = [...DB.urlaub].sort((a,b)=>{ if(!a.von)return 1; if(!b.von)return -1; return new Date(a.von)-new Date(b.von); });
+  vBody().innerHTML = DB.urlaub.length
+    ? `<div class="list">${sorted.map(reiseKarte).join("")}</div>`
+    : empty("plane","Noch keine Reise geplant");
+  showFab(()=>openReise(null));
+};
+function reiseKarte(u){
+  const d = daysUntil(u.von);
+  const badge = (d!==null && d>=0) ? `<span class="pill who">${d===0?"heute":"in "+d+" Tagen"}</span>` : "";
+  const orte = (u.staedte||[]).map(s=>s.name).join(" · ");
+  return `<div class="card" onclick="openReiseDetail('${u.id}')">
+    <div class="cttl">${esc(u.titel||"Reise")}</div>
+    <div class="cmeta">
+      <span class="pill cat">${u.art==="tour"?"Tour":"Trip"}</span>
+      ${u.unterkunft==="wohnmobil"?'<span class="pill cat">Wohnmobil</span>':'<span class="pill cat">Hotel</span>'}
+      ${badge}</div>
+    ${(u.von||u.bis)?`<div class="cdesc">${fmtDate(u.von)}${u.bis?" – "+fmtDate(u.bis):""}</div>`:""}
+    ${orte?`<div class="cdesc">${esc(orte)}</div>`:""}
+    ${u.autor?`<div class="byline">angelegt von ${esc(u.autor)}</div>`:""}
+  </div>`;
+}
+
+let REISE = null;
+window.openReise = id => {
+  const r = id ? DB.urlaub.find(x=>x.id===id) : null;
+  REISE = r ? JSON.parse(JSON.stringify(r)) : {
+    id:uid(), art:"trip", titel:"", von:"", bis:"", unterkunft:"hotel",
+    staedte:[], packliste:[], hinweise:"", neu:true
+  };
+  if(!REISE.staedte) REISE.staedte = [];
+  reiseSheet();
+};
+// Grunddaten-Formular (anlegen/bearbeiten)
+function reiseSheet(){
+  const r = REISE;
+  openSheet(`<h3>${r.neu?"Neue Reise":"Reise bearbeiten"}</h3>
+    <div class="fld"><label>Art</label>
+      <div class="seg"><div class="opt ${r.art==='trip'?'on':''}" onclick="reiseSet('art','trip')">Trip</div>
+      <div class="opt ${r.art==='tour'?'on':''}" onclick="reiseSet('art','tour')">Tour</div></div></div>
+    <div class="fld"><label>Titel</label><input id="r_titel" value="${esc(r.titel)}" placeholder="z.B. Sommer Italien"></div>
+    <div class="fld" style="display:flex;gap:10px">
+      <div style="flex:1"><label>Von</label><input id="r_von" type="date" value="${r.von||""}"></div>
+      <div style="flex:1"><label>Bis</label><input id="r_bis" type="date" value="${r.bis||""}"></div></div>
+    <div class="fld"><label>Unterkunftstyp</label>
+      <div class="seg"><div class="opt ${r.unterkunft==='wohnmobil'?'on':''}" onclick="reiseSet('unterkunft','wohnmobil')">Wohnmobil</div>
+      <div class="opt ${r.unterkunft==='hotel'?'on':''}" onclick="reiseSet('unterkunft','hotel')">Hotel</div></div></div>
+    <div class="fld"><label>Wichtige Hinweise</label>
+      <textarea id="r_hinweise" rows="2" placeholder="z.B. Vignette, Reisepass">${esc(r.hinweise||"")}</textarea></div>
+    <button class="btn" onclick="saveReiseBasis()">${r.neu?"Anlegen & Städte hinzufügen":"Speichern"}</button>`);
+}
+window.reiseSet = (k,v) => {
+  // aktuelle Eingaben sichern, bevor neu gerendert wird
+  const t=document.getElementById("r_titel"); if(t)REISE.titel=t.value;
+  const vo=document.getElementById("r_von"); if(vo)REISE.von=vo.value;
+  const bi=document.getElementById("r_bis"); if(bi)REISE.bis=bi.value;
+  const hi=document.getElementById("r_hinweise"); if(hi)REISE.hinweise=hi.value;
+  REISE[k]=v; reiseSheet();
+};
+window.saveReiseBasis = () => {
+  REISE.titel = document.getElementById("r_titel").value.trim() || "Reise";
+  REISE.von = document.getElementById("r_von").value;
+  REISE.bis = document.getElementById("r_bis").value;
+  REISE.hinweise = document.getElementById("r_hinweise").value.trim();
+  REISE.updatedAt = now();
+  if(REISE.neu){
+    delete REISE.neu; REISE.autor=ME; REISE.createdAt=now();
+    if(!REISE.packliste.length)
+      REISE.packliste = ["Reisepass / Ausweis","Ladekabel","Medikamente","Reiseapotheke","Zahnbürste"].map(t=>({id:uid(),t,d:false}));
+    DB.urlaub.push(REISE);
+  } else { const ex=DB.urlaub.find(x=>x.id===REISE.id); Object.assign(ex,REISE); }
+  save(); closeModal(); openReiseDetail(REISE.id);
+};
+
+// ---- Reise-Detailansicht (Städte verwalten) ----
+window.openReiseDetail = id => {
+  const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
+  if(!r.staedte) r.staedte=[];
+  CURRENT = "urlaub";
+  DETAIL_OPEN = id;
+  document.getElementById("home").style.display="none";
+  document.getElementById("view").classList.add("active");
+  document.getElementById("addbar").style.display="none";
+  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}`, {label:"Bearb.", fn:()=>openReise(id)});
+  renderReiseDetail(r);
+  showFab(()=>addCity(id));
+  window.scrollTo(0,0);
+  autoCalcLegs(id);   // fehlende Etappen automatisch berechnen
+};
+function renderReiseDetail(r){
+  const body = vBody();
+  let html = "";
+  if(r.hinweise) html += `<div class="card" style="margin:0 16px 12px"><div class="cdesc" style="margin:0">⚠︎ ${esc(r.hinweise)}</div></div>`;
+  // Packliste-Zugang
+  html += `<div style="padding:0 16px 12px"><button class="btn ghost" onclick="openPackliste('${r.id}')">Packliste öffnen (${(r.packliste||[]).filter(p=>!p.d).length} offen)</button></div>`;
+  if(!r.staedte.length){
+    html += empty("pin","Noch keine Stadt — unten mit + hinzufügen");
+  } else {
+    html += `<div class="list" id="cityList">`;
+    r.staedte.forEach((c,i)=>{
+      html += renderCity(r,c,i);
+      if(i < r.staedte.length-1) html += renderLeg(r,i);
+    });
+    html += `</div>`;
+  }
+  body.innerHTML = html;
+  if(r.art==="tour") enableCityDrag(r);
+}
+function renderCity(r,c,i){
+  const stell=(c.stellplaetze||[]), seh=(c.sehens||[]), rest=(c.restaurants||[]);
+  const total=stell.length+seh.length+rest.length;
+  const utype = r.unterkunft==="wohnmobil" ? "Stellplätze" : "Hotels";
+  // Was öffnet die Karte? Eigener Maps-Link, sonst Koordinaten, sonst Name.
+  const mapHref = c.link ? c.link : (c.lat!=null ? mapsLink(c.lat+","+c.lon) : mapsLink(c.name));
+  return `<div class="city ${c._open?'':'collapsed'}" data-i="${i}">
+    <div class="chead">
+      ${r.art==="tour"?`<div class="cdrag" data-drag="${i}">⠿</div>`:""}
+      <div class="cnum">${i+1}</div>
+      <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}</div>
+      <div class="cdel" onclick="event.stopPropagation();delCity('${r.id}',${i})">×</div>
+    </div>
+    <div class="cbody">
+      <div class="city-actions">
+        <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} Karte öffnen</a>
+        <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
+      </div>
+      ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
+      ${poiGroup(r.id,i,"stellplaetze",utype,stell)}
+      ${poiGroup(r.id,i,"sehens","Sehenswürdigkeiten",seh)}
+      ${poiGroup(r.id,i,"restaurants","Restaurants",rest)}
+    </div></div>`;
+}
+function poiGroup(rid,ci,key,titel,arr){
+  return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
+    ${arr.length? arr.map((p,pi)=>`<div class="poi"><div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
+      ${(p.adresse||p.lat!=null)?`<a class="maplink" href="${mapsLink(p.adresse||((p.lat)+","+(p.lon)))}" target="_blank">${ICON.pin} Karte</a>`:""}</div>
+      <div class="pdel" onclick="delPoi('${rid}',${ci},'${key}',${pi})">×</div></div>`).join("")
+      : `<div style="color:var(--ink2);font-size:12.5px">—</div>`}</div>`;
+}
+function renderLeg(r,i){
+  const a=r.staedte[i], b=r.staedte[i+1];
+  r._legs = r._legs||{};
+  const key = a.lat+","+a.lon+">"+b.lat+","+b.lon;
+  const cached = r._legs[key];
+  let info;
+  if(a.lat==null||b.lat==null) info = `<span class="linfo">Etappe nicht berechenbar – Koordinaten fehlen</span>`;
+  else if(cached==="err") info = `<span class="linfo" id="leg_${i}" onclick="calcLeg('${r.id}',${i})" style="cursor:pointer;color:var(--accent)">Berechnung fehlgeschlagen – erneut ›</span>`;
+  else if(cached) info = `<span class="linfo">${ICON.car} ${cached.km.toFixed(0)} km · ${fmtDauer(cached.min)} <small>(${cached.profil})</small></span>`;
+  else info = `<span class="linfo" id="leg_${i}" style="color:var(--ink2)">berechne…</span>`;
+  return `<div class="leg"><div class="lline"></div>${info}<div class="lline"></div></div>`;
+}
+// Alle noch nicht berechneten Etappen automatisch nacheinander rechnen
+window.autoCalcLegs = async rid => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r||!r.staedte)return;
+  for(let i=0;i<r.staedte.length-1;i++){
+    const a=r.staedte[i], b=r.staedte[i+1];
+    if(a.lat==null||b.lat==null) continue;
+    const key=a.lat+","+a.lon+">"+b.lat+","+b.lon;
+    if(r._legs && r._legs[key] && r._legs[key]!=="err") continue;
+    try{
+      const res=await routeBetween(a,b);
+      r._legs=r._legs||{}; r._legs[key]=res;
+    }catch(e){ r._legs=r._legs||{}; r._legs[key]="err"; }
+    if(CURRENT==="urlaub" && DETAIL_OPEN===rid) renderReiseDetail(r);
+  }
+};
+window.calcLeg = async (rid,i) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const a=r.staedte[i], b=r.staedte[i+1];
+  const el=document.getElementById("leg_"+i); if(el)el.textContent="berechne…";
+  const key=a.lat+","+a.lon+">"+b.lat+","+b.lon;
+  try{
+    const res = await routeBetween(a,b);
+    r._legs = r._legs||{}; r._legs[key] = res;
+    renderReiseDetail(r);
+  }catch(e){ r._legs=r._legs||{}; r._legs[key]="err"; renderReiseDetail(r); }
+};
+
+window.toggleCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[i]._open=!r.staedte[i]._open; renderReiseDetail(r); };
+window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(confirm("Stadt entfernen?")){ r.staedte.splice(i,1); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); } };
+
+// Stadt hinzufügen – kombiniertes Formular
+window.addCity = rid => { editCityForm(rid, null); };
+window.editCity = (rid, i) => { editCityForm(rid, i); };
+function editCityForm(rid, i){
+  const r = DB.urlaub.find(x=>x.id===rid);
+  const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null };
+  window._cityCtx = { rid, i };
+  const hasCoords = c.lat!=null;
+  openSheet(`<h3>${i!=null?"Stadt bearbeiten":"Stadt / Ort hinzufügen"}</h3>
+    <div class="ml">Stadtname genügt – Koordinaten werden gesucht. Maps-Link ist optional, nur zum Öffnen.</div>
+    <div class="fld"><label>Stadt / Ort</label><input id="c_name" value="${esc(c.name)}" placeholder="z.B. München"></div>
+    <div class="fld" style="display:flex;gap:10px">
+      <div style="flex:1"><label>PLZ (optional)</label><input id="c_plz" value="${esc(c.plz||"")}" placeholder="80331"></div>
+      <div style="flex:2"><label>Land (optional)</label><input id="c_land" value="${esc(c.land||"")}" placeholder="Deutschland"></div></div>
+    <div class="fld"><label>Google-Maps-Link (optional)</label>
+      <input id="c_link" value="${esc(c.link||"")}" placeholder="https://maps.app.goo.gl/…"></div>
+    <div class="geo-status" id="c_geo">${hasCoords?"✓ Koordinaten vorhanden ("+c.lat.toFixed(3)+", "+c.lon.toFixed(3)+")":"Noch keine Koordinaten"}</div>
+    <button class="btn" onclick="saveCity()">${i!=null?"Speichern":"Hinzufügen"}</button>`);
+}
+window.saveCity = async () => {
+  const { rid, i } = window._cityCtx;
+  const r = DB.urlaub.find(x=>x.id===rid);
+  const name = document.getElementById("c_name").value.trim();
+  const plz  = document.getElementById("c_plz").value.trim();
+  const land = document.getElementById("c_land").value.trim();
+  const link = document.getElementById("c_link").value.trim();
+  if(!name){ document.getElementById("c_geo").textContent="Bitte einen Stadtnamen eingeben."; return; }
+  const st = document.getElementById("c_geo"); st.textContent="Suche Koordinaten…";
+  // Suchtext für Geocoding: Name + PLZ + Land
+  const query = [name, plz, land].filter(Boolean).join(", ");
+  let lat=null, lon=null;
+  try{ const geo = await geocode(query); lat=geo.lat; lon=geo.lon; }
+  catch(e){ /* offline / file:// – ohne Koordinaten speichern */ }
+  if(i!=null){
+    const c = r.staedte[i];
+    c.name=name; c.plz=plz; c.land=land; c.link=link;
+    if(lat!=null){ c.lat=lat; c.lon=lon; }
+  } else {
+    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon,
+      stellplaetze:[], sehens:[], restaurants:[], _open:true });
+  }
+  r._legs = {};            // Etappen neu berechnen lassen
+  r.updatedAt=now(); save(); closeModal();
+  openReiseDetail(rid);
+  // Etappen automatisch berechnen, sobald Koordinaten da sind
+  autoCalcLegs(rid);
+};
+
+// POI hinzufügen (Stellplatz / Sehenswürdigkeit / Restaurant)
+window.addPoi = (rid,ci,key,titel) => {
+  window._poiCtx = {rid,ci,key};
+  openSheet(`<h3>${esc(titel.replace(/e$|n$/,""))} hinzufügen</h3>
+    <div class="ml">Name und optional Adresse oder Maps-Link</div>
+    <div class="fld"><label>Name</label><input id="poi_name" placeholder="z.B. Kolosseum"></div>
+    <div class="fld"><label>Adresse / Maps-Link (optional)</label>
+      <textarea id="poi_addr" rows="2" placeholder="Adresse oder Link"></textarea></div>
+    <button class="btn" onclick="doAddPoi()">Hinzufügen</button>`);
+};
+window.doAddPoi = () => {
+  const {rid,ci,key}=window._poiCtx;
+  const name=document.getElementById("poi_name").value.trim(); if(!name)return;
+  const addr=document.getElementById("poi_addr").value.trim();
+  const g=parseGeo(addr);
+  const r=DB.urlaub.find(x=>x.id===rid);
+  r.staedte[ci][key]=r.staedte[ci][key]||[];
+  r.staedte[ci][key].push({ name, adresse:g.label||addr, lat:g.lat, lon:g.lon });
+  r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
+
+// Drag&Drop Sortierung (nur Tour)
+function enableCityDrag(r){
+  const list=document.getElementById("cityList"); if(!list)return;
+  let dragIdx=null;
+  list.querySelectorAll(".cdrag").forEach(h=>{
+    const card=h.closest(".city");
+    h.addEventListener("pointerdown", e=>{
+      e.preventDefault(); dragIdx=+h.dataset.drag; card.classList.add("dragging");
+      const move=ev=>{
+        const el=document.elementFromPoint(ev.clientX,ev.clientY);
+        const tc=el&&el.closest(".city"); list.querySelectorAll(".city").forEach(c=>c.classList.remove("drop-target"));
+        if(tc&&tc!==card) tc.classList.add("drop-target");
+      };
+      const up=ev=>{
+        document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up);
+        card.classList.remove("dragging");
+        const el=document.elementFromPoint(ev.clientX,ev.clientY);
+        const tc=el&&el.closest(".city");
+        list.querySelectorAll(".city").forEach(c=>c.classList.remove("drop-target"));
+        if(tc&&tc!==card){ const to=+tc.dataset.i;
+          const [m]=r.staedte.splice(dragIdx,1); r.staedte.splice(to,0,m);
+          r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); }
+      };
+      document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+    });
+  });
+}
+
+// Routing-Einstellungen (ORS-Schlüssel für Wohnmobil-Profil)
+window.routingSettings = () => {
+  const cur = localStorage.getItem("familienapp.orsKey")||"";
+  openSheet(`<h3>Routing-Einstellungen</h3>
+    <div class="ml">Standard: kostenlose PKW-Route (ohne Anmeldung). Für echte Wohnmobil-/LKW-Routen einen kostenlosen Schlüssel von openrouteservice.org eintragen.</div>
+    <div class="fld"><label>OpenRouteService API-Schlüssel (optional)</label>
+      <input id="orsKey" value="${esc(cur)}" placeholder="ein­fügen für Wohnmobil-Profil"></div>
+    <button class="btn" onclick="saveOrsKey()">Speichern</button>
+    ${cur?`<button class="btn ghost" onclick="localStorage.removeItem('familienapp.orsKey');closeModal()">Schlüssel entfernen (PKW nutzen)</button>`:""}`);
+};
+window.saveOrsKey = () => { const k=document.getElementById("orsKey").value.trim();
+  if(k)localStorage.setItem("familienapp.orsKey",k); else localStorage.removeItem("familienapp.orsKey");
+  closeModal(); };
+window.delReise = id => { if(confirm("Reise löschen?")){ DB.urlaub=DB.urlaub.filter(x=>x.id!==id); save(); closeModal(); goHome(); open_("urlaub"); } };
+
+
+// ---- Packliste pro Reise ----
+window.openPackliste = id => {
+  const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
+  r.packliste = r.packliste || [];
+  const off = r.packliste.filter(p=>!p.d).length;
+  openSheet(`<h3>Packliste — ${esc(r.titel)}</h3><div class="ml">${off} von ${r.packliste.length} noch offen</div>
+    <div id="packlist">${packRows(r)}</div>
+    <div style="display:flex;gap:8px;margin:12px 0">
+      <input id="packnew" placeholder="Hinzufügen…" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px">
+      <button class="addbtn" style="position:static" onclick="addPack('${id}')">+</button></div>
+    <button class="btn ghost" onclick="closeModal()">Fertig</button>`);
+};
+function packRows(r){
+  return r.packliste.map(p=>`<div class="row ${p.d?'done':''}" style="margin-bottom:8px">
+    <div class="cb ${p.d?'on':''}" onclick="togglePack('${r.id}','${p.id}')">${p.d?'✓':''}</div>
+    <div class="tx">${esc(p.t)}</div><div class="del" onclick="delPack('${r.id}','${p.id}')">×</div></div>`).join("");
+}
+window.addPack = id => { const r=DB.urlaub.find(x=>x.id===id); const inp=document.getElementById("packnew");
+  if(inp.value.trim()){ r.packliste.push({id:uid(),t:inp.value.trim(),d:false}); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); inp.value=""; } };
+window.togglePack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); const p=r.packliste.find(x=>x.id===pid); p.d=!p.d; r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
+window.delPack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); r.packliste=r.packliste.filter(x=>x.id!==pid); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
+
+// ============================================================
+//  Kellerinventar
+// ============================================================
+RENDER.keller = () => {
+  setHead("Kellerinventar", DB.keller.length+" Kisten", {label:"+ Kiste", fn:newBox});
+  vBody().innerHTML =
+    `<div class="list" style="margin-bottom:8px"><div class="row" style="padding:4px 15px">
+      <div style="color:var(--ink2)">${ICON.search}</div>
+      <input id="kellersearch" placeholder="Gegenstand suchen…" oninput="searchKeller(this.value)"
+        style="border:none;background:transparent;color:var(--ink);font-size:15px;flex:1;outline:none;padding:9px 0"></div></div>
+    <div id="kellerlist"></div>`;
+  renderBoxes(DB.keller);
+  document.getElementById("addbar").style.display="none";
+};
+function renderBoxes(boxes){
+  const el=document.getElementById("kellerlist");
+  if(!boxes.length){ el.innerHTML=empty("box","Keine Kisten — lege die erste an"); return; }
+  el.innerHTML=`<div class="list">${boxes.map(b=>`
+    <div class="boxcard" onclick="openBox('${b.id}')">
+      <div class="bn">${esc(b.name)}</div>
+      <div class="bl">${b.standort?esc(b.standort)+" · ":""}${b.items.length} Gegenstände</div>
+      ${b.items.length?`<div class="items">${b.items.map(esc).join(" · ")}</div>`:""}
+      <div class="qr">${ICON.printer} QR-Etikett</div></div>`).join("")}</div>`;
+}
+window.searchKeller = q => { q=q.trim().toLowerCase();
+  if(!q){ renderBoxes(DB.keller); return; }
+  renderBoxes(DB.keller.filter(b=>b.name.toLowerCase().includes(q)||b.items.some(i=>i.toLowerCase().includes(q)))); };
+function newBox(){ window._editBox={id:uid(),name:"",standort:"",items:[],neu:true}; openSheet(boxEditor()); }
+window.openBox = id => { window._editBox=JSON.parse(JSON.stringify(DB.keller.find(x=>x.id===id))); openSheet(boxDetail()); };
+
+function boxEditor(){
+  const b=window._editBox; setTimeout(()=>renderItemList(),0);
+  return `<h3>${b.neu?"Neue Kiste":"Kiste bearbeiten"}</h3><div class="ml">QR-Etikett wird automatisch erzeugt</div>
+    <div class="fld"><label>Kistenname</label><input id="bxname" value="${esc(b.name)}" placeholder="z.B. Bücher"></div>
+    <div class="fld"><label>Standort</label><input id="bxort" value="${esc(b.standort)}" placeholder="z.B. Regal 2"></div>
+    <div class="fld"><label>Inhalt</label><div id="itemlist"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="newitem" placeholder="Gegenstand…" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px">
+        <button class="addbtn" style="position:static" onclick="addItem()">+</button></div></div>
+    <button class="btn" onclick="saveBox()">Speichern</button>`;
+}
+function renderItemList(){ const el=document.getElementById("itemlist"); if(!el)return;
+  const b=window._editBox;
+  el.innerHTML = b.items.length? b.items.map((it,i)=>`<div class="itemrow"><div class="it">${esc(it)}</div><div class="del" onclick="rmItem(${i})">×</div></div>`).join("")
+    : `<div style="color:var(--ink2);font-size:13px;padding:6px 0">Noch leer</div>`; }
+window.addItem=()=>{const inp=document.getElementById("newitem");if(inp.value.trim()){window._editBox.items.push(inp.value.trim());inp.value="";renderItemList();}};
+window.rmItem=i=>{window._editBox.items.splice(i,1);renderItemList();};
+window.saveBox=()=>{ const b=window._editBox;
+  b.name=document.getElementById("bxname").value.trim()||"Kiste";
+  b.standort=document.getElementById("bxort").value.trim();
+  if(b.neu){ delete b.neu; b.createdAt=now(); b.updatedAt=now(); DB.keller.push(b); }
+  else { const ex=DB.keller.find(x=>x.id===b.id); Object.assign(ex,b,{updatedAt:now()}); }
+  save(); closeModal(); RENDER.keller(); };
+
+function boxDetail(){
+  const b=window._editBox;
+  setTimeout(()=>{
+    const qd=`familienapp://keller/${b.id}`;
+    const qb=document.getElementById("qrbox"); if(qb){qb.innerHTML="";new QRCode(qb,{text:qd,width:170,height:170,correctLevel:QRCode.CorrectLevel.M});}
+    const lq=document.getElementById("lqr"); if(lq){lq.innerHTML="";new QRCode(lq,{text:qd,width:48,height:48,correctLevel:QRCode.CorrectLevel.M});}
+  },30);
+  const stich=b.items.slice(0,3).join(" · ");
+  return `<h3>${esc(b.name)}</h3><div class="ml">${b.standort?esc(b.standort)+" · ":""}${b.items.length} Gegenstände</div>
+    <div id="qrbox"></div>
+    <div class="ml" style="margin-bottom:4px">Etikett-Vorschau (50 × 20 mm)</div>
+    <div class="label-preview"><div class="lqr" id="lqr"></div>
+      <div class="ltx"><div class="lh">${esc(b.name)}</div><div class="ls">${esc(stich)||"—"}</div></div></div>
+    <button class="btn" onclick="printLabel('${b.id}')">${ICON.printer} Etikett als PDF</button>
+    <button class="btn ghost" onclick="window._editBox=JSON.parse(JSON.stringify(DB.keller.find(x=>x.id==='${b.id}')));openSheet(boxEditor())">Bearbeiten</button>
+    <div class="ml" style="margin-top:14px">Inhalt</div>
+    ${b.items.length? b.items.map(it=>`<div class="itemrow"><div class="it">${esc(it)}</div></div>`).join("") : '<div style="color:var(--ink2);font-size:13px">Leer</div>'}`;
+}
+window.printLabel = id => {
+  const b=DB.keller.find(x=>x.id===id); const stich=b.items.slice(0,3).join(" · ");
+  const tmp=document.createElement("div");
+  new QRCode(tmp,{text:`familienapp://keller/${b.id}`,width:140,height:140,correctLevel:QRCode.CorrectLevel.M});
+  setTimeout(()=>{
+    const img=tmp.querySelector("img")||tmp.querySelector("canvas");
+    const src=img.tagName==="IMG"?img.src:img.toDataURL();
+    const w=window.open("","_blank");
+    if(!w){ alert("Bitte Pop-ups erlauben, um das Etikett zu drucken."); return; }
+    w.document.write(`<!DOCTYPE html><html><head><title>${esc(b.name)}</title>
+      <style>@page{size:50mm 20mm;margin:0}body{margin:0;width:50mm;height:20mm;display:flex;align-items:center;gap:1.5mm;padding:1.5mm;font-family:-apple-system,sans-serif;box-sizing:border-box}
+      img{width:17mm;height:17mm}.t .h{font-weight:700;font-size:3.4mm;line-height:1.1}.t .s{font-size:2.3mm;color:#444;margin-top:.8mm;line-height:1.15}</style></head>
+      <body><img src="${src}"><div class="t"><div class="h">${esc(b.name)}</div><div class="s">${esc(stich)}</div></div>
+      <script>setTimeout(()=>window.print(),350)<\/script></body></html>`);
+    w.document.close();
+  },150);
+};
+
+// ============================================================
+//  Wohnmobil-Checkliste
+// ============================================================
+RENDER.wohnmobil = () => {
+  const total=wmTotal(), checked=Object.values(DB.wohnmobilCheck).filter(Boolean).length;
+  setHead("Wohnmobil-Checkliste", checked+" / "+total+" erledigt", {label:"↺ Reset", fn:()=>{DB.wohnmobilCheck={};save();RENDER.wohnmobil();}});
+  vBody().innerHTML = DB.wohnmobil.map((k,ki)=>`
+    <div class="section-label">${esc(k.kat)}</div>
+    <div class="list">${k.pkte.map((p,pi)=>{const key=ki+"_"+pi,on=!!DB.wohnmobilCheck[key];
+      return `<div class="row ${on?'done':''}"><div class="cb ${on?'on':''}" onclick="wmToggle('${key}')">${on?'✓':''}</div><div class="tx">${esc(p)}</div></div>`;
+    }).join("")}</div>`).join("");
+  document.getElementById("addbar").style.display="none";
+};
+window.wmToggle = key => { DB.wohnmobilCheck[key]=!DB.wohnmobilCheck[key]; save();
+  const total=wmTotal(),checked=Object.values(DB.wohnmobilCheck).filter(Boolean).length;
+  document.getElementById("vsub").textContent=checked+" / "+total+" erledigt"; RENDER.wohnmobil(); };
+
+// ============================================================
+//  Ideen mit Kategorien
+// ============================================================
+let IDEE_FILTER = "alle";
+RENDER.ideen = () => {
+  setHead("Ideen", DB.ideen.length+" Ideen", {label:"+ Idee", fn:newIdea});
+  const kats = ["alle", ...DB.ideenKategorien];
+  const liste = IDEE_FILTER==="alle" ? DB.ideen : DB.ideen.filter(i=>i.kategorie===IDEE_FILTER);
+  vBody().innerHTML =
+    `<div class="chips">${kats.map(k=>`<div class="chip ${k===IDEE_FILTER?'on':''}" onclick="ideeFilter('${esc(k)}')">${k==='alle'?'Alle':esc(k)}</div>`).join("")}</div>`
+    + (liste.length? `<div class="list">${liste.map(ideaKarte).join("")}</div>` : empty("bulb","Noch keine Ideen"));
+  document.getElementById("addbar").style.display="none";
+};
+window.ideeFilter = k => { IDEE_FILTER=k; RENDER.ideen(); };
+function ideaKarte(i){
+  return `<div class="idea"><div class="cdel" onclick="delIdea('${i.id}')">×</div>
+    ${i.kategorie?`<span class="pill cat">${esc(i.kategorie)}</span>`:""}
+    <div class="ih" style="margin-top:6px">${esc(i.titel)}</div>
+    ${i.text?`<div class="id">${esc(i.text)}</div>`:""}
+    ${i.url?`<a class="lnk" href="${esc(i.url)}" target="_blank">${ICON.link} Öffnen</a>`:""}
+    ${i.tags&&i.tags.length?`<div class="tags">${i.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`:""}
+    ${i.autor?`<div class="byline">von ${esc(i.autor)}</div>`:""}</div>`;
+}
+window.delIdea = id => { DB.ideen=DB.ideen.filter(x=>x.id!==id); save(); RENDER.ideen(); };
+function newIdea(){ openSheet(ideaEditor()); }
+function ideaEditor(){
+  return `<h3>Neue Idee</h3><div class="ml">Aktivität, Ausflugsziel, Ort oder etwas zum Kaufen</div>
+    <div class="fld"><label>Kategorie</label>
+      <select id="id_kat">${DB.ideenKategorien.map(k=>`<option>${esc(k)}</option>`).join("")}</select></div>
+    <div class="fld"><label>Titel</label><input id="id_titel" placeholder="Titel"></div>
+    <div class="fld"><label>Beschreibung</label><textarea id="id_text" rows="2" placeholder="Optional"></textarea></div>
+    <div class="fld"><label>Link</label><input id="id_url" placeholder="https://… (optional)"></div>
+    <div class="fld"><label>Tags (Komma-getrennt)</label><input id="id_tags" placeholder="optional"></div>
+    <button class="btn" onclick="saveIdea()">Speichern</button>`;
+}
+window.saveIdea = () => {
+  const titel=document.getElementById("id_titel").value.trim(); if(!titel)return;
+  let url=document.getElementById("id_url").value.trim();
+  if(url && !/^https?:\/\//.test(url)) url="https://"+url;
+  DB.ideen.push({ id:uid(), kategorie:document.getElementById("id_kat").value,
+    titel, text:document.getElementById("id_text").value.trim(), url,
+    tags:document.getElementById("id_tags").value.split(",").map(t=>t.trim()).filter(Boolean),
+    autor:ME, createdAt:now(), updatedAt:now() });
+  save(); closeModal(); RENDER.ideen();
+};
+
+// ============================================================
+//  Rezepte (mit Link & Zutaten -> Einkaufsliste)
+// ============================================================
+RENDER.rezepte = () => {
+  setHead("Rezepte", DB.rezepte.length+" Rezepte");
+  vBody().innerHTML = DB.rezepte.length
+    ? `<div class="list">${DB.rezepte.map(rezeptCard).join("")}</div>`
+    : empty("chef","Noch keine Rezepte — unten mit + anlegen");
+  showFab(()=>openRezept(null));
+};
+function rezeptCard(r){
+  return `<div class="card" onclick="openRezept('${r.id}')">
+    <div class="cttl">${esc(r.titel)}</div>
+    <div class="cmeta"><span class="pill cat">${(r.zutaten||[]).length} Zutaten</span>
+      ${r.link?`<span class="pill who">${ICON.link} Link</span>`:""}</div>
+    ${r.autor?`<div class="byline">von ${esc(r.autor)}</div>`:""}</div>`;
+}
+
+let REZEPT = null;
+window.openRezept = id => {
+  REZEPT = id ? JSON.parse(JSON.stringify(DB.rezepte.find(x=>x.id===id)))
+              : { id:uid(), titel:"", link:"", zutaten:[], neu:true };
+  if(!REZEPT.zutaten) REZEPT.zutaten=[];
+  rezeptSheet();
+};
+function rezeptSheet(){
+  const r = REZEPT;
+  setTimeout(()=>renderZutaten(),0);
+  openSheet(`<h3>${r.neu?"Neues Rezept":"Rezept"}</h3>
+    <div class="fld"><label>Titel</label><input id="rz_titel" value="${esc(r.titel)}" placeholder="z.B. Spaghetti Bolognese"></div>
+    <div class="fld"><label>Link (optional)</label><input id="rz_link" value="${esc(r.link||"")}" placeholder="https://… zum Rezept"></div>
+    ${r.link?`<a class="maplink" href="${esc(r.link)}" target="_blank" style="margin-bottom:12px">${ICON.link} Rezept öffnen</a>`:""}
+    <div class="fld"><label>Zutaten</label><div id="zutatenSlot"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="rz_zutat" placeholder="Zutat, z.B. 500 g Hackfleisch" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px" enterkeyhint="done">
+        <button class="addbtn" style="position:static" onclick="addZutat()">+</button></div></div>
+    <button class="btn" onclick="saveRezept()">Speichern</button>
+    ${!r.neu?`<button class="btn ghost" onclick="zutatenZuEinkauf('${r.id}')">${ICON.cart} Zutaten zur Einkaufsliste</button>
+      <button class="btn danger" onclick="delRezept('${r.id}')">Rezept löschen</button>`:""}`);
+  const inp=document.getElementById("rz_zutat");
+  if(inp) inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addZutat();}});
+}
+function renderZutaten(){
+  const el=document.getElementById("zutatenSlot"); if(!el)return;
+  el.innerHTML = REZEPT.zutaten.length
+    ? REZEPT.zutaten.map((z,i)=>`<div class="itemrow"><div class="it">${esc(z)}</div><div class="del" onclick="rmZutat(${i})">×</div></div>`).join("")
+    : `<div style="color:var(--ink2);font-size:13px;padding:4px 0">Noch keine Zutaten</div>`;
+}
+window.addZutat = () => { const inp=document.getElementById("rz_zutat"); const v=inp.value.trim(); if(!v)return; REZEPT.zutaten.push(v); inp.value=""; renderZutaten(); inp.focus(); };
+window.rmZutat = i => { REZEPT.zutaten.splice(i,1); renderZutaten(); };
+window.saveRezept = () => {
+  REZEPT.titel = document.getElementById("rz_titel").value.trim() || "Rezept";
+  REZEPT.link = document.getElementById("rz_link").value.trim();
+  if(REZEPT.link && !/^https?:\/\//.test(REZEPT.link)) REZEPT.link="https://"+REZEPT.link;
+  REZEPT.updatedAt = now();
+  if(REZEPT.neu){ delete REZEPT.neu; REZEPT.autor=ME; REZEPT.createdAt=now(); DB.rezepte.push(REZEPT); }
+  else { const ex=DB.rezepte.find(x=>x.id===REZEPT.id); Object.assign(ex,REZEPT); }
+  save(); closeModal(); RENDER.rezepte();
+};
+window.delRezept = id => { if(confirm("Rezept löschen?")){ DB.rezepte=DB.rezepte.filter(x=>x.id!==id); save(); closeModal(); RENDER.rezepte(); } };
+
+// Zutaten auswählen und in gewählte Einkaufsliste übernehmen
+window.zutatenZuEinkauf = id => {
+  const r = DB.rezepte.find(x=>x.id===id); if(!r || !r.zutaten.length){ alert("Keine Zutaten vorhanden."); return; }
+  window._zSel = new Set(r.zutaten.map((_,i)=>i));  // alle vorausgewählt
+  openSheet(zutatenAuswahlHtml(r));
+};
+function zutatenAuswahlHtml(r){
+  return `<h3>Zutaten übernehmen</h3><div class="ml">Auswählen und Ziel-Liste bestimmen</div>
+    <div class="fld"><label>Ziel-Einkaufsliste</label>
+      <select id="z_ziel">${DB.listen.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join("")}</select></div>
+    <div class="fld"><label>Zutaten</label>
+      <div id="zauswahl">${r.zutaten.map((z,i)=>`
+        <div class="row" style="margin-bottom:6px" onclick="toggleZ(${i})">
+          <div class="cb on" id="zcb_${i}">✓</div><div class="tx">${esc(z)}</div></div>`).join("")}</div></div>
+    <button class="btn" onclick="commitZutaten('${r.id}')">Ausgewählte hinzufügen</button>`;
+}
+window.toggleZ = i => {
+  const cb=document.getElementById("zcb_"+i);
+  if(window._zSel.has(i)){ window._zSel.delete(i); cb.classList.remove("on"); cb.textContent=""; }
+  else { window._zSel.add(i); cb.classList.add("on"); cb.textContent="✓"; }
+};
+window.commitZutaten = id => {
+  const r=DB.rezepte.find(x=>x.id===id);
+  const zielId=document.getElementById("z_ziel").value;
+  const liste=DB.listen.find(l=>l.id===zielId); if(!liste)return;
+  let n=0;
+  r.zutaten.forEach((z,i)=>{ if(window._zSel.has(i)){
+    liste.artikel.push({id:uid(),tx:z,menge:"",d:false,createdAt:now(),updatedAt:now()}); n++; }});
+  liste.updatedAt=now(); save(); closeModal();
+  alert(n+" Zutat(en) zu „"+liste.name+"“ hinzugefügt.");
+};
+
+// ============================================================
+//  OneDrive-Synchronisation (Microsoft Graph, PKCE)
+// ============================================================
+window.Sync = (() => {
+  const CLIENT_ID = "5459e1ad-51b7-4d2c-8470-f3869baabcfb";
+  const SCOPES = ["Files.ReadWrite", "User.Read"];
+  const FOLDER = "FamilienApp";
+  const GRAPH = "https://graph.microsoft.com/v1.0";
+  const LISTEN = ["todos","todoListen","reparaturen","urlaub","ideen","keller","listen","rezepte"];
+  const OBJEKTE = ["nutzer","einkaufStamm","ideenKategorien","wohnmobil","wohnmobilCheck"];
+  let app=null, account=null, saveTimer=null, busy=false, online=false, pollTimer=null;
+
+  function setStatus(t,ok){ const e=document.getElementById("syncTxt"); if(e)e.textContent=t;
+    const d=document.querySelector(".sync .dot"); if(d)d.style.background=ok?"var(--ok)":"var(--ink2)"; }
+
+  async function start(){
+    if(!window.msal){ setStatus("Nur lokal", false); return; }
+    app = new window.msal.PublicClientApplication({
+      auth:{ clientId:CLIENT_ID, authority:"https://login.microsoftonline.com/consumers", redirectUri:location.origin+location.pathname },
+      cache:{ cacheLocation:"localStorage" },
+    });
+    await app.initialize();
+    try{ const r=await app.handleRedirectPromise(); if(r&&r.account)account=r.account; }catch(e){console.warn(e);}
+    const a=app.getAllAccounts(); if(!account&&a.length)account=a[0];
+    if(account){ online=true; setStatus("Verbunden",true); await fullSync(); startPolling(); }
+    else setStatus("Antippen zum Anmelden", false);
+  }
+  async function login(){
+    if(!app){ alert("Anmeldung offline nicht möglich."); return; }
+    try{ const r=await app.loginPopup({scopes:SCOPES}); account=r.account; online=true; setStatus("Verbunden",true); await fullSync(); startPolling(); }
+    catch(e){ try{ await app.loginRedirect({scopes:SCOPES}); }catch(e2){ alert("Anmeldung fehlgeschlagen: "+e2.message); } }
+  }
+  async function logout(){ if(app&&account)await app.logoutPopup({account}); account=null; online=false; setStatus("Abgemeldet",false); }
+  async function token(){ if(!app||!account)throw new Error("nicht angemeldet");
+    try{ return (await app.acquireTokenSilent({scopes:SCOPES,account})).accessToken; }
+    catch(e){ const r=await app.acquireTokenPopup({scopes:SCOPES}); account=r.account; return r.accessToken; } }
+  async function readFile(name){ const t=await token();
+    const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/${name}:/content`,{headers:{Authorization:"Bearer "+t}});
+    if(r.status===404)return null; if(!r.ok)throw new Error("Lesen "+r.status);
+    try{ return JSON.parse(await r.text()); }catch{ return null; } }
+  async function writeFile(name,data){ const t=await token();
+    const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/${name}:/content`,{method:"PUT",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify(data)});
+    if(!r.ok)throw new Error("Schreiben "+r.status); return true; }
+  function mergeListe(lokal=[],fern=[]){ const m=new Map();
+    for(const e of lokal)if(e&&e.id)m.set(e.id,e);
+    for(const e of fern){ if(!e||!e.id)continue; const d=m.get(e.id);
+      if(!d||new Date(e.updatedAt||0)>new Date(d.updatedAt||0))m.set(e.id,e); }
+    return [...m.values()].filter(e=>!e.deleted); }
+  async function fullSync(){ if(!online||busy)return; busy=true; setStatus("Synchronisiere…",true);
+    try{
+      const fern=(await readFile("daten.json"))||{};
+      for(const k of LISTEN) DB[k]=mergeListe(DB[k]||[], fern[k]||[]);
+      if(fern._sync && new Date(fern._sync)>new Date(DB._sync||0))
+        for(const k of OBJEKTE) if(fern[k]!==undefined) DB[k]=fern[k];
+      localStorage.setItem(KEY,JSON.stringify(DB));
+      await writeFile("daten.json", DB);
+      setStatus("Verbunden",true);
+      if(CURRENT&&RENDER[CURRENT])RENDER[CURRENT](); else if(ME)renderHome();
+    }catch(e){ console.warn("Sync:",e); setStatus("Sync-Fehler",false); }
+    finally{ busy=false; } }
+  function scheduleSave(){ if(!online)return; clearTimeout(saveTimer); setStatus("Speichere…",true); saveTimer=setTimeout(()=>fullSync(),1200); }
+  function startPolling(){ clearInterval(pollTimer); pollTimer=setInterval(()=>{if(!busy)fullSync();},20000);
+    document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&online&&!busy)fullSync(); }); }
+  return { start, login, logout, scheduleSave, fullSync, isOnline:()=>online };
+})();
+
+window.syncTap = () => {
+  if(Sync.isOnline()) openSheet(`<h3>Synchronisierung</h3>
+    <div class="ml">Daten werden über dein Microsoft-Konto auf OneDrive gesichert und auf allen Geräten abgeglichen.</div>
+    <button class="btn" onclick="Sync.fullSync();closeModal()">Jetzt abgleichen</button>
+    <button class="btn ghost" onclick="Sync.logout();closeModal()">Von OneDrive abmelden</button>`);
+  else Sync.login();
+};
+
+// ============================================================
+//  Start
+// ============================================================
+if(ME){
+  document.getElementById("gate").style.display="none";
+  document.getElementById("meAv").textContent=initials(ME);
+  renderHome();
+} else {
+  renderGate();
+}
+Sync.start();
+</script>
+
+<script>
+// ── PWA: Versions-Check + saubere Service-Worker-Bereinigung ──
+(function(){
+  const APP_VERSION = "1.0.0";
+  // Alte Service Worker und Caches entfernen (vermeidet veraltete Stände)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister().catch(()=>{}))).catch(()=>{});
+  }
+  if ('caches' in window) {
+    caches.keys().then(ks=>ks.forEach(k=>caches.delete(k).catch(()=>{}))).catch(()=>{});
+  }
+  // Bei neuer App-Version einmalig hart neu laden
+  try {
+    const v = localStorage.getItem("familienapp.version");
+    if (v && v !== APP_VERSION) { localStorage.setItem("familienapp.version", APP_VERSION); location.reload(); }
+    else localStorage.setItem("familienapp.version", APP_VERSION);
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
