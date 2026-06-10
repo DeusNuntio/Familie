@@ -344,7 +344,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -642,6 +642,32 @@ function renderFuerDich(){
 // ============================================================
 let CURRENT = null;
 let DETAIL_OPEN = null;   // wenn eine Reise-Detailansicht offen ist
+
+// ---- Handy-Zurück-Taste: in der App navigieren statt sie zu verlassen ----
+// Wir schieben bei jedem "Vertiefen" einen Verlaufseintrag in die Browser-History.
+// popstate (Zurück-Taste) ruft dann handleBack() auf.
+function pushNav(){ try{ history.pushState({app:true}, ""); }catch(e){} }
+let _backBusy = false;
+function handleBack(){
+  // 1. Offenes Modal? -> schließen (ohne erneuten history.back, da popstate schon zurückging)
+  if(modal.classList.contains("active")){ modal.classList.remove("active"); return true; }
+  // 2. Detailansicht offen (Reise / To-do-Liste)? -> zurück zur Liste
+  if(DETAIL_OPEN){ goBack(); return true; }
+  // 3. In einem Modul? -> zum Dashboard
+  if(CURRENT){ goHome(); return true; }
+  // 4. Schon auf dem Dashboard -> nichts mehr abzufangen
+  return false;
+}
+window.addEventListener("popstate", () => {
+  if(_backBusy) return;
+  const handled = handleBack();
+  if(handled){
+    // Verlaufseintrag wieder herstellen, damit der nächste Zurück-Druck erneut abgefangen wird
+    _backBusy = true; pushNav(); setTimeout(()=>{ _backBusy=false; }, 50);
+  }
+  // Wenn nicht behandelt (schon auf Dashboard): App darf sich schließen / Seite verlassen
+});
+
 window.goBack = () => {
   if(DETAIL_OPEN==="todoliste"){ DETAIL_OPEN=null; TODO_TAB="listen"; open_("todos"); return; }
   if(DETAIL_OPEN){ DETAIL_OPEN=null; open_("urlaub"); return; }
@@ -663,6 +689,7 @@ window.open_ = id => {
   document.getElementById("fab").style.display="none";
   RENDER[id]();
   window.scrollTo(0,0);
+  pushNav();   // Verlaufseintrag, damit Zurück-Taste hierher zurückführt
 };
 const vBody = () => document.getElementById("vbody");
 function setHead(title, sub, tool){
@@ -686,8 +713,14 @@ document.getElementById("addinput").addEventListener("keydown",e=>{if(e.key==="E
 
 // ---- Modal ----
 const modal=document.getElementById("modal"), sheet=document.getElementById("sheet");
-window.closeModal=()=>modal.classList.remove("active");
-function openSheet(html){ sheet.innerHTML='<div class="handle"></div>'+html; modal.classList.add("active"); sheet.scrollTop=0; }
+window.closeModal=()=>{
+  const warOffen = modal.classList.contains("active");
+  modal.classList.remove("active");
+  // Wenn das Modal per Button/Tap geschlossen wurde (nicht über die Zurück-Taste),
+  // den zugehörigen Verlaufseintrag konsumieren, damit die Zurück-Taste konsistent bleibt.
+  if(warOffen && !_backBusy){ _backBusy=true; try{ history.back(); }catch(e){} setTimeout(()=>{ _backBusy=false; }, 60); }
+};
+function openSheet(html){ sheet.innerHTML='<div class="handle"></div>'+html; modal.classList.add("active"); sheet.scrollTop=0; pushNav(); }
 
 const RENDER = {};
 
@@ -835,6 +868,7 @@ window.createTodoListe = () => {
 let TLDETAIL=null;
 window.openTodoListe = id => {
   const l=DB.todoListen.find(x=>x.id===id); if(!l)return;
+  const warVorherDetail = !!DETAIL_OPEN;
   TLDETAIL=id; CURRENT="todos"; DETAIL_OPEN="todoliste";
   document.getElementById("home").style.display="none";
   document.getElementById("view").classList.add("active");
@@ -843,6 +877,7 @@ window.openTodoListe = id => {
   renderTodoListe(l);
   showAddBar("Punkt hinzufügen…", t=>addTLPunkt(id,t));
   window.scrollTo(0,0);
+  if(!warVorherDetail) pushNav();
 };
 function renderTodoListe(l){
   const off=l.punkte.filter(p=>!p.d), done=l.punkte.filter(p=>p.d);
@@ -1178,6 +1213,7 @@ window.saveReiseBasis = () => {
 window.openReiseDetail = id => {
   const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
   if(!r.staedte) r.staedte=[];
+  const warVorherDetail = !!DETAIL_OPEN;
   CURRENT = "urlaub";
   DETAIL_OPEN = id;
   document.getElementById("home").style.display="none";
@@ -1188,6 +1224,7 @@ window.openReiseDetail = id => {
   showFab(()=>addCity(id));
   window.scrollTo(0,0);
   autoCalcLegs(id);   // fehlende Etappen automatisch berechnen
+  if(!warVorherDetail) pushNav();   // nur beim erstmaligen Vertiefen einen Verlaufseintrag
 };
 function renderReiseDetail(r){
   const body = vBody();
@@ -1885,6 +1922,8 @@ if(ME){
 } else {
   renderGate();
 }
+// Basis-Verlaufseintrag, damit die Zurück-Taste etwas zum Abfangen hat
+try{ history.replaceState({app:true, base:true}, ""); }catch(e){}
 Sync.start();
 </script>
 
