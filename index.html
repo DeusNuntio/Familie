@@ -278,10 +278,11 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .city .cbody{padding:0 15px 14px;border-top:1px solid var(--line)}
 .city.collapsed .cbody{display:none}
 .city-actions{display:flex;gap:8px;margin:12px 0 4px}
-.city-actions .cbtn{flex:1;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;
+.cbtn{text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;
   font-size:13px;font-weight:600;color:var(--accent);background:var(--bg);cursor:pointer;
   text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
-.city-actions .cbtn:active{background:var(--accent-soft)}
+.cbtn:active{background:var(--accent-soft)}
+.city-actions .cbtn{flex:1}
 .leg{display:flex;align-items:center;gap:10px;padding:8px 16px;margin:2px 0}
 .leg .lline{flex:1;height:0;border-top:2px dashed var(--line)}
 .leg .linfo{font-size:12.5px;color:var(--ink2);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px}
@@ -362,7 +363,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.5.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -375,8 +376,12 @@ function seed(){
     nutzer: ["Ellen","Alexander","Julia","Isabella","Mama"],
     nutzerRollen: { "Mama": ["einkauf"] },   // Mama sieht nur die Einkaufsliste
     nachrichten: [],
+    // Voreingestellte Empfänger pro Absender (änderbar beim Abschicken)
+    empfaengerStandard: { "Alexander":["Ellen"], "Ellen":["Alexander"], "Mama":["Alexander"],
+      "Julia":["Alexander","Ellen"], "Isabella":["Alexander","Ellen"] },
+    artikelZaehler: {},   // zählt, wie oft ein Artikel verwendet wurde (für Auto-Schnellauswahl)
     todos: [], todoListen: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
-    listen: [ {id:uid(),name:"Allgemein",artikel:[],createdAt:now(),updatedAt:now()} ],
+    listen: [],
     einkaufStamm: ["Äpfel","Bananen","Tomaten","Gurke","Salat","Kartoffeln","Zwiebeln","Karotten","Paprika",
       "Hackfleisch","Hähnchen","Wurst","Schinken","Lachs",
       "Nudeln","Reis","Mehl","Zucker","Öl","Tomaten in der Dose","Müsli","Brot","Brötchen",
@@ -415,7 +420,13 @@ if(!DB.nutzer.includes("Mama")) DB.nutzer.push("Mama");
 if(!DB.nutzerRollen) DB.nutzerRollen = { "Mama": ["einkauf"] };
 if(!DB.nutzerRollen["Mama"]) DB.nutzerRollen["Mama"] = ["einkauf"];
 if(!DB.nachrichten) DB.nachrichten = [];
-if(!DB.listen) DB.listen = [{id:uid(),name:"Allgemein",artikel:[],createdAt:now(),updatedAt:now()}];
+if(!DB.listen) DB.listen = [];
+if(!DB.empfaengerStandard) DB.empfaengerStandard = { "Alexander":["Ellen"], "Ellen":["Alexander"], "Mama":["Alexander"], "Julia":["Alexander","Ellen"], "Isabella":["Alexander","Ellen"] };
+if(!DB.artikelZaehler) DB.artikelZaehler = {};
+// alte Beispiel-"Allgemein"-Listen ohne Inhalt und ohne Status aufräumen
+DB.listen = DB.listen.filter(l=> (l.artikel&&l.artikel.length) || l.status );
+// fehlende Statusfelder ergänzen (Altbestände gelten als Entwurf des bisherigen Erstellers)
+DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.ersteller||ME||"?"; l.empfaenger=l.empfaenger||[]; } });
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
 if(!DB.todoListen) DB.todoListen = [];
 if(!DB.rezepte) DB.rezepte = [];
@@ -590,7 +601,7 @@ window.switchUser = () => {
 // ============================================================
 const MODULES = [
   {id:"todos",       nm:"To-do",          ic:ICON.checkbox, count:()=>DB.todos.filter(t=>!t.done).length+" offen · "+DB.todoListen.length+" Listen"},
-  {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>DB.listen.reduce((s,l)=>s+l.artikel.filter(a=>!a.d).length,0)+" Artikel"},
+  {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>{ const fm=DB.listen.filter(l=>l.status==="abgeschickt"&&(!l.empfaenger||!l.empfaenger.length||l.empfaenger.includes(ME))&&l.ersteller!==ME).length; return fm? fm+" für dich" : "antippen"; }},
   {id:"rezepte",     nm:"Rezepte",        ic:ICON.chef,     count:()=>DB.rezepte.length+" Rezepte"},
   {id:"reparaturen", nm:"Reparaturen",    ic:ICON.tool,     count:()=>DB.reparaturen.filter(r=>!r.done).length+" offen"},
   {id:"urlaub",      nm:"Urlaubsplanung", ic:ICON.plane,    count:()=>DB.urlaub.length+" Reisen"},
@@ -659,11 +670,11 @@ function renderFuerDich(){
       const d = t.faellig?daysUntil(t.faellig):null;
       const when = d===null?"" : d<0?"überfällig" : d===0?"heute" : d===1?"morgen" : "in "+d+" Tagen";
       const urgent = (d!==null&&d<=0) || t.prio==="hoch";
-      const listLink = t.listeId && DB.listen.find(l=>l.id===t.listeId);
-      return `<div class="fd-item ${urgent?'urgent':''}" onclick="${listLink?`oeffneListe('${t.listeId}')`:`open_('todos')`}">
+      const listLink = !!t.einkauf;
+      return `<div class="fd-item ${urgent?'urgent':''}" onclick="${listLink?`open_('einkauf')`:`open_('todos')`}">
         <div class="fd-dot ${urgent?'u':''}"></div>
         <div class="fd-tx"><div class="fd-titel">${esc(t.titel)}</div>
-          <div class="fd-meta">${when}${t.prio==="hoch"?" · dringend":""}${listLink?" · "+esc(DB.listen.find(l=>l.id===t.listeId).name):""}</div></div>
+          <div class="fd-meta">${when}${t.prio==="hoch"?" · dringend":""}${listLink?" · Einkauf":""}</div></div>
         ${listLink?`<div class="fd-go">${ICON.cart}</div>`:`<div class="fd-go">›</div>`}
       </div>`;
     }).join("")}</div>`;
@@ -714,7 +725,7 @@ window.nachrichtGelesen = id => {
   n.gelesenVon = n.gelesenVon||[]; if(!n.gelesenVon.includes(ME)) n.gelesenVon.push(ME);
   n.updatedAt=now(); save();
   // Wenn die Nachricht auf eine Einkaufsliste verweist, direkt dorthin
-  if(n.listeId && DB.listen.find(l=>l.id===n.listeId)){ oeffneListe(n.listeId); }
+  if(n.listeId){ open_("einkauf"); }
   else renderNachrichten();
 };
 
@@ -823,8 +834,7 @@ function aufgabeEditor(typ, eintrag){
     <div class="fld"><label>Wer</label>
       <div class="whopick" id="f_wer">${DB.nutzer.map(n=>`<div class="w ${e.wer===n?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`).join("")}</div></div>
     <div class="fld"><label>Foto</label><div id="fotoSlot"></div></div>
-    ${typ==="todo"?`<div class="fld"><label>Mit Einkaufsliste verknüpfen (optional)</label>
-      <select id="f_liste"><option value="">— keine —</option>${DB.listen.map(l=>`<option value="${l.id}" ${e.listeId===l.id?'selected':''}>${esc(l.name)}</option>`).join("")}</select></div>`:""}
+    ${typ==="todo"?`<div class="fld"><label><input type="checkbox" id="f_einkauf" ${e.einkauf?'checked':''} style="width:auto;margin-right:8px;vertical-align:middle">Einkaufs-Aufgabe (führt zur Einkaufsliste)</label></div>`:""}
     <button class="btn" onclick="saveAufgabe('${typ}','${eintrag?eintrag.id:""}')">Speichern</button>`;
 }
 window.segPick = el => { el.parentNode.querySelectorAll(".opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); };
@@ -855,7 +865,7 @@ window.saveAufgabe = (typ, id) => {
     prio: prioEl ? prioEl.dataset.v : "mittel",
     wer: werEl ? werEl.dataset.v : "",
     foto: window._formFoto || "",
-    listeId: (document.getElementById("f_liste") ? document.getElementById("f_liste").value : "") || "",
+    einkauf: !!(document.getElementById("f_einkauf") && document.getElementById("f_einkauf").checked),
     updatedAt: now(),
   };
   const arr = typ==="todo" ? DB.todos : DB.reparaturen;
@@ -882,7 +892,7 @@ function aufgabeKarte(e, typ){
           <span class="pill prio-${e.prio||'mittel'}">${(e.prio||'mittel').toUpperCase()}</span>
           ${e.wer?`<span class="pill who">${esc(e.wer)}</span>`:""}
           ${e.faellig?`<span class="pill cat" onclick="event.stopPropagation();todoZuKalender('${typ}','${e.id}')" style="cursor:pointer">📅 Kalender</span>`:""}
-          ${e.listeId && DB.listen.find(l=>l.id===e.listeId)?`<span class="pill who" onclick="event.stopPropagation();oeffneListe('${e.listeId}')" style="cursor:pointer">${ICON.cart} ${esc(DB.listen.find(l=>l.id===e.listeId).name)}</span>`:""}
+          ${e.einkauf?`<span class="pill who" onclick="event.stopPropagation();open_('einkauf')" style="cursor:pointer">${ICON.cart} Einkauf</span>`:""}
         </div>
         ${e.autor?`<div class="byline">angelegt von ${esc(e.autor)}</div>`:""}
       </div>
@@ -891,7 +901,7 @@ function aufgabeKarte(e, typ){
 window.toggleAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; const e=arr.find(x=>x.id===id); e.done=!e.done; e.updatedAt=now(); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
 window.delAufgabe = (typ,id) => { if(typ==="todo")DB.todos=DB.todos.filter(x=>x.id!==id); else DB.reparaturen=DB.reparaturen.filter(x=>x.id!==id); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
 window.editAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; openSheet(aufgabeEditor(typ, arr.find(x=>x.id===id))); };
-window.oeffneListe = lid => { AKT_LISTE = lid; open_("einkauf"); };
+window.oeffneListe = () => { open_("einkauf"); };
 window.todoZuKalender = (typ,id) => {
   const arr=typ==="todo"?DB.todos:DB.reparaturen; const e=arr.find(x=>x.id===id); if(!e||!e.faellig)return;
   const det=(e.notiz||"")+(e.wer?" (für "+e.wer+")":"");
@@ -1060,91 +1070,220 @@ function warenGruppeTitel(name){
   return i<WARENGRUPPEN.length ? WARENGRUPPEN[i].titel : "Sonstiges";
 }
 
+// Listenname automatisch: "Ersteller · Datum"
+function listenName(l){
+  const d = new Date(l.createdAt);
+  return `${l.ersteller||"?"} · ${d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})}`;
+}
+// An mich abgeschickte Listen (oder an alle)
+function listenFuerMich(){
+  return DB.listen.filter(l=> l.status==="abgeschickt" && (!l.empfaenger || !l.empfaenger.length || l.empfaenger.includes(ME)) && l.ersteller!==ME);
+}
+// Mein eigener, noch nicht abgeschickter Entwurf (max. einer aktiv)
+function meinEntwurf(){
+  return DB.listen.find(l=> l.status==="entwurf" && l.ersteller===ME);
+}
+
 RENDER.einkauf = () => {
-  if(!AKT_LISTE || !DB.listen.find(l=>l.id===AKT_LISTE)) AKT_LISTE = DB.listen[0] ? DB.listen[0].id : null;
-  const liste = DB.listen.find(l=>l.id===AKT_LISTE);
-  setHead("Einkaufslisten", DB.listen.length+" Listen", {label:"+ Liste", fn:newListe});
-  if(!liste){ vBody().innerHTML = empty("cart","Noch keine Liste"); document.getElementById("addbar").style.display="none"; return; }
-  // Stammartikel nach Warengruppe gruppieren (in definierter Reihenfolge)
+  const fuerMich = listenFuerMich();
+  const entwurf = meinEntwurf();
+  setHead("Einkaufslisten", "", null);
+  document.getElementById("vsub").textContent = fuerMich.length? fuerMich.length+" für dich" : (entwurf? "dein Entwurf" : "");
+
+  let html = "";
+
+  // 1) Aktuelle, an mich abgeschickte Listen ZUERST – mit Inhalt
+  if(fuerMich.length){
+    html += `<div class="section-label">Für dich abgeschickt</div>`;
+    fuerMich.forEach(l=>{ html += abgeschickteListeHtml(l); });
+    if(fuerMich.length>1){
+      html += `<div style="padding:6px 16px 4px"><button class="btn ghost" onclick="mergeDialog()">${ICON.cart} Mehrere Listen zu einer zusammenfügen</button></div>`;
+    }
+  }
+
+  // 2) Mein Entwurf (falls vorhanden) – mit Schnellauswahl
+  if(entwurf){
+    html += `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Dein Entwurf
+      <span style="text-transform:none;font-weight:600;color:var(--danger)" onclick="delListe('${entwurf.id}')">Verwerfen</span></div>`;
+    html += entwurfHtml(entwurf);
+    html += schnellauswahlHtml();
+  } else {
+    // 3) Kein Entwurf -> Knopf zum Anlegen; Schnellauswahl nur wenn auch keine Listen für mich
+    html += `<div style="padding:10px 16px"><button class="btn" onclick="neuerEntwurf()">+ Neue Einkaufsliste beginnen</button></div>`;
+    if(!fuerMich.length){
+      html += schnellauswahlHtml(true);  // Hinweis: erst Liste beginnen
+    }
+  }
+
+  vBody().innerHTML = html;
+  // Add-Leiste nur bei eigenem Entwurf
+  if(entwurf){ AKT_LISTE=entwurf.id; showAddBar("Eigener Artikel…", t=>addEin(t)); }
+  else document.getElementById("addbar").style.display="none";
+};
+
+// HTML einer abgeschickten Liste (schreibgeschützt, "Bearbeiten"-Knopf)
+function abgeschickteListeHtml(l){
+  const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
+  const erledigt = l.artikel.filter(a=>a.d);
+  const editing = (window._editListe===l.id);
+  const rows = [...offen,...erledigt].map(a=>einRowRO(l.id,a,editing)).join("");
+  return `<div class="card" style="margin:0 16px 10px;padding:0;overflow:hidden">
+    <div style="padding:13px 15px;display:flex;align-items:center;gap:10px;background:var(--accent-soft)">
+      <div style="flex:1"><div style="font-weight:700">${esc(listenName(l))}</div>
+        <div style="font-size:12px;color:var(--ink2)">von ${esc(l.ersteller)} · ${l.artikel.filter(a=>!a.d).length} offen</div></div>
+      <button class="cbtn" style="flex:0 0 auto;padding:7px 12px" onclick="${editing?`stopEdit()`:`startEdit('${l.id}')`}">${editing?"Fertig":"Bearbeiten"}</button>
+    </div>
+    <div class="list" style="padding:10px 15px 14px">${rows||'<div style="color:var(--ink2);font-size:13px">leer</div>'}</div>
+    ${editing?`<div style="padding:0 15px 14px"><input id="ed_add_${l.id}" placeholder="Artikel ergänzen…" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px" onkeydown="if(event.key==='Enter'){addEinTo('${l.id}',this.value);this.value=''}"></div>`:""}
+  </div>`;
+}
+// Zeile in abgeschickter Liste: nur abhaken (RO) oder bearbeiten
+function einRowRO(lid,a,editing){
+  const herkunft = a.von && a.von!==a._listenErsteller ? `<small style="color:var(--accent)">von ${esc(a.von)}</small>` : "";
+  return `<div class="row ${a.d?'done':''}" style="margin-bottom:6px">
+    <div class="cb ${a.d?'on':''}" onclick="toggleEinIn('${lid}','${a.id}')">${a.d?'✓':''}</div>
+    <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}${a.menge?` <span style="color:var(--ink2)">(${esc(a.menge)})</span>`:""} ${herkunft}</div>
+    ${editing?`<div class="del" onclick="delEinIn('${lid}','${a.id}')">×</div>`:""}</div>`;
+}
+
+// HTML meines Entwurfs (voll bearbeitbar)
+function entwurfHtml(l){
+  const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
+  const erledigt = l.artikel.filter(a=>a.d);
+  AKT_LISTE = l.id;
+  return `<div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>
+    <div style="padding:14px 16px 4px"><button class="btn" onclick="abschickenDialog('${l.id}')">✓ Liste abschicken</button></div>`;
+}
+
+// Schnellauswahl-HTML (gruppiert). hinweisOnly=true -> nur Hinweis, kein direktes Hinzufügen
+function schnellauswahlHtml(hinweisOnly){
   const grouped = {};
   DB.einkaufStamm.forEach(s=>{ const t=warenGruppeTitel(s); (grouped[t]=grouped[t]||[]).push(s); });
   const ordered = [...WARENGRUPPEN.map(g=>g.titel), "Sonstiges"].filter(t=>grouped[t]);
-  const schnellHtml = ordered.map(t=>`
+  const inner = ordered.map(t=>`
     <div class="wg-titel">${t}</div>
-    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="addEin('${esc(s)}',this)"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
-  // Artikel der Liste nach Warengruppe sortieren (offen zuerst, erledigt ans Ende)
-  const offen = liste.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
-  const erledigt = liste.artikel.filter(a=>a.d);
-  vBody().innerHTML =
-    `<div class="chips" style="padding-top:0">${DB.listen.map(l=>`<div class="chip ${l.id===AKT_LISTE?'on':''}" onclick="selListe('${l.id}')">${esc(l.name)}</div>`).join("")}</div>`
-    + `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
-        <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="editStamm()">Bearbeiten</span></div>`
-    + schnellHtml
-    + (liste.artikel.length? `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">${esc(liste.name)}
-        <span style="text-transform:none;font-weight:600;color:var(--danger)" onclick="clearListe('${liste.id}')">Leeren</span></div>
-       <div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>
-       <div style="padding:14px 16px 0"><button class="btn" onclick="listeFertig('${liste.id}')">✓ Liste „${esc(liste.name)}" abschicken</button>
-       <div class="ml" style="text-align:center;margin-top:8px">Benachrichtigt die anderen, dass die Liste bereit ist</div></div>` : empty("cart","Liste ist leer"));
-  showAddBar("Eigener Artikel…", t=>addEin(t));
+    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="${hinweisOnly?`neuerEntwurf('${esc(s)}')`:`addEin('${esc(s)}',this)`}"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
+  return `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
+      <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="editStamm()">Bearbeiten</span></div>${inner}`;
+}
+
+// Neuen Entwurf beginnen (optional gleich mit erstem Artikel)
+window.neuerEntwurf = (ersterArtikel) => {
+  let l = meinEntwurf();
+  if(!l){ l={id:uid(), status:"entwurf", ersteller:ME, empfaenger:[], artikel:[], createdAt:now(), updatedAt:now()}; DB.listen.push(l); }
+  if(ersterArtikel){ l.artikel.push({id:uid(),tx:ersterArtikel,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); }
+  AKT_LISTE=l.id; l.updatedAt=now(); save(); RENDER.einkauf();
 };
-window.listeFertig = id => {
-  const l = DB.listen.find(x=>x.id===id); if(!l) return;
-  const anzahl = l.artikel.filter(a=>!a.d).length;
-  notify(`Einkaufsliste „${l.name}" ist fertig (${anzahl} Artikel)`, { listeId:id });
-  save();
-  openSheet(`<h3>Bescheid gegeben ✓</h3>
-    <div class="ml">Die anderen sehen jetzt einen Hinweis, dass die Liste „${esc(l.name)}" bereit ist.</div>
-    <button class="btn" onclick="closeModal()">Alles klar</button>`);
-};
+
 const einRow = a => `<div class="row ${a.d?'done':''}">
   <div class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')">${a.d?'✓':''}</div>
   <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}</div>
   <div class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')">${a.menge?esc(a.menge):'+ Menge'}</div>
   <div class="del" onclick="delEin('${a.id}')">×</div></div>`;
 const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
-window.selListe = id => { AKT_LISTE=id; RENDER.einkauf(); };
+
 window.addEin = (tx, el) => {
-  const l=aktListe();
+  const l=aktListe(); if(!l) return;
   if(l.artikel.some(a=>a.tx.toLowerCase()===tx.toLowerCase()&&!a.d)){
-    // schon auf der Liste -> kurz signalisieren, ohne doppelt hinzuzufügen
     if(el){ el.classList.add("chip-dup"); setTimeout(()=>el.classList.remove("chip-dup"),500); }
     return;
   }
-  l.artikel.push({id:uid(),tx,menge:"",d:false,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); save();
-  if(el){
-    // Button kurz aufleuchten lassen, dann Ansicht aktualisieren
-    el.classList.add("chip-added");
-    setTimeout(()=>{ RENDER.einkauf(); }, 280);
-  } else RENDER.einkauf();
+  l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now();
+  zaehleArtikel(tx);
+  save();
+  if(el){ el.classList.add("chip-added"); setTimeout(()=>{ RENDER.einkauf(); }, 280); }
+  else RENDER.einkauf();
 };
 window.toggleEin = id => { const l=aktListe(); const a=l.artikel.find(x=>x.id===id); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
 window.delEin = id => { const l=aktListe(); l.artikel=l.artikel.filter(x=>x.id!==id); l.updatedAt=now(); save(); RENDER.einkauf(); };
+
+// Aktionen in abgeschickten Listen
+window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); l.artikel=l.artikel.filter(x=>x.id!==aid); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.addEinTo = (lid,tx) => { tx=(tx||"").trim(); if(!tx)return; const l=DB.listen.find(x=>x.id===lid);
+  l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx); save(); RENDER.einkauf(); };
+window.startEdit = id => { window._editListe=id; RENDER.einkauf(); };
+window.stopEdit = () => { window._editListe=null; RENDER.einkauf(); };
+
+// Artikel zählen -> ab 5x automatisch in die Schnellauswahl
+function zaehleArtikel(tx){
+  const key = tx.toLowerCase().trim();
+  DB.artikelZaehler = DB.artikelZaehler||{};
+  DB.artikelZaehler[key] = (DB.artikelZaehler[key]||0)+1;
+  if(DB.artikelZaehler[key]>=5 && !DB.einkaufStamm.some(s=>s.toLowerCase()===key)){
+    // Originalschreibweise verwenden (erstes Vorkommen)
+    DB.einkaufStamm.push(tx.trim());
+    notify(`„${tx.trim()}" wurde zur Schnellauswahl hinzugefügt (oft gekauft)`, {ziel:ME});
+  }
+}
+
+// Liste abschicken – mit Empfängerwahl (Vorschlag voreingestellt)
+window.abschickenDialog = id => {
+  const l=DB.listen.find(x=>x.id===id); if(!l||!l.artikel.length){ alert("Die Liste ist leer."); return; }
+  const vorschlag = (DB.empfaengerStandard && DB.empfaengerStandard[ME]) || [];
+  window._sendSel = new Set(vorschlag);
+  const andere = DB.nutzer.filter(n=>n!==ME);
+  openSheet(`<h3>Liste abschicken</h3>
+    <div class="ml">An wen soll die Liste „${esc(listenName(l))}" gehen?</div>
+    <div class="whopick" id="send_who">${andere.map(n=>`<div class="w ${vorschlag.includes(n)?'on':''}" data-v="${esc(n)}" onclick="toggleSend(this)">${esc(n)}</div>`).join("")}</div>
+    <button class="btn" onclick="abschicken('${id}')" style="margin-top:16px">Abschicken</button>`);
+};
+window.toggleSend = el => { const v=el.dataset.v;
+  if(window._sendSel.has(v)){ window._sendSel.delete(v); el.classList.remove("on"); }
+  else { window._sendSel.add(v); el.classList.add("on"); } };
+window.abschicken = id => {
+  const l=DB.listen.find(x=>x.id===id); if(!l)return;
+  const empf = [...window._sendSel];
+  if(!empf.length){ alert("Bitte mindestens eine Person wählen."); return; }
+  l.status="abgeschickt"; l.empfaenger=empf; l.abgeschicktAm=now(); l.updatedAt=now();
+  empf.forEach(person=>{
+    notify(`Neue Einkaufsliste von ${ME} (${l.artikel.filter(a=>!a.d).length} Artikel)`, {ziel:person, listeId:l.id});
+  });
+  save(); closeModal(); RENDER.einkauf();
+};
+
+// Mehrere an mich gerichtete Listen zusammenführen
+window.mergeDialog = () => {
+  const listen = listenFuerMich();
+  window._mergeSel = new Set(listen.map(l=>l.id));
+  openSheet(`<h3>Listen zusammenfügen</h3>
+    <div class="ml">Wähle die Listen, die du im Supermarkt zusammen abarbeiten willst. Doppelte Artikel bleiben erhalten – du siehst, von wem was ist.</div>
+    ${listen.map(l=>`<div class="row" style="margin-bottom:6px" onclick="toggleMerge('${l.id}',this)">
+      <div class="cb on" data-id="${l.id}">✓</div><div class="tx">${esc(listenName(l))} <small style="color:var(--ink2)">(${l.artikel.length})</small></div></div>`).join("")}
+    <button class="btn" onclick="doMerge()" style="margin-top:8px">Zusammenfügen</button>`);
+};
+window.toggleMerge = (id,row) => {
+  const cb=row.querySelector(".cb");
+  if(window._mergeSel.has(id)){ window._mergeSel.delete(id); cb.classList.remove("on"); cb.textContent=""; }
+  else { window._mergeSel.add(id); cb.classList.add("on"); cb.textContent="✓"; }
+};
+window.doMerge = () => {
+  const ids=[...window._mergeSel]; if(ids.length<2){ alert("Bitte mindestens zwei Listen wählen."); return; }
+  const quellen = ids.map(id=>DB.listen.find(l=>l.id===id)).filter(Boolean);
+  const artikel = [];
+  quellen.forEach(l=> l.artikel.forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller, _listenErsteller:null})) );
+  const merged = {
+    id:uid(), status:"abgeschickt", ersteller:"Zusammengeführt", empfaenger:[ME],
+    artikel, createdAt:now(), updatedAt:now(), abgeschicktAm:now(), zusammengefuehrt:true,
+    quellenNamen: quellen.map(l=>listenName(l))
+  };
+  DB.listen.push(merged);
+  // Quell-Listen als erledigt markieren (für mich aus der Ansicht nehmen): empfaenger leeren
+  quellen.forEach(l=>{ l.empfaenger = (l.empfaenger||[]).filter(p=>p!==ME); l.updatedAt=now(); });
+  save(); closeModal(); RENDER.einkauf();
+};
+
 window.clearListe = id => { if(confirm("Liste leeren?")){ const l=DB.listen.find(x=>x.id===id); l.artikel=[]; l.updatedAt=now(); save(); RENDER.einkauf(); } };
-window.newListe = () => openSheet(`<h3>Neue Einkaufsliste</h3>
-  <div class="ml">z.B. ein Laden wie „Aldi" oder „Baumarkt"</div>
-  <div class="fld"><input id="listename" placeholder="Name der Liste"></div>
-  <button class="btn" onclick="createListe()">Anlegen</button>`);
-window.createListe = () => { const n=document.getElementById("listename").value.trim(); if(!n)return;
-  const l={id:uid(),name:n,artikel:[],createdAt:now(),updatedAt:now()}; DB.listen.push(l); AKT_LISTE=l.id;
-  notify(`Neue Einkaufsliste „${n}" wurde angelegt`, { listeId:l.id });
-  save(); closeModal(); RENDER.einkauf(); };
-window.renameListe = id => { const l=DB.listen.find(x=>x.id===id); openSheet(`<h3>Liste umbenennen</h3>
-  <div class="fld"><input id="listrename" value="${esc(l.name)}"></div>
-  <button class="btn" onclick="doRenameListe('${id}')">Speichern</button>
-  ${DB.listen.length>1?`<button class="btn danger" onclick="delListe('${id}')">Liste löschen</button>`:""}`); };
-window.doRenameListe = id => { const l=DB.listen.find(x=>x.id===id); l.name=document.getElementById("listrename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); RENDER.einkauf(); };
-window.delListe = id => { if(confirm("Liste wirklich löschen?")){ DB.listen=DB.listen.filter(x=>x.id!==id); AKT_LISTE=DB.listen[0]?DB.listen[0].id:null; save(); closeModal(); RENDER.einkauf(); } };
+window.delListe = id => { if(confirm("Diesen Entwurf verwerfen?")){ DB.listen=DB.listen.filter(x=>x.id!==id); if(AKT_LISTE===id)AKT_LISTE=null; save(); RENDER.einkauf(); } };
 
 // Schnellauswahl (Stammartikel) bearbeiten und ergänzen
 window.editStamm = () => {
   openSheet(`<h3>Schnellauswahl bearbeiten</h3>
-    <div class="ml">Artikel entfernen oder neue hinzufügen. Das passende Symbol erscheint automatisch.</div>
+    <div class="ml">Artikel entfernen oder neue hinzufügen. Häufig gekaufte Artikel erscheinen automatisch.</div>
     <div id="stammlist"></div>
     <div style="display:flex;gap:8px;margin:10px 0">
       <input id="stammnew" placeholder="Neuer Artikel…" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px" enterkeyhint="done">
-      <button class="addbtn" style="position:static" onclick="addStamm()">+</button></div>
-    <div class="ml">Tipp: auch eigene Lieblingsartikel lassen sich dauerhaft hinzufügen.</div>
-    <button class="btn ghost" onclick="renameListe(AKT_LISTE)">Aktuelle Liste umbenennen</button>`);
+      <button class="addbtn" style="position:static" onclick="addStamm()">+</button></div>`);
   renderStammList();
   const inp=document.getElementById("stammnew");
   if(inp) inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addStamm();}});
@@ -1862,21 +2001,20 @@ window.saveRezept = () => {
 };
 window.delRezept = id => { if(confirm("Rezept löschen?")){ DB.rezepte=DB.rezepte.filter(x=>x.id!==id); save(); closeModal(); RENDER.rezepte(); } };
 
-// Zutaten auswählen und in gewählte Einkaufsliste übernehmen
+// Zutaten auswählen und in den eigenen Einkaufs-Entwurf übernehmen
 window.zutatenZuEinkauf = id => {
   const r = DB.rezepte.find(x=>x.id===id); if(!r || !r.zutaten.length){ alert("Keine Zutaten vorhanden."); return; }
   window._zSel = new Set(r.zutaten.map((_,i)=>i));  // alle vorausgewählt
   openSheet(zutatenAuswahlHtml(r));
 };
 function zutatenAuswahlHtml(r){
-  return `<h3>Zutaten übernehmen</h3><div class="ml">Auswählen und Ziel-Liste bestimmen</div>
-    <div class="fld"><label>Ziel-Einkaufsliste</label>
-      <select id="z_ziel">${DB.listen.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join("")}</select></div>
+  return `<h3>Zutaten übernehmen</h3>
+    <div class="ml">Die ausgewählten Zutaten kommen in deine aktuelle Einkaufsliste (Entwurf). Von dort kannst du sie abschicken.</div>
     <div class="fld"><label>Zutaten</label>
       <div id="zauswahl">${r.zutaten.map((z,i)=>`
         <div class="row" style="margin-bottom:6px" onclick="toggleZ(${i})">
           <div class="cb on" id="zcb_${i}">✓</div><div class="tx">${esc(z)}</div></div>`).join("")}</div></div>
-    <button class="btn" onclick="commitZutaten('${r.id}')">Ausgewählte hinzufügen</button>`;
+    <button class="btn" onclick="commitZutaten('${r.id}')">Zur Einkaufsliste hinzufügen</button>`;
 }
 window.toggleZ = i => {
   const cb=document.getElementById("zcb_"+i);
@@ -1885,13 +2023,15 @@ window.toggleZ = i => {
 };
 window.commitZutaten = id => {
   const r=DB.rezepte.find(x=>x.id===id);
-  const zielId=document.getElementById("z_ziel").value;
-  const liste=DB.listen.find(l=>l.id===zielId); if(!liste)return;
+  // eigenen Entwurf holen oder anlegen
+  let liste = DB.listen.find(l=>l.status==="entwurf" && l.ersteller===ME);
+  if(!liste){ liste={id:uid(),status:"entwurf",ersteller:ME,empfaenger:[],artikel:[],createdAt:now(),updatedAt:now()}; DB.listen.push(liste); }
   let n=0;
   r.zutaten.forEach((z,i)=>{ if(window._zSel.has(i)){
-    liste.artikel.push({id:uid(),tx:z,menge:"",d:false,createdAt:now(),updatedAt:now()}); n++; }});
-  liste.updatedAt=now(); save(); closeModal();
-  alert(n+" Zutat(en) zu „"+liste.name+"“ hinzugefügt.");
+    liste.artikel.push({id:uid(),tx:z,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); n++; zaehleArtikel(z); }});
+  liste.updatedAt=now(); AKT_LISTE=liste.id; save(); closeModal();
+  alert(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
+  open_("einkauf");
 };
 
 // ============================================================
