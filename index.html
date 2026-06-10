@@ -363,7 +363,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -586,14 +586,31 @@ window.chooseMe = n => {
 };
 window.meMenu = () => {
   openSheet(`<h3>Angemeldet als ${esc(ME)}</h3>
-    <div class="ml">Beiträge wie Ideen oder Reisen werden mit deinem Namen markiert.</div>
+    <div class="ml">Beiträge wie Ideen oder Reisen werden mit deinem Namen markiert. Der Nutzerwechsel ist mit einem PIN geschützt.</div>
     <button class="btn ghost" onclick="switchUser()">Nutzer wechseln</button>`);
 };
+const MASTER_PIN = "220482";
 window.switchUser = () => {
-  closeModal();
-  localStorage.removeItem("familienapp.me"); ME = null;
-  document.getElementById("gate").style.display = "flex";
-  renderGate();
+  openSheet(`<h3>Nutzer wechseln</h3>
+    <div class="ml">Bitte PIN eingeben, um den Nutzer zu wechseln.</div>
+    <div class="fld"><input id="pinInput" type="password" inputmode="numeric" placeholder="PIN" enterkeyhint="done"
+      style="text-align:center;letter-spacing:4px;font-size:18px"></div>
+    <div id="pinFehler" style="color:var(--danger);font-size:13px;text-align:center;min-height:18px;margin-bottom:8px"></div>
+    <button class="btn" onclick="pruefePin()">Bestätigen</button>`);
+  setTimeout(()=>{ const f=document.getElementById("pinInput"); if(f){ f.focus();
+    f.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); pruefePin(); } }); } },60);
+};
+window.pruefePin = () => {
+  const v = document.getElementById("pinInput").value.trim();
+  if(v===MASTER_PIN){
+    closeModal();
+    localStorage.removeItem("familienapp.me"); ME = null;
+    document.getElementById("gate").style.display = "flex";
+    renderGate();
+  } else {
+    document.getElementById("pinFehler").textContent = "Falscher PIN.";
+    const f=document.getElementById("pinInput"); if(f){ f.value=""; f.focus(); }
+  }
 };
 
 // ============================================================
@@ -1083,10 +1100,15 @@ function listenFuerMich(){
 function meinEntwurf(){
   return DB.listen.find(l=> l.status==="entwurf" && l.ersteller===ME);
 }
+// Von mir selbst abgeschickte Listen (weiter sichtbar & nachbearbeitbar)
+function meineAbgeschickten(){
+  return DB.listen.filter(l=> l.status==="abgeschickt" && l.ersteller===ME && !l.zusammengefuehrt);
+}
 
 RENDER.einkauf = () => {
   const fuerMich = listenFuerMich();
   const entwurf = meinEntwurf();
+  const vonMir = meineAbgeschickten();
   setHead("Einkaufslisten", "", null);
   document.getElementById("vsub").textContent = fuerMich.length? fuerMich.length+" für dich" : (entwurf? "dein Entwurf" : "");
 
@@ -1115,26 +1137,37 @@ RENDER.einkauf = () => {
     }
   }
 
+  // 4) Von mir abgeschickte Listen – weiter sichtbar und nachbearbeitbar
+  if(vonMir.length){
+    html += `<div class="section-label">Von dir abgeschickt</div>`;
+    vonMir.forEach(l=>{ html += abgeschickteListeHtml(l, true); });
+  }
+
   vBody().innerHTML = html;
   // Add-Leiste nur bei eigenem Entwurf
   if(entwurf){ AKT_LISTE=entwurf.id; showAddBar("Eigener Artikel…", t=>addEin(t)); }
   else document.getElementById("addbar").style.display="none";
 };
 
-// HTML einer abgeschickten Liste (schreibgeschützt, "Bearbeiten"-Knopf)
-function abgeschickteListeHtml(l){
+// HTML einer abgeschickten Liste. istEigene=true -> Ersteller-Sicht (zeigt Empfänger)
+function abgeschickteListeHtml(l, istEigene){
   const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
   const erledigt = l.artikel.filter(a=>a.d);
   const editing = (window._editListe===l.id);
   const rows = [...offen,...erledigt].map(a=>einRowRO(l.id,a,editing)).join("");
+  const kopfInfo = istEigene
+    ? `an ${esc((l.empfaenger||[]).join(", ")||"—")} · ${l.artikel.filter(a=>!a.d).length} offen`
+    : `von ${esc(l.ersteller)} · ${l.artikel.filter(a=>!a.d).length} offen`;
   return `<div class="card" style="margin:0 16px 10px;padding:0;overflow:hidden">
     <div style="padding:13px 15px;display:flex;align-items:center;gap:10px;background:var(--accent-soft)">
       <div style="flex:1"><div style="font-weight:700">${esc(listenName(l))}</div>
-        <div style="font-size:12px;color:var(--ink2)">von ${esc(l.ersteller)} · ${l.artikel.filter(a=>!a.d).length} offen</div></div>
+        <div style="font-size:12px;color:var(--ink2)">${kopfInfo}</div></div>
       <button class="cbtn" style="flex:0 0 auto;padding:7px 12px" onclick="${editing?`stopEdit()`:`startEdit('${l.id}')`}">${editing?"Fertig":"Bearbeiten"}</button>
     </div>
     <div class="list" style="padding:10px 15px 14px">${rows||'<div style="color:var(--ink2);font-size:13px">leer</div>'}</div>
-    ${editing?`<div style="padding:0 15px 14px"><input id="ed_add_${l.id}" placeholder="Artikel ergänzen…" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px" onkeydown="if(event.key==='Enter'){addEinTo('${l.id}',this.value);this.value=''}"></div>`:""}
+    ${editing?`<div style="padding:0 15px 14px"><input id="ed_add_${l.id}" placeholder="Artikel ergänzen…" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px" onkeydown="if(event.key==='Enter'){addEinTo('${l.id}',this.value);this.value=''}">
+      ${istEigene?`<div class="ml" style="margin-top:8px">Ergänzungen erscheinen automatisch bei ${esc((l.empfaenger||[]).join(", "))}.</div>`:""}</div>`:""}
+    ${istEigene && !editing ? `<div style="padding:0 15px 14px"><button class="cbtn" style="width:100%" onclick="delListe('${l.id}')">Liste zurückziehen</button></div>`:""}
   </div>`;
 }
 // Zeile in abgeschickter Liste: nur abhaken (RO) oder bearbeiten
@@ -1201,7 +1234,12 @@ window.delEin = id => { const l=aktListe(); l.artikel=l.artikel.filter(x=>x.id!=
 window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
 window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); l.artikel=l.artikel.filter(x=>x.id!==aid); l.updatedAt=now(); save(); RENDER.einkauf(); };
 window.addEinTo = (lid,tx) => { tx=(tx||"").trim(); if(!tx)return; const l=DB.listen.find(x=>x.id===lid);
-  l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx); save(); RENDER.einkauf(); };
+  l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx);
+  // Wenn ich der Ersteller bin und nachträglich etwas ergänze -> Empfänger informieren
+  if(l.ersteller===ME && l.status==="abgeschickt" && l.empfaenger && l.empfaenger.length){
+    l.empfaenger.forEach(person=> notify(`${ME} hat „${tx}" zur Einkaufsliste ergänzt`, {ziel:person, listeId:l.id}));
+  }
+  save(); RENDER.einkauf(); };
 window.startEdit = id => { window._editListe=id; RENDER.einkauf(); };
 window.stopEdit = () => { window._editListe=null; RENDER.einkauf(); };
 
