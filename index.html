@@ -363,7 +363,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.7.0";
+const APP_VERSION = "1.7.1";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -425,6 +425,8 @@ if(!DB.empfaengerStandard) DB.empfaengerStandard = { "Alexander":["Ellen"], "Ell
 if(!DB.artikelZaehler) DB.artikelZaehler = {};
 // alte Beispiel-"Allgemein"-Listen ohne Inhalt und ohne Status aufräumen
 DB.listen = DB.listen.filter(l=> (l.artikel&&l.artikel.length) || l.status );
+// gelöschte Listen (Tombstones) nach 30 Tagen endgültig entfernen
+DB.listen = DB.listen.filter(l=> !(l.deleted && l.updatedAt && (Date.now()-new Date(l.updatedAt).getTime())>30*86400000) );
 // fehlende Statusfelder ergänzen (Altbestände gelten als Entwurf des bisherigen Erstellers)
 DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.ersteller||ME||"?"; l.empfaenger=l.empfaenger||[]; } });
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
@@ -637,9 +639,10 @@ function nextTrip(){
 }
 
 function renderHome(){
-  // Countdown
+  // Countdown – nur wenn der Nutzer überhaupt Zugriff auf die Urlaubsplanung hat
   const slot = document.getElementById("countdownSlot");
-  const trip = nextTrip();
+  const darfUrlaub = (()=>{ const r=erlaubteModule(); return r===null || r.includes("urlaub"); })();
+  const trip = darfUrlaub ? nextTrip() : null;
   if(trip){
     const d = daysUntil(trip.von);
     slot.innerHTML = `<div class="countdown" onclick="open_('urlaub')">
@@ -1094,23 +1097,23 @@ function listenName(l){
 }
 // An mich abgeschickte, aktive (nicht archivierte) Listen
 function listenFuerMich(){
-  return DB.listen.filter(l=> l.status==="abgeschickt" && !l.archiviert && (!l.empfaenger || !l.empfaenger.length || l.empfaenger.includes(ME)) && l.ersteller!==ME);
+  return DB.listen.filter(l=> !l.deleted && l.status==="abgeschickt" && !l.archiviert && (!l.empfaenger || !l.empfaenger.length || l.empfaenger.includes(ME)) && l.ersteller!==ME);
 }
 // Mein eigener, noch nicht abgeschickter Entwurf (max. einer aktiv)
 function meinEntwurf(){
-  return DB.listen.find(l=> l.status==="entwurf" && !l.archiviert && l.ersteller===ME);
+  return DB.listen.find(l=> !l.deleted && l.status==="entwurf" && !l.archiviert && l.ersteller===ME);
 }
 // Von mir selbst abgeschickte, aktive Listen (weiter sichtbar & nachbearbeitbar)
 function meineAbgeschickten(){
-  return DB.listen.filter(l=> l.status==="abgeschickt" && !l.archiviert && l.ersteller===ME && !l.zusammengefuehrt);
+  return DB.listen.filter(l=> !l.deleted && l.status==="abgeschickt" && !l.archiviert && l.ersteller===ME && !l.zusammengefuehrt);
 }
 // Listen, die ICH zusammengeführt habe (aktiv)
 function meineMerges(){
-  return DB.listen.filter(l=> l.zusammengefuehrt && !l.archiviert && l.empfaenger && l.empfaenger.includes(ME));
+  return DB.listen.filter(l=> !l.deleted && l.zusammengefuehrt && !l.archiviert && l.empfaenger && l.empfaenger.includes(ME));
 }
 // Archivierte Listen, die mich betreffen (Ersteller oder Empfänger)
 function archivListen(){
-  return DB.listen.filter(l=> l.archiviert && (l.ersteller===ME || (l.empfaenger||[]).includes(ME)))
+  return DB.listen.filter(l=> !l.deleted && l.archiviert && (l.ersteller===ME || (l.empfaenger||[]).includes(ME)))
     .sort((a,b)=> new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
 }
 
@@ -1384,7 +1387,13 @@ window.clearListe = id => { if(confirm("Liste leeren?")){ const l=DB.listen.find
 window.delListe = id => {
   const l=DB.listen.find(x=>x.id===id); if(!l)return;
   const frage = l.status==="entwurf" ? "Diesen Entwurf verwerfen?" : "Diese Liste wirklich löschen?";
-  if(confirm(frage)){ DB.listen=DB.listen.filter(x=>x.id!==id); if(AKT_LISTE===id)AKT_LISTE=null; if(window._openListe===id)window._openListe=null; save(); RENDER.einkauf(); }
+  if(confirm(frage)){
+    // Als gelöscht markieren (nicht entfernen), damit die Löschung über die
+    // Synchronisierung auf allen Geräten ankommt. Der Merge filtert deleted-Einträge heraus.
+    l.deleted = true; l.updatedAt = now();
+    if(AKT_LISTE===id)AKT_LISTE=null; if(window._openListe===id)window._openListe=null;
+    save(); RENDER.einkauf();
+  }
 };
 
 // Schnellauswahl (Stammartikel) bearbeiten und ergänzen
