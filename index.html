@@ -363,7 +363,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.6.0";
+const APP_VERSION = "1.7.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -1092,88 +1092,144 @@ function listenName(l){
   const d = new Date(l.createdAt);
   return `${l.ersteller||"?"} · ${d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})}`;
 }
-// An mich abgeschickte Listen (oder an alle)
+// An mich abgeschickte, aktive (nicht archivierte) Listen
 function listenFuerMich(){
-  return DB.listen.filter(l=> l.status==="abgeschickt" && (!l.empfaenger || !l.empfaenger.length || l.empfaenger.includes(ME)) && l.ersteller!==ME);
+  return DB.listen.filter(l=> l.status==="abgeschickt" && !l.archiviert && (!l.empfaenger || !l.empfaenger.length || l.empfaenger.includes(ME)) && l.ersteller!==ME);
 }
 // Mein eigener, noch nicht abgeschickter Entwurf (max. einer aktiv)
 function meinEntwurf(){
-  return DB.listen.find(l=> l.status==="entwurf" && l.ersteller===ME);
+  return DB.listen.find(l=> l.status==="entwurf" && !l.archiviert && l.ersteller===ME);
 }
-// Von mir selbst abgeschickte Listen (weiter sichtbar & nachbearbeitbar)
+// Von mir selbst abgeschickte, aktive Listen (weiter sichtbar & nachbearbeitbar)
 function meineAbgeschickten(){
-  return DB.listen.filter(l=> l.status==="abgeschickt" && l.ersteller===ME && !l.zusammengefuehrt);
+  return DB.listen.filter(l=> l.status==="abgeschickt" && !l.archiviert && l.ersteller===ME && !l.zusammengefuehrt);
+}
+// Listen, die ICH zusammengeführt habe (aktiv)
+function meineMerges(){
+  return DB.listen.filter(l=> l.zusammengefuehrt && !l.archiviert && l.empfaenger && l.empfaenger.includes(ME));
+}
+// Archivierte Listen, die mich betreffen (Ersteller oder Empfänger)
+function archivListen(){
+  return DB.listen.filter(l=> l.archiviert && (l.ersteller===ME || (l.empfaenger||[]).includes(ME)))
+    .sort((a,b)=> new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
 }
 
+let EINKAUF_ARCHIV = false;
 RENDER.einkauf = () => {
   const fuerMich = listenFuerMich();
   const entwurf = meinEntwurf();
   const vonMir = meineAbgeschickten();
+  const merges = meineMerges();
+  const archiv = archivListen();
   setHead("Einkaufslisten", "", null);
+
+  if(EINKAUF_ARCHIV){
+    let html = `<div class="seg" style="margin:0 16px 12px">
+      <div class="opt" onclick="einkaufTab(false)">Aktuell</div>
+      <div class="opt on" onclick="einkaufTab(true)">Archiv${archiv.length?" ("+archiv.length+")":""}</div></div>`;
+    html += archiv.length
+      ? archiv.map(l=>abgeschickteListeHtml(l, l.ersteller===ME, true)).join("")
+      : empty("cart","Noch keine archivierten Listen");
+    vBody().innerHTML = html;
+    document.getElementById("addbar").style.display="none";
+    return;
+  }
+
   document.getElementById("vsub").textContent = fuerMich.length? fuerMich.length+" für dich" : (entwurf? "dein Entwurf" : "");
+  let html = `<div class="seg" style="margin:0 16px 12px">
+    <div class="opt on" onclick="einkaufTab(false)">Aktuell</div>
+    <div class="opt" onclick="einkaufTab(true)">Archiv${archiv.length?" ("+archiv.length+")":""}</div></div>`;
 
-  let html = "";
+  // 1) Zusammengeführte Listen (von mir erstellt) zuerst
+  merges.forEach(l=>{ html += abgeschickteListeHtml(l, false); });
 
-  // 1) Aktuelle, an mich abgeschickte Listen ZUERST – mit Inhalt
+  // 2) An mich abgeschickte Listen – mit Inhalt
   if(fuerMich.length){
     html += `<div class="section-label">Für dich abgeschickt</div>`;
     fuerMich.forEach(l=>{ html += abgeschickteListeHtml(l); });
-    if(fuerMich.length>1){
-      html += `<div style="padding:6px 16px 4px"><button class="btn ghost" onclick="mergeDialog()">${ICON.cart} Mehrere Listen zu einer zusammenfügen</button></div>`;
-    }
+  }
+  // Zusammenfügen anbieten, sobald ich mind. 2 Listen habe (empfangen + zusammengeführt zählen)
+  const zusammenfuegbar = fuerMich.length + merges.length;
+  if(zusammenfuegbar>1){
+    html += `<div style="padding:6px 16px 4px"><button class="btn ghost" onclick="mergeDialog()">${ICON.cart} Mehrere Listen zu einer zusammenfügen</button></div>`;
   }
 
-  // 2) Mein Entwurf (falls vorhanden) – mit Schnellauswahl
+  // 3) Mein Entwurf (falls vorhanden) – mit Schnellauswahl
   if(entwurf){
     html += `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Dein Entwurf
       <span style="text-transform:none;font-weight:600;color:var(--danger)" onclick="delListe('${entwurf.id}')">Verwerfen</span></div>`;
     html += entwurfHtml(entwurf);
     html += schnellauswahlHtml();
   } else {
-    // 3) Kein Entwurf -> Knopf zum Anlegen; Schnellauswahl nur wenn auch keine Listen für mich
-    html += `<div style="padding:10px 16px"><button class="btn" onclick="neuerEntwurf()">+ Neue Einkaufsliste beginnen</button></div>`;
-    if(!fuerMich.length){
-      html += schnellauswahlHtml(true);  // Hinweis: erst Liste beginnen
+    // 4) Kein Entwurf -> zwei Knöpfe: abschicken-Liste / nur für mich
+    html += `<div style="padding:10px 16px;display:flex;gap:8px;flex-direction:column">
+      <button class="btn" onclick="neuerEntwurf()">+ Neue Einkaufsliste beginnen</button></div>`;
+    if(!fuerMich.length && !merges.length){
+      html += schnellauswahlHtml(true);
     }
   }
 
-  // 4) Von mir abgeschickte Listen – weiter sichtbar und nachbearbeitbar
+  // 5) Von mir abgeschickte Listen
   if(vonMir.length){
     html += `<div class="section-label">Von dir abgeschickt</div>`;
     vonMir.forEach(l=>{ html += abgeschickteListeHtml(l, true); });
   }
 
   vBody().innerHTML = html;
-  // Add-Leiste nur bei eigenem Entwurf
   if(entwurf){ AKT_LISTE=entwurf.id; showAddBar("Eigener Artikel…", t=>addEin(t)); }
   else document.getElementById("addbar").style.display="none";
 };
+window.einkaufTab = a => { EINKAUF_ARCHIV=a; RENDER.einkauf(); };
 
-// HTML einer abgeschickten Liste. istEigene=true -> Ersteller-Sicht (zeigt Empfänger)
-function abgeschickteListeHtml(l, istEigene){
+// Farbe je Absender (für zusammengeführte Listen)
+function autorFarbe(name){
+  const farben = ["#1d4ed8","#16a34a","#db2777","#ea580c","#7c3aed","#0891b2"];
+  let h=0; for(let i=0;i<(name||"").length;i++) h=(h*31+name.charCodeAt(i))%farben.length;
+  return farben[h];
+}
+
+// HTML einer abgeschickten/zusammengeführten Liste. istEigene -> Ersteller-Sicht. imArchiv -> nur Lesen+Löschen
+function abgeschickteListeHtml(l, istEigene, imArchiv){
   const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
   const erledigt = l.artikel.filter(a=>a.d);
   const editing = (window._editListe===l.id);
-  const rows = [...offen,...erledigt].map(a=>einRowRO(l.id,a,editing)).join("");
-  const kopfInfo = istEigene
-    ? `an ${esc((l.empfaenger||[]).join(", ")||"—")} · ${l.artikel.filter(a=>!a.d).length} offen`
-    : `von ${esc(l.ersteller)} · ${l.artikel.filter(a=>!a.d).length} offen`;
-  return `<div class="card" style="margin:0 16px 10px;padding:0;overflow:hidden">
-    <div style="padding:13px 15px;display:flex;align-items:center;gap:10px;background:var(--accent-soft)">
-      <div style="flex:1"><div style="font-weight:700">${esc(listenName(l))}</div>
+  const aufgeklappt = imArchiv ? (window._openListe===l.id) : (window._openListe===l.id || editing || offen.length>0);
+  // Kopfzeile
+  let kopfInfo;
+  if(l.zusammengefuehrt) kopfInfo = `zusammengeführt · ${offen.length} offen`;
+  else if(istEigene) kopfInfo = `an ${esc((l.empfaenger||[]).join(", ")||"—")} · ${offen.length} offen`;
+  else kopfInfo = `von ${esc(l.ersteller)} · ${offen.length} offen`;
+  const titel = l.zusammengefuehrt ? "Zusammengeführte Liste" : listenName(l);
+
+  const rows = [...offen,...erledigt].map(a=>einRowRO(l.id,a,editing,l)).join("");
+  const head = `<div style="padding:13px 15px;display:flex;align-items:center;gap:10px;background:var(--accent-soft);cursor:pointer" onclick="toggleListe('${l.id}')">
+      <div style="font-size:13px;color:var(--ink2);transform:rotate(${aufgeklappt?'90':'0'}deg);transition:.15s">▶</div>
+      <div style="flex:1"><div style="font-weight:700">${esc(titel)}</div>
         <div style="font-size:12px;color:var(--ink2)">${kopfInfo}</div></div>
-      <button class="cbtn" style="flex:0 0 auto;padding:7px 12px" onclick="${editing?`stopEdit()`:`startEdit('${l.id}')`}">${editing?"Fertig":"Bearbeiten"}</button>
-    </div>
+      ${!imArchiv?`<button class="cbtn" style="flex:0 0 auto;padding:7px 12px" onclick="event.stopPropagation();${editing?`stopEdit()`:`startEdit('${l.id}')`}">${editing?"Fertig":"Bearbeiten"}</button>`:""}
+    </div>`;
+  if(!aufgeklappt) return `<div class="card" style="margin:0 16px 10px;padding:0;overflow:hidden">${head}</div>`;
+
+  return `<div class="card" style="margin:0 16px 10px;padding:0;overflow:hidden">${head}
     <div class="list" style="padding:10px 15px 14px">${rows||'<div style="color:var(--ink2);font-size:13px">leer</div>'}</div>
-    ${editing?`<div style="padding:0 15px 14px"><input id="ed_add_${l.id}" placeholder="Artikel ergänzen…" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px" onkeydown="if(event.key==='Enter'){addEinTo('${l.id}',this.value);this.value=''}">
-      ${istEigene?`<div class="ml" style="margin-top:8px">Ergänzungen erscheinen automatisch bei ${esc((l.empfaenger||[]).join(", "))}.</div>`:""}</div>`:""}
-    ${istEigene && !editing ? `<div style="padding:0 15px 14px"><button class="cbtn" style="width:100%" onclick="delListe('${l.id}')">Liste zurückziehen</button></div>`:""}
+    ${editing?`<div style="padding:0 15px 8px"><input id="ed_add_${l.id}" placeholder="Artikel ergänzen…" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px" onkeydown="if(event.key==='Enter'){addEinTo('${l.id}',this.value);this.value=''}">
+      ${istEigene&&l.empfaenger&&l.empfaenger.length?`<div class="ml" style="margin-top:8px">Ergänzungen erscheinen automatisch bei ${esc(l.empfaenger.join(", "))}.</div>`:""}</div>
+      ${schnellauswahlHtml(false, l.id)}`:""}
+    ${!imArchiv && !editing ? `<div style="padding:0 15px 14px;display:flex;gap:8px">
+      ${istEigene?`<button class="cbtn" style="flex:1" onclick="delListe('${l.id}')">Zurückziehen</button>`:`<button class="cbtn" style="flex:1" onclick="archiviereListe('${l.id}')">Ins Archiv</button>`}
+      <button class="cbtn" style="flex:1;color:var(--danger);border-color:var(--danger)" onclick="delListe('${l.id}')">Löschen</button></div>`:""}
+    ${imArchiv?`<div style="padding:0 15px 14px"><button class="cbtn" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="delListe('${l.id}')">Endgültig löschen</button></div>`:""}
   </div>`;
 }
-// Zeile in abgeschickter Liste: nur abhaken (RO) oder bearbeiten
-function einRowRO(lid,a,editing){
-  const herkunft = a.von && a.von!==a._listenErsteller ? `<small style="color:var(--accent)">von ${esc(a.von)}</small>` : "";
-  return `<div class="row ${a.d?'done':''}" style="margin-bottom:6px">
+window.toggleListe = id => { window._openListe = (window._openListe===id? null : id); RENDER.einkauf(); };
+window.archiviereListe = id => { const l=DB.listen.find(x=>x.id===id); if(l){ l.archiviert=true; l.updatedAt=now(); save(); RENDER.einkauf(); } };
+
+// Zeile in abgeschickter Liste: abhaken; bei "alles abgehakt" -> Archiv
+function einRowRO(lid,a,editing,l){
+  const fremd = a.von && a.von!==ME;
+  const farbe = (l && l.zusammengefuehrt && a.von) ? autorFarbe(a.von) : null;
+  const herkunft = (l && l.zusammengefuehrt && a.von) ? `<small style="color:${farbe};font-weight:600">${esc(a.von)}</small>` : "";
+  return `<div class="row ${a.d?'done':''}" style="margin-bottom:6px${farbe?`;border-left:3px solid ${farbe};padding-left:8px`:''}">
     <div class="cb ${a.d?'on':''}" onclick="toggleEinIn('${lid}','${a.id}')">${a.d?'✓':''}</div>
     <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}${a.menge?` <span style="color:var(--ink2)">(${esc(a.menge)})</span>`:""} ${herkunft}</div>
     ${editing?`<div class="del" onclick="delEinIn('${lid}','${a.id}')">×</div>`:""}</div>`;
@@ -1185,17 +1241,26 @@ function entwurfHtml(l){
   const erledigt = l.artikel.filter(a=>a.d);
   AKT_LISTE = l.id;
   return `<div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>
-    <div style="padding:14px 16px 4px"><button class="btn" onclick="abschickenDialog('${l.id}')">✓ Liste abschicken</button></div>`;
+    <div style="padding:14px 16px 4px;display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="abschickenDialog('${l.id}')">✓ Abschicken</button>
+      <button class="cbtn" style="flex:0 0 auto;padding:0 16px" onclick="behalteListe('${l.id}')">Nur für mich</button></div>`;
 }
+// Liste behalten (nicht abschicken) -> als eigene "abgeschickte" Liste an mich selbst
+window.behalteListe = id => {
+  const l=DB.listen.find(x=>x.id===id); if(!l||!l.artikel.length){ alert("Die Liste ist leer."); return; }
+  l.status="abgeschickt"; l.empfaenger=[ME]; l.abgeschicktAm=now(); l.nurFuerMich=true; l.updatedAt=now();
+  save(); RENDER.einkauf();
+};
 
-// Schnellauswahl-HTML (gruppiert). hinweisOnly=true -> nur Hinweis, kein direktes Hinzufügen
-function schnellauswahlHtml(hinweisOnly){
+// Schnellauswahl-HTML. zielListe = ID, in die hinzugefügt wird (sonst aktiver Entwurf)
+function schnellauswahlHtml(hinweisOnly, zielListe){
   const grouped = {};
   DB.einkaufStamm.forEach(s=>{ const t=warenGruppeTitel(s); (grouped[t]=grouped[t]||[]).push(s); });
   const ordered = [...WARENGRUPPEN.map(g=>g.titel), "Sonstiges"].filter(t=>grouped[t]);
+  const clickFn = s => hinweisOnly ? `neuerEntwurf('${esc(s)}')` : (zielListe ? `addEinTo('${zielListe}','${esc(s)}')` : `addEin('${esc(s)}',this)`);
   const inner = ordered.map(t=>`
     <div class="wg-titel">${t}</div>
-    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="${hinweisOnly?`neuerEntwurf('${esc(s)}')`:`addEin('${esc(s)}',this)`}"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
+    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="${clickFn(s)}"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
   return `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
       <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="editStamm()">Bearbeiten</span></div>${inner}`;
 }
@@ -1231,7 +1296,10 @@ window.toggleEin = id => { const l=aktListe(); const a=l.artikel.find(x=>x.id===
 window.delEin = id => { const l=aktListe(); l.artikel=l.artikel.filter(x=>x.id!==id); l.updatedAt=now(); save(); RENDER.einkauf(); };
 
 // Aktionen in abgeschickten Listen
-window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now();
+  // Wenn jetzt alle Artikel abgehakt sind -> Liste ins Archiv
+  if(l.artikel.length && l.artikel.every(x=>x.d)){ l.archiviert=true; if(window._openListe===lid)window._openListe=null; }
+  save(); RENDER.einkauf(); };
 window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); l.artikel=l.artikel.filter(x=>x.id!==aid); l.updatedAt=now(); save(); RENDER.einkauf(); };
 window.addEinTo = (lid,tx) => { tx=(tx||"").trim(); if(!tx)return; const l=DB.listen.find(x=>x.id===lid);
   l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx);
@@ -1280,14 +1348,14 @@ window.abschicken = id => {
   save(); closeModal(); RENDER.einkauf();
 };
 
-// Mehrere an mich gerichtete Listen zusammenführen
+// Mehrere an mich gerichtete Listen zusammenführen (auch bereits zusammengeführte)
 window.mergeDialog = () => {
-  const listen = listenFuerMich();
+  const listen = [...listenFuerMich(), ...meineMerges()];
   window._mergeSel = new Set(listen.map(l=>l.id));
   openSheet(`<h3>Listen zusammenfügen</h3>
-    <div class="ml">Wähle die Listen, die du im Supermarkt zusammen abarbeiten willst. Doppelte Artikel bleiben erhalten – du siehst, von wem was ist.</div>
+    <div class="ml">Wähle die Listen, die du im Supermarkt zusammen abarbeiten willst. Doppelte Artikel bleiben erhalten – farblich siehst du, von wem was ist. Die einzelnen Listen wandern danach ins Archiv.</div>
     ${listen.map(l=>`<div class="row" style="margin-bottom:6px" onclick="toggleMerge('${l.id}',this)">
-      <div class="cb on" data-id="${l.id}">✓</div><div class="tx">${esc(listenName(l))} <small style="color:var(--ink2)">(${l.artikel.length})</small></div></div>`).join("")}
+      <div class="cb on" data-id="${l.id}">✓</div><div class="tx">${l.zusammengefuehrt?"Zusammengeführte Liste":esc(listenName(l))} <small style="color:var(--ink2)">(${l.artikel.length})</small></div></div>`).join("")}
     <button class="btn" onclick="doMerge()" style="margin-top:8px">Zusammenfügen</button>`);
 };
 window.toggleMerge = (id,row) => {
@@ -1299,20 +1367,25 @@ window.doMerge = () => {
   const ids=[...window._mergeSel]; if(ids.length<2){ alert("Bitte mindestens zwei Listen wählen."); return; }
   const quellen = ids.map(id=>DB.listen.find(l=>l.id===id)).filter(Boolean);
   const artikel = [];
-  quellen.forEach(l=> l.artikel.forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller, _listenErsteller:null})) );
+  quellen.forEach(l=> l.artikel.forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller})) );
   const merged = {
-    id:uid(), status:"abgeschickt", ersteller:"Zusammengeführt", empfaenger:[ME],
+    id:uid(), status:"abgeschickt", ersteller:ME, empfaenger:[ME],
     artikel, createdAt:now(), updatedAt:now(), abgeschicktAm:now(), zusammengefuehrt:true,
-    quellenNamen: quellen.map(l=>listenName(l))
+    quellenNamen: quellen.map(l=>l.zusammengefuehrt?"Zusammengeführt":listenName(l))
   };
   DB.listen.push(merged);
-  // Quell-Listen als erledigt markieren (für mich aus der Ansicht nehmen): empfaenger leeren
-  quellen.forEach(l=>{ l.empfaenger = (l.empfaenger||[]).filter(p=>p!==ME); l.updatedAt=now(); });
+  // Quell-Listen ins Archiv
+  quellen.forEach(l=>{ l.archiviert=true; l.updatedAt=now(); });
+  window._openListe = merged.id;
   save(); closeModal(); RENDER.einkauf();
 };
 
 window.clearListe = id => { if(confirm("Liste leeren?")){ const l=DB.listen.find(x=>x.id===id); l.artikel=[]; l.updatedAt=now(); save(); RENDER.einkauf(); } };
-window.delListe = id => { if(confirm("Diesen Entwurf verwerfen?")){ DB.listen=DB.listen.filter(x=>x.id!==id); if(AKT_LISTE===id)AKT_LISTE=null; save(); RENDER.einkauf(); } };
+window.delListe = id => {
+  const l=DB.listen.find(x=>x.id===id); if(!l)return;
+  const frage = l.status==="entwurf" ? "Diesen Entwurf verwerfen?" : "Diese Liste wirklich löschen?";
+  if(confirm(frage)){ DB.listen=DB.listen.filter(x=>x.id!==id); if(AKT_LISTE===id)AKT_LISTE=null; if(window._openListe===id)window._openListe=null; save(); RENDER.einkauf(); }
+};
 
 // Schnellauswahl (Stammartikel) bearbeiten und ergänzen
 window.editStamm = () => {
