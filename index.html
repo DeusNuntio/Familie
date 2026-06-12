@@ -363,7 +363,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.8.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
@@ -380,7 +380,7 @@ function seed(){
     empfaengerStandard: { "Alexander":["Ellen"], "Ellen":["Alexander"], "Mama":["Alexander"],
       "Julia":["Alexander","Ellen"], "Isabella":["Alexander","Ellen"] },
     artikelZaehler: {},   // zählt, wie oft ein Artikel verwendet wurde (für Auto-Schnellauswahl)
-    todos: [], todoListen: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
+    todos: [], todoListen: [], wiederkehrend: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
     listen: [],
     einkaufStamm: ["Äpfel","Bananen","Tomaten","Gurke","Salat","Kartoffeln","Zwiebeln","Karotten","Paprika",
       "Hackfleisch","Hähnchen","Wurst","Schinken","Lachs",
@@ -432,6 +432,7 @@ DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.erstelle
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
 if(!DB.todoListen) DB.todoListen = [];
 if(!DB.rezepte) DB.rezepte = [];
+if(!DB.wiederkehrend) DB.wiederkehrend = [];
 // Reparatur: Städte, deren Name versehentlich ein Link ist
 (DB.urlaub||[]).forEach(r=>{
   (r.staedte||[]).forEach(c=>{
@@ -639,6 +640,8 @@ function nextTrip(){
 }
 
 function renderHome(){
+  // Fällige wiederkehrende Aufgaben in echte To-dos umwandeln
+  erzeugeFaelligeWiederkehrend();
   // Countdown – nur wenn der Nutzer überhaupt Zugriff auf die Urlaubsplanung hat
   const slot = document.getElementById("countdownSlot");
   const darfUrlaub = (()=>{ const r=erlaubteModule(); return r===null || r.includes("urlaub"); })();
@@ -673,28 +676,34 @@ function renderFuerDich(){
     slot = document.createElement("div"); slot.id="fuerDichSlot";
     document.getElementById("countdownSlot").after(slot);
   }
-  // relevante Aufgaben: mir zugewiesen ODER von mir, offen, und (überfällig | ≤3 Tage | Priorität hoch)
-  const relevant = DB.todos.filter(t=>{
+  // Prüft, ob die angemeldete Person zuständig ist (Einzel- oder Mehrfachzuweisung)
+  const istMeins = e => {
+    if(e.werListe && e.werListe.length) return e.werListe.includes(ME);
+    if(e.wer) return e.wer.split(",").map(s=>s.trim()).includes(ME);
+    return e.autor===ME;   // ohne Zuweisung: für den Ersteller
+  };
+  const relevantVon = (arr, typ) => arr.filter(t=>{
     if(t.done) return false;
-    const mir = (t.wer===ME) || (!t.wer && t.autor===ME);
-    if(!mir) return false;
+    if(!istMeins(t)) return false;
     const d = t.faellig ? daysUntil(t.faellig) : null;
     return (d!==null && d<=3) || t.prio==="hoch";
-  }).sort((a,b)=>{
-    const da=a.faellig?daysUntil(a.faellig):999, db=b.faellig?daysUntil(b.faellig):999;
-    return da-db;
-  });
+  }).map(t=>({...t, _typ:typ}));
+  // To-dos UND Reparaturen zusammenführen
+  const relevant = [...relevantVon(DB.todos,"todo"), ...relevantVon(DB.reparaturen,"reparatur")]
+    .sort((a,b)=>{ const da=a.faellig?daysUntil(a.faellig):999, db=b.faellig?daysUntil(b.faellig):999; return da-db; });
   if(!relevant.length){ slot.innerHTML=""; return; }
   slot.innerHTML = `<div class="fd-head">Für dich, ${esc(ME)}</div>
-    <div class="fd-list">${relevant.slice(0,5).map(t=>{
+    <div class="fd-list">${relevant.slice(0,6).map(t=>{
       const d = t.faellig?daysUntil(t.faellig):null;
       const when = d===null?"" : d<0?"überfällig" : d===0?"heute" : d===1?"morgen" : "in "+d+" Tagen";
       const urgent = (d!==null&&d<=0) || t.prio==="hoch";
       const listLink = !!t.einkauf;
-      return `<div class="fd-item ${urgent?'urgent':''}" onclick="${listLink?`open_('einkauf')`:`open_('todos')`}">
+      const ziel = listLink ? "einkauf" : (t._typ==="reparatur" ? "reparaturen" : "todos");
+      const typLabel = t._typ==="reparatur" ? "Reparatur" : (listLink ? "Einkauf" : "Aufgabe");
+      return `<div class="fd-item ${urgent?'urgent':''}" onclick="open_('${ziel}')">
         <div class="fd-dot ${urgent?'u':''}"></div>
         <div class="fd-tx"><div class="fd-titel">${esc(t.titel)}</div>
-          <div class="fd-meta">${when}${t.prio==="hoch"?" · dringend":""}${listLink?" · Einkauf":""}</div></div>
+          <div class="fd-meta">${typLabel}${when?" · "+when:""}${t.prio==="hoch"?" · dringend":""}</div></div>
         ${listLink?`<div class="fd-go">${ICON.cart}</div>`:`<div class="fd-go">›</div>`}
       </div>`;
     }).join("")}</div>`;
@@ -851,18 +860,14 @@ function aufgabeEditor(typ, eintrag){
       <input id="f_faellig" type="date" value="${e.faellig||""}"></div>
     <div class="fld"><label>Dringlichkeit</label>
       <div class="seg" id="f_prio">${prios.map(p=>`<div class="opt ${e.prio===p?'on':''}" data-v="${p}" onclick="segPick(this)">${p[0].toUpperCase()+p.slice(1)}</div>`).join("")}</div></div>
-    <div class="fld"><label>Wer</label>
-      <div class="whopick" id="f_wer">${DB.nutzer.map(n=>`<div class="w ${e.wer===n?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`).join("")}</div></div>
+    <div class="fld"><label>Wer (mehrere möglich)</label>
+      <div class="whopick" id="f_wer">${DB.nutzer.map(n=>{ const sel=(e.werListe&&e.werListe.includes(n))||e.wer===n; return `<div class="w ${sel?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`;}).join("")}</div></div>
     <div class="fld"><label>Foto</label><div id="fotoSlot"></div></div>
     ${typ==="todo"?`<div class="fld"><label><input type="checkbox" id="f_einkauf" ${e.einkauf?'checked':''} style="width:auto;margin-right:8px;vertical-align:middle">Einkaufs-Aufgabe (führt zur Einkaufsliste)</label></div>`:""}
     <button class="btn" onclick="saveAufgabe('${typ}','${eintrag?eintrag.id:""}')">Speichern</button>`;
 }
 window.segPick = el => { el.parentNode.querySelectorAll(".opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); };
-window.whoPick = el => {
-  const on = el.classList.contains("on");
-  el.parentNode.querySelectorAll(".w").forEach(o=>o.classList.remove("on"));
-  if(!on) el.classList.add("on");
-};
+window.whoPick = el => { el.classList.toggle("on"); };
 function renderFotoSlot(){
   const slot = document.getElementById("fotoSlot"); if(!slot) return;
   if(window._formFoto){
@@ -877,13 +882,14 @@ function renderFotoSlot(){
 window.saveAufgabe = (typ, id) => {
   const titel = document.getElementById("f_titel").value.trim(); if(!titel) return;
   const prioEl = document.querySelector("#f_prio .opt.on");
-  const werEl = document.querySelector("#f_wer .w.on");
+  const werListe = [...document.querySelectorAll("#f_wer .w.on")].map(el=>el.dataset.v);
   const obj = {
     titel,
     notiz: document.getElementById("f_notiz").value.trim(),
     faellig: document.getElementById("f_faellig").value,
     prio: prioEl ? prioEl.dataset.v : "mittel",
-    wer: werEl ? werEl.dataset.v : "",
+    werListe,
+    wer: werListe.join(", "),   // Abwärtskompatibilität / Anzeige
     foto: window._formFoto || "",
     einkauf: !!(document.getElementById("f_einkauf") && document.getElementById("f_einkauf").checked),
     updatedAt: now(),
@@ -910,7 +916,7 @@ function aufgabeKarte(e, typ){
         <div class="cmeta">
           ${e.faellig?`<span class="pill due ${over?'over':''}">${ICON.checklist} ${over?'überfällig ':''}${fmtDate(e.faellig)}</span>`:""}
           <span class="pill prio-${e.prio||'mittel'}">${(e.prio||'mittel').toUpperCase()}</span>
-          ${e.wer?`<span class="pill who">${esc(e.wer)}</span>`:""}
+          ${(e.werListe&&e.werListe.length)?e.werListe.map(w=>`<span class="pill who">${esc(w)}</span>`).join(""):(e.wer?`<span class="pill who">${esc(e.wer)}</span>`:"")}
           ${e.faellig?`<span class="pill cat" onclick="event.stopPropagation();todoZuKalender('${typ}','${e.id}')" style="cursor:pointer">📅 Kalender</span>`:""}
           ${e.einkauf?`<span class="pill who" onclick="event.stopPropagation();open_('einkauf')" style="cursor:pointer">${ICON.cart} Einkauf</span>`:""}
         </div>
@@ -938,7 +944,8 @@ RENDER.todos = () => {
   setHead("To-do", "");
   const tabs = `<div class="seg" style="margin:0 16px 12px">
     <div class="opt ${TODO_TAB==='aufgaben'?'on':''}" onclick="todoTab('aufgaben')">Aufgaben</div>
-    <div class="opt ${TODO_TAB==='listen'?'on':''}" onclick="todoTab('listen')">Listen</div></div>`;
+    <div class="opt ${TODO_TAB==='listen'?'on':''}" onclick="todoTab('listen')">Listen</div>
+    <div class="opt ${TODO_TAB==='wieder'?'on':''}" onclick="todoTab('wieder')">Wiederkehrend</div></div>`;
   if(TODO_TAB==="aufgaben"){
     document.getElementById("vsub").textContent = DB.todos.filter(t=>!t.done).length+" offen";
     const open = DB.todos.filter(t=>!t.done).sort(sortByDue);
@@ -947,12 +954,25 @@ RENDER.todos = () => {
       + `<div class="list">${open.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`
       + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`:"");
     showFab(()=>openSheet(aufgabeEditor("todo")));
-  } else {
+  } else if(TODO_TAB==="listen"){
     document.getElementById("vsub").textContent = DB.todoListen.length+" Listen";
     vBody().innerHTML = tabs + (DB.todoListen.length
       ? `<div class="list">${DB.todoListen.map(todoListCard).join("")}</div>`
       : empty("lists","Noch keine Listen — unten mit + anlegen"));
     showFab(newTodoListe);
+  } else {
+    // Wiederkehrende Aufgaben (Kalender)
+    document.getElementById("vsub").textContent = DB.wiederkehrend.length+" Einträge";
+    const sorted = [...DB.wiederkehrend].sort((a,b)=>{
+      const na=naechsteFaelligkeit(a), nb=naechsteFaelligkeit(b);
+      return new Date(na)-new Date(nb);
+    });
+    vBody().innerHTML = tabs
+      + `<div class="ml" style="margin:0 16px 10px">Aufgaben, die regelmäßig wiederkommen. Sie erscheinen automatisch in „Aufgaben", wenn sie fällig werden.</div>`
+      + (DB.wiederkehrend.length
+        ? `<div class="list">${sorted.map(wiederCard).join("")}</div>`
+        : empty("checklist","Noch nichts Wiederkehrendes — unten mit + anlegen"));
+    showFab(()=>openWiederEditor(null));
   }
 };
 window.todoTab = t => { TODO_TAB=t; RENDER.todos(); };
@@ -1014,6 +1034,116 @@ window.todoListeMenu = id => {
 window.renameTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.name=document.getElementById("tl_rename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
 window.resetTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.punkte.forEach(p=>p.d=false); l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
 window.delTodoListe = id => { if(confirm("Liste löschen?")){ DB.todoListen=DB.todoListen.filter(x=>x.id!==id); save(); closeModal(); TODO_TAB="listen"; open_("todos"); } };
+
+// ============================================================
+//  Wiederkehrende Aufgaben (To-do-Kalender)
+// ============================================================
+const INTERVALLE = [
+  {key:"woechentlich", label:"Wöchentlich", tage:7},
+  {key:"monatlich", label:"Monatlich", monate:1},
+  {key:"vierteljaehrlich", label:"Vierteljährlich", monate:3},
+  {key:"halbjaehrlich", label:"Halbjährlich", monate:6},
+  {key:"jaehrlich", label:"Jährlich", monate:12},
+  {key:"frei", label:"Frei (Tage)", tage:null},
+];
+function intervallLabel(w){
+  const i = INTERVALLE.find(x=>x.key===w.intervall);
+  if(w.intervall==="frei") return `alle ${w.freiTage||0} Tage`;
+  return i? i.label : "";
+}
+// Nächste Fälligkeit ab dem Startdatum, fortlaufend bis >= heute
+function naechsteFaelligkeit(w){
+  if(!w.start) return new Date().toISOString().slice(0,10);
+  let d = new Date(w.start+"T00:00:00");
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  const def = INTERVALLE.find(x=>x.key===w.intervall);
+  let guard=0;
+  while(d < heute && guard<1000){
+    guard++;
+    if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
+    else if(def.tage) d.setDate(d.getDate()+def.tage);
+    else d.setMonth(d.getMonth()+def.monate);
+  }
+  return d.toISOString().slice(0,10);
+}
+function wiederCard(w){
+  const naechste = naechsteFaelligkeit(w);
+  const d = daysUntil(naechste);
+  const wann = d<0?"überfällig" : d===0?"heute fällig" : d===1?"morgen" : "in "+d+" Tagen";
+  return `<div class="card" onclick="openWiederEditor('${w.id}')">
+    <div class="cttl">${esc(w.titel)}</div>
+    <div class="cmeta">
+      <span class="pill cat">${esc(intervallLabel(w))}</span>
+      <span class="pill due ${d<0?'over':''}">${ICON.checklist} ${wann}</span>
+      ${(w.werListe&&w.werListe.length)?w.werListe.map(p=>`<span class="pill who">${esc(p)}</span>`).join(""):""}</div>
+    <div class="cdesc">nächster Termin: ${fmtDate(naechste)}</div>
+    ${w.autor?`<div class="byline">angelegt von ${esc(w.autor)}</div>`:""}</div>`;
+}
+window.openWiederEditor = id => {
+  const w = id ? DB.wiederkehrend.find(x=>x.id===id)
+              : {titel:"",intervall:"monatlich",freiTage:14,start:new Date().toISOString().slice(0,10),werListe:[],prio:"mittel"};
+  window._wEdit = id || null;
+  openSheet(`<h3>${id?"Wiederkehrende Aufgabe":"Neue wiederkehrende Aufgabe"}</h3>
+    <div class="fld"><label>Aufgabe</label><input id="w_titel" value="${esc(w.titel)}" placeholder="z.B. Rauchmelder prüfen"></div>
+    <div class="fld"><label>Intervall</label>
+      <select id="w_intervall" onchange="wIntervallChange()">${INTERVALLE.map(i=>`<option value="${i.key}" ${w.intervall===i.key?'selected':''}>${i.label}</option>`).join("")}</select></div>
+    <div class="fld" id="w_freiWrap" style="display:${w.intervall==='frei'?'block':'none'}">
+      <label>Alle wie viele Tage?</label><input id="w_freiTage" type="number" min="1" value="${w.freiTage||14}"></div>
+    <div class="fld"><label>Erster Termin / Start</label><input id="w_start" type="date" value="${w.start||""}"></div>
+    <div class="fld"><label>Wer (mehrere möglich)</label>
+      <div class="whopick" id="w_wer">${DB.nutzer.map(n=>{const sel=w.werListe&&w.werListe.includes(n);return `<div class="w ${sel?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`;}).join("")}</div></div>
+    <button class="btn" onclick="saveWieder()">Speichern</button>
+    ${id?`<button class="btn danger" onclick="delWieder('${id}')">Löschen</button>`:""}`);
+};
+window.wIntervallChange = () => {
+  const v=document.getElementById("w_intervall").value;
+  document.getElementById("w_freiWrap").style.display = v==="frei"?"block":"none";
+};
+window.saveWieder = () => {
+  const titel=document.getElementById("w_titel").value.trim(); if(!titel)return;
+  const werListe=[...document.querySelectorAll("#w_wer .w.on")].map(el=>el.dataset.v);
+  const obj = {
+    titel,
+    intervall: document.getElementById("w_intervall").value,
+    freiTage: parseInt(document.getElementById("w_freiTage").value)||14,
+    start: document.getElementById("w_start").value || new Date().toISOString().slice(0,10),
+    werListe, prio:"mittel", updatedAt:now()
+  };
+  if(window._wEdit){ const ex=DB.wiederkehrend.find(x=>x.id===window._wEdit); Object.assign(ex,obj); }
+  else { DB.wiederkehrend.push({id:uid(), autor:ME, createdAt:now(), ...obj}); }
+  save(); closeModal(); RENDER.todos();
+};
+window.delWieder = id => { if(confirm("Wiederkehrende Aufgabe löschen?")){ DB.wiederkehrend=DB.wiederkehrend.filter(x=>x.id!==id); save(); closeModal(); RENDER.todos(); } };
+
+// Erzeugt aus fälligen wiederkehrenden Aufgaben echte To-dos (einmal pro Termin)
+function erzeugeFaelligeWiederkehrend(){
+  if(!DB.wiederkehrend) return;
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  let erzeugt=false;
+  DB.wiederkehrend.forEach(w=>{
+    const naechste = naechsteFaelligkeit(w);
+    const d = daysUntil(naechste);
+    // wenn innerhalb der nächsten 3 Tage oder fällig und noch nicht erzeugt für diesen Termin
+    if(d<=3){
+      const marker = w.id+"@"+naechste;
+      w.erzeugt = w.erzeugt || [];
+      if(!w.erzeugt.includes(marker)){
+        DB.todos.push({
+          id:uid(), titel:w.titel, notiz:"(wiederkehrend: "+intervallLabel(w)+")",
+          faellig:naechste, prio:w.prio||"mittel",
+          werListe:w.werListe||[], wer:(w.werListe||[]).join(", "),
+          done:false, autor:w.autor||ME, ausWiederkehrend:w.id,
+          createdAt:now(), updatedAt:now()
+        });
+        w.erzeugt.push(marker);
+        // alte Marker begrenzen
+        if(w.erzeugt.length>20) w.erzeugt = w.erzeugt.slice(-20);
+        erzeugt=true;
+      }
+    }
+  });
+  if(erzeugt) save();
+}
 
 // ---- Reparaturen ----
 RENDER.reparaturen = () => {
@@ -2162,7 +2292,7 @@ window.Sync = (() => {
   const SCOPES = ["Files.ReadWrite", "User.Read"];
   const FOLDER = "FamilienApp";
   const GRAPH = "https://graph.microsoft.com/v1.0";
-  const LISTEN = ["todos","todoListen","reparaturen","urlaub","ideen","keller","listen","rezepte","nachrichten"];
+  const LISTEN = ["todos","todoListen","wiederkehrend","reparaturen","urlaub","ideen","keller","listen","rezepte","nachrichten"];
   const OBJEKTE = ["nutzer","nutzerRollen","einkaufStamm","ideenKategorien","wohnmobil","wohnmobilCheck"];
   let app=null, account=null, saveTimer=null, busy=false, online=false, pollTimer=null, _lastSync=null;
 
