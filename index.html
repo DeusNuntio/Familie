@@ -97,6 +97,27 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
 .notice-titel{font-weight:650;font-size:14px;color:var(--ink)}
 .notice-meta{font-size:12px;color:var(--ink2);margin-top:1px}
 .notice-x{color:var(--ink2);font-size:18px;flex-shrink:0}
+.kal-nav{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px}
+.kal-nav>div{font-weight:700;font-size:16px;text-transform:capitalize}
+.kal-nav button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:20px;cursor:pointer}
+.kal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 12px}
+.kal-head{margin-bottom:4px}
+.kal-wt{text-align:center;font-size:11px;font-weight:700;color:var(--ink2);padding:4px 0}
+.kal-zelle{aspect-ratio:1;border-radius:9px;background:var(--surface);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 2px;cursor:pointer;position:relative}
+.kal-zelle.leer{background:transparent;border:none;cursor:default}
+.kal-zelle.heute{border-color:var(--accent);border-width:2px}
+.kal-zelle.hat{background:var(--accent-soft)}
+.kal-num{font-size:13px;font-weight:600}
+.kal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+.kal-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.kal-legende{display:flex;flex-wrap:wrap;gap:12px;padding:14px 16px 4px;font-size:12px;color:var(--ink2)}
+.kal-legende span{display:inline-flex;align-items:center;gap:5px}
+.gsuche-wrap{padding:0 16px 12px}
+.gsuche{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:10px 14px}
+.gsuche-ic{color:var(--ink2);display:flex}
+.gsuche input{flex:1;border:none;background:transparent;color:var(--ink);font-size:15px;outline:none}
+.gsuche-x{color:var(--ink2);font-size:20px;cursor:pointer;padding:0 4px}
 
 /* ---- Home grid ---- */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 16px 100px}
@@ -324,6 +345,12 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
         <div class="av" id="meAv">?</div>
       </div>
     </div>
+    <div class="gsuche-wrap"><div class="gsuche">
+      <span class="gsuche-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <input id="gsuche" placeholder="Alles durchsuchen…" oninput="globalSuche(this.value)" autocomplete="off">
+      <span id="gsuche-x" class="gsuche-x" style="display:none" onclick="globalSucheClear()">×</span>
+    </div></div>
+    <div id="gsuche-ergebnis"></div>
     <div id="countdownSlot"></div>
     <div class="grid" id="tiles"></div>
   </div>
@@ -363,9 +390,77 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.8.0";
+const APP_VERSION = "1.8.1";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
+// Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
+function stamp(obj){ if(obj){ obj.updatedAt=now(); obj.geaendertVon=ME; } return obj; }
+
+// Render-Funktionen je Modul (werden weiter unten befüllt)
+const RENDER = {};
+
+// ---- Papierkorb: Einträge werden als gelöscht markiert, nicht entfernt ----
+const TRASH_ARRAYS = {
+  todos:"Aufgabe", reparaturen:"Reparatur", urlaub:"Reise", ideen:"Idee",
+  rezepte:"Rezept", keller:"Kiste", listen:"Einkaufsliste",
+  todoListen:"To-do-Liste", wiederkehrend:"Wiederkehrend"
+};
+function inDenPapierkorb(arrName, id){
+  const arr = DB[arrName]; if(!arr) return;
+  const o = arr.find(x=>x.id===id); if(!o) return;
+  o.deleted = true; o.deletedAt = now(); o.deletedFrom = arrName;
+  o.updatedAt = now();
+  save();
+}
+function papierkorbEintraege(){
+  const out=[];
+  Object.keys(TRASH_ARRAYS).forEach(k=>{
+    (DB[k]||[]).forEach(o=>{ if(o.deleted) out.push({...o, _arr:k, _typLabel:TRASH_ARRAYS[k]}); });
+  });
+  return out.sort((a,b)=> new Date(b.deletedAt||0)-new Date(a.deletedAt||0));
+}
+window.wiederherstellen = (arrName,id) => {
+  const o=(DB[arrName]||[]).find(x=>x.id===id); if(!o)return;
+  delete o.deleted; delete o.deletedAt; o.updatedAt=now();
+  save(); RENDER.papierkorb();
+};
+window.endgueltigLoeschen = (arrName,id) => {
+  if(!confirm("Diesen Eintrag endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
+  // Tombstone behalten (für Sync), aber Inhalt minimieren
+  const o=(DB[arrName]||[]).find(x=>x.id===id);
+  if(o){ Object.keys(o).forEach(k=>{ if(!["id","deleted","deletedAt","updatedAt"].includes(k)) delete o[k]; }); o.purged=true; }
+  save(); RENDER.papierkorb();
+};
+window.papierkorbLeeren = () => {
+  if(!confirm("Papierkorb vollständig leeren? Alle Einträge werden endgültig gelöscht.")) return;
+  Object.keys(TRASH_ARRAYS).forEach(k=>{
+    (DB[k]||[]).forEach(o=>{ if(o.deleted){ Object.keys(o).forEach(f=>{ if(!["id","deleted","deletedAt","updatedAt"].includes(f)) delete o[f]; }); o.purged=true; } });
+  });
+  save(); RENDER.papierkorb();
+};
+RENDER.papierkorb = () => {
+  setHead("Papierkorb", "");
+  const items = papierkorbEintraege().filter(o=>!o.purged);
+  document.getElementById("vsub").textContent = items.length+" Einträge";
+  let html = `<div class="ml" style="margin:0 16px 12px">Gelöschte Einträge bleiben hier 30 Tage und lassen sich wiederherstellen.</div>`;
+  if(items.length){
+    html += `<div style="padding:0 16px 12px"><button class="cbtn" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="papierkorbLeeren()">Papierkorb leeren</button></div>`;
+    html += `<div class="list">${items.map(o=>`
+      <div class="card">
+        <div class="cttl">${esc(o.titel||o.name||o.tx||o.label||"Eintrag")}</div>
+        <div class="cmeta"><span class="pill cat">${esc(o._typLabel)}</span>
+          ${o.deletedAt?`<span class="pill who">gelöscht ${fmtDate(o.deletedAt)}</span>`:""}</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="cbtn" style="flex:1" onclick="wiederherstellen('${o._arr}','${o.id}')">Wiederherstellen</button>
+          <button class="cbtn" style="flex:1;color:var(--danger);border-color:var(--danger)" onclick="endgueltigLoeschen('${o._arr}','${o.id}')">Endgültig</button>
+        </div></div>`).join("")}</div>`;
+  } else {
+    html += empty("trash","Papierkorb ist leer");
+  }
+  vBody().innerHTML = html;
+  document.getElementById("addbar").style.display="none";
+  document.getElementById("fab").style.display="none";
+};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
 
 // Aktueller Nutzer (wer bin ich auf diesem Handy)
@@ -410,7 +505,16 @@ function load(){
 }
 function save(){
   DB._sync = now();
-  localStorage.setItem(KEY, JSON.stringify(DB));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(DB));
+  } catch(e) {
+    // Speicher voll (oft durch viele/große Fotos) – Hinweis statt stillem Datenverlust
+    console.warn("Speichern fehlgeschlagen:", e);
+    if(!window._speicherWarnung){
+      window._speicherWarnung = true;
+      alert("Der Speicher ist fast voll – das passiert meist durch viele Fotos. Bitte einige Fotos oder erledigte Einträge entfernen. Die letzte Änderung konnte nicht lokal gesichert werden.");
+    }
+  }
   if(window.Sync) Sync.scheduleSave();
 }
 let DB = load();
@@ -429,6 +533,10 @@ DB.listen = DB.listen.filter(l=> (l.artikel&&l.artikel.length) || l.status );
 DB.listen = DB.listen.filter(l=> !(l.deleted && l.updatedAt && (Date.now()-new Date(l.updatedAt).getTime())>30*86400000) );
 // fehlende Statusfelder ergänzen (Altbestände gelten als Entwurf des bisherigen Erstellers)
 DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.ersteller||ME||"?"; l.empfaenger=l.empfaenger||[]; } });
+// Papierkorb: Einträge, die seit über 30 Tagen gelöscht sind, endgültig entfernen
+["todos","reparaturen","urlaub","ideen","rezepte","keller","todoListen","wiederkehrend"].forEach(k=>{
+  if(DB[k]) DB[k] = DB[k].filter(o=> !(o.deleted && o.deletedAt && (Date.now()-new Date(o.deletedAt).getTime())>30*86400000) );
+});
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
 if(!DB.todoListen) DB.todoListen = [];
 if(!DB.rezepte) DB.rezepte = [];
@@ -458,6 +566,8 @@ const ICON = {
   link:'<svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
   printer:'<svg class="i" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
   search:'<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  trash:'<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
+  cal:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   pin:'<svg class="i" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
   cam:'<svg class="i" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   chef:'<svg class="i" viewBox="0 0 24 24"><path d="M6 13a4 4 0 0 1-1-7.9A4 4 0 0 1 12 4a4 4 0 0 1 7 1.1A4 4 0 0 1 18 13z"/><path d="M6 13v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6"/></svg>',
@@ -620,16 +730,52 @@ window.pruefePin = () => {
 //  Module-Definitionen für Home
 // ============================================================
 const MODULES = [
-  {id:"todos",       nm:"To-do",          ic:ICON.checkbox, count:()=>DB.todos.filter(t=>!t.done).length+" offen · "+DB.todoListen.length+" Listen"},
-  {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>{ const fm=DB.listen.filter(l=>l.status==="abgeschickt"&&(!l.empfaenger||!l.empfaenger.length||l.empfaenger.includes(ME))&&l.ersteller!==ME).length; return fm? fm+" für dich" : "antippen"; }},
-  {id:"rezepte",     nm:"Rezepte",        ic:ICON.chef,     count:()=>DB.rezepte.length+" Rezepte"},
-  {id:"reparaturen", nm:"Reparaturen",    ic:ICON.tool,     count:()=>DB.reparaturen.filter(r=>!r.done).length+" offen"},
-  {id:"urlaub",      nm:"Urlaubsplanung", ic:ICON.plane,    count:()=>DB.urlaub.length+" Reisen"},
-  {id:"keller",      nm:"Kellerinventar", ic:ICON.box,      count:()=>DB.keller.length+" Kisten"},
+  {id:"kalender",    nm:"Kalender",        ic:ICON.cal,      count:()=>kalenderCount()},
+  {id:"todos",       nm:"To-do",          ic:ICON.checkbox, count:()=>DB.todos.filter(t=>!t.done&&!t.deleted).length+" offen · "+DB.todoListen.filter(l=>!l.deleted).length+" Listen"},
+  {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>{ const fm=DB.listen.filter(l=>l.status==="abgeschickt"&&!l.deleted&&(!l.empfaenger||!l.empfaenger.length||l.empfaenger.includes(ME))&&l.ersteller!==ME).length; return fm? fm+" für dich" : "antippen"; }},
+  {id:"rezepte",     nm:"Rezepte",        ic:ICON.chef,     count:()=>DB.rezepte.filter(r=>!r.deleted).length+" Rezepte"},
+  {id:"reparaturen", nm:"Reparaturen",    ic:ICON.tool,     count:()=>DB.reparaturen.filter(r=>!r.done&&!r.deleted).length+" offen"},
+  {id:"urlaub",      nm:"Urlaubsplanung", ic:ICON.plane,    count:()=>DB.urlaub.filter(u=>!u.deleted).length+" Reisen"},
+  {id:"keller",      nm:"Kellerinventar", ic:ICON.box,      count:()=>DB.keller.filter(k=>!k.deleted).length+" Kisten"},
   {id:"wohnmobil",   nm:"Wohnmobil",      ic:ICON.car,      count:()=>wmTotal()+" Punkte"},
-  {id:"ideen",       nm:"Ideen",          ic:ICON.bulb,     count:()=>DB.ideen.length+" Ideen"},
+  {id:"ideen",       nm:"Ideen",          ic:ICON.bulb,     count:()=>DB.ideen.filter(i=>!i.deleted).length+" Ideen"},
+  {id:"papierkorb",  nm:"Papierkorb",     ic:ICON.trash,    count:()=>{ const n=papierkorbEintraege().filter(o=>!o.purged).length; return n? n+" Einträge":"leer"; }},
 ];
 function wmTotal(){ return DB.wohnmobil.reduce((s,k)=>s+k.pkte.length,0); }
+function kalenderCount(){ const n=kalenderEintraege().filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=14;}).length; return n? n+" in 14 Tagen":"frei"; }
+
+// ---- Globale Suche über alle Module ----
+window.globalSucheClear = () => { document.getElementById("gsuche").value=""; globalSuche(""); };
+window.globalSuche = q => {
+  q=(q||"").trim().toLowerCase();
+  const xBtn=document.getElementById("gsuche-x"); if(xBtn) xBtn.style.display=q?"block":"none";
+  const slot=document.getElementById("gsuche-ergebnis");
+  const tiles=document.getElementById("tiles"), cd=document.getElementById("countdownSlot");
+  const fd=document.getElementById("fuerDichSlot"), nm=document.getElementById("nachrichtenSlot");
+  if(!q){ slot.innerHTML=""; if(tiles)tiles.style.display=""; if(cd)cd.style.display=""; if(fd)fd.style.display=""; if(nm)nm.style.display=""; return; }
+  // andere Bereiche ausblenden, während gesucht wird
+  if(tiles)tiles.style.display="none"; if(cd)cd.style.display="none"; if(fd)fd.style.display="none"; if(nm)nm.style.display="none";
+  const treffer=[];
+  const add=(modul,titel,sub,ic)=>treffer.push({modul,titel,sub,ic});
+  DB.todos.filter(t=>!t.deleted&&t.titel.toLowerCase().includes(q)).forEach(t=>add("todos",t.titel,"Aufgabe"+(t.done?" · erledigt":""),ICON.checkbox));
+  DB.reparaturen.filter(r=>!r.deleted&&r.titel.toLowerCase().includes(q)).forEach(r=>add("reparaturen",r.titel,"Reparatur",ICON.tool));
+  DB.rezepte.filter(r=>!r.deleted&&(r.titel.toLowerCase().includes(q)||(r.zutaten||[]).some(z=>z.toLowerCase().includes(q)))).forEach(r=>add("rezepte",r.titel,"Rezept",ICON.chef));
+  DB.ideen.filter(i=>!i.deleted&&((i.titel||"").toLowerCase().includes(q)||(i.text||"").toLowerCase().includes(q))).forEach(i=>add("ideen",i.titel||i.text||"Idee","Idee",ICON.bulb));
+  DB.urlaub.filter(u=>!u.deleted&&((u.titel||"").toLowerCase().includes(q)||(u.staedte||[]).some(s=>(s.name||"").toLowerCase().includes(q)))).forEach(u=>add("urlaub",u.titel||"Reise","Reise",ICON.plane));
+  DB.keller.filter(k=>!k.deleted&&(k.name.toLowerCase().includes(q)||(k.items||[]).some(i=>i.toLowerCase().includes(q)))).forEach(k=>add("keller",k.name,"Kiste"+(k.items?.some(i=>i.toLowerCase().includes(q))?" · enthält Treffer":""),ICON.box));
+  DB.todoListen.filter(l=>!l.deleted&&(l.name.toLowerCase().includes(q)||(l.punkte||[]).some(p=>p.t.toLowerCase().includes(q)))).forEach(l=>add("todos",l.name,"To-do-Liste",ICON.lists));
+  // Einkaufsartikel
+  DB.listen.filter(l=>!l.deleted).forEach(l=>{ (l.artikel||[]).filter(a=>a.tx.toLowerCase().includes(q)).forEach(a=>add("einkauf",a.tx,"Einkauf · "+(l.ersteller||"Liste"),ICON.cart)); });
+  slot.innerHTML = treffer.length
+    ? `<div class="section-label">${treffer.length} Treffer</div><div class="list">${treffer.slice(0,40).map(t=>`
+        <div class="card" onclick="globalSucheClear();open_('${t.modul}')">
+          <div style="display:flex;align-items:center;gap:11px">
+            <div style="color:var(--accent)">${t.ic||""}</div>
+            <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(t.titel)}</div>
+              <div class="cmeta"><span class="pill cat">${esc(t.sub)}</span></div></div>
+            <div style="color:var(--ink2)">›</div></div></div>`).join("")}</div>`
+    : `<div class="empty" style="padding:30px 16px">${ICON.search}<div>Nichts gefunden für „${esc(q)}"</div></div>`;
+};
 
 // nächste Reise für Countdown
 function nextTrip(){
@@ -683,7 +829,7 @@ function renderFuerDich(){
     return e.autor===ME;   // ohne Zuweisung: für den Ersteller
   };
   const relevantVon = (arr, typ) => arr.filter(t=>{
-    if(t.done) return false;
+    if(t.done||t.deleted) return false;
     if(!istMeins(t)) return false;
     const d = t.faellig ? daysUntil(t.faellig) : null;
     return (d!==null && d<=3) || t.prio==="hoch";
@@ -843,8 +989,6 @@ window.closeModal=()=>{
 };
 function openSheet(html){ sheet.innerHTML='<div class="handle"></div>'+html; modal.classList.add("active"); sheet.scrollTop=0; pushNav(); }
 
-const RENDER = {};
-
 // gemeinsames Formular-Builder für To-do & Reparatur
 function aufgabeEditor(typ, eintrag){
   const e = eintrag || {titel:"",notiz:"",faellig:"",prio:"mittel",wer:"",foto:""};
@@ -892,7 +1036,7 @@ window.saveAufgabe = (typ, id) => {
     wer: werListe.join(", "),   // Abwärtskompatibilität / Anzeige
     foto: window._formFoto || "",
     einkauf: !!(document.getElementById("f_einkauf") && document.getElementById("f_einkauf").checked),
-    updatedAt: now(),
+    updatedAt: now(), geaendertVon: ME,
   };
   const arr = typ==="todo" ? DB.todos : DB.reparaturen;
   if(id){ const ex = arr.find(x=>x.id===id); Object.assign(ex, obj); }
@@ -920,12 +1064,12 @@ function aufgabeKarte(e, typ){
           ${e.faellig?`<span class="pill cat" onclick="event.stopPropagation();todoZuKalender('${typ}','${e.id}')" style="cursor:pointer">📅 Kalender</span>`:""}
           ${e.einkauf?`<span class="pill who" onclick="event.stopPropagation();open_('einkauf')" style="cursor:pointer">${ICON.cart} Einkauf</span>`:""}
         </div>
-        ${e.autor?`<div class="byline">angelegt von ${esc(e.autor)}</div>`:""}
+        ${e.autor?`<div class="byline">angelegt von ${esc(e.autor)}${e.geaendertVon&&e.geaendertVon!==e.autor?` · zuletzt geändert von ${esc(e.geaendertVon)}`:""}</div>`:""}
       </div>
     </div></div>`;
 }
 window.toggleAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; const e=arr.find(x=>x.id===id); e.done=!e.done; e.updatedAt=now(); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
-window.delAufgabe = (typ,id) => { if(typ==="todo")DB.todos=DB.todos.filter(x=>x.id!==id); else DB.reparaturen=DB.reparaturen.filter(x=>x.id!==id); save(); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
+window.delAufgabe = (typ,id) => { inDenPapierkorb(typ==="todo"?"todos":"reparaturen", id); typ==="todo"?RENDER.todos():RENDER.reparaturen(); };
 window.editAufgabe = (typ,id) => { const arr=typ==="todo"?DB.todos:DB.reparaturen; openSheet(aufgabeEditor(typ, arr.find(x=>x.id===id))); };
 window.oeffneListe = () => { open_("einkauf"); };
 window.todoZuKalender = (typ,id) => {
@@ -947,9 +1091,9 @@ RENDER.todos = () => {
     <div class="opt ${TODO_TAB==='listen'?'on':''}" onclick="todoTab('listen')">Listen</div>
     <div class="opt ${TODO_TAB==='wieder'?'on':''}" onclick="todoTab('wieder')">Wiederkehrend</div></div>`;
   if(TODO_TAB==="aufgaben"){
-    document.getElementById("vsub").textContent = DB.todos.filter(t=>!t.done).length+" offen";
-    const open = DB.todos.filter(t=>!t.done).sort(sortByDue);
-    const done = DB.todos.filter(t=>t.done);
+    document.getElementById("vsub").textContent = DB.todos.filter(t=>!t.done&&!t.deleted).length+" offen";
+    const open = DB.todos.filter(t=>!t.done&&!t.deleted).sort(sortByDue);
+    const done = DB.todos.filter(t=>t.done&&!t.deleted);
     vBody().innerHTML = tabs + (DB.todos.length? "" : empty("checkbox","Noch keine Aufgaben"))
       + `<div class="list">${open.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`
       + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(e=>aufgabeKarte(e,"todo")).join("")}</div>`:"");
@@ -962,14 +1106,14 @@ RENDER.todos = () => {
     showFab(newTodoListe);
   } else {
     // Wiederkehrende Aufgaben (Kalender)
-    document.getElementById("vsub").textContent = DB.wiederkehrend.length+" Einträge";
-    const sorted = [...DB.wiederkehrend].sort((a,b)=>{
+    document.getElementById("vsub").textContent = DB.wiederkehrend.filter(w=>!w.deleted).length+" Einträge";
+    const sorted = [...DB.wiederkehrend.filter(w=>!w.deleted)].sort((a,b)=>{
       const na=naechsteFaelligkeit(a), nb=naechsteFaelligkeit(b);
       return new Date(na)-new Date(nb);
     });
     vBody().innerHTML = tabs
       + `<div class="ml" style="margin:0 16px 10px">Aufgaben, die regelmäßig wiederkommen. Sie erscheinen automatisch in „Aufgaben", wenn sie fällig werden.</div>`
-      + (DB.wiederkehrend.length
+      + (DB.wiederkehrend.filter(w=>!w.deleted).length
         ? `<div class="list">${sorted.map(wiederCard).join("")}</div>`
         : empty("checklist","Noch nichts Wiederkehrendes — unten mit + anlegen"));
     showFab(()=>openWiederEditor(null));
@@ -1121,6 +1265,7 @@ function erzeugeFaelligeWiederkehrend(){
   const heute = new Date(); heute.setHours(0,0,0,0);
   let erzeugt=false;
   DB.wiederkehrend.forEach(w=>{
+    if(w.deleted) return;
     const naechste = naechsteFaelligkeit(w);
     const d = daysUntil(naechste);
     // wenn innerhalb der nächsten 3 Tage oder fällig und noch nicht erzeugt für diesen Termin
@@ -1145,11 +1290,116 @@ function erzeugeFaelligeWiederkehrend(){
   if(erzeugt) save();
 }
 
+// ============================================================
+//  Kalender (Monatsansicht: To-dos, Reparaturen, Reisen, Wiederkehrendes)
+// ============================================================
+// Sammelt alle datierten Einträge als {datum, titel, typ, farbe, ref}
+function kalenderEintraege(){
+  const out=[];
+  DB.todos.filter(t=>!t.deleted && t.faellig).forEach(t=>out.push({datum:t.faellig,titel:t.titel,typ:"Aufgabe",farbe:"#1d4ed8",modul:"todos"}));
+  DB.reparaturen.filter(r=>!r.deleted && r.faellig).forEach(r=>out.push({datum:r.faellig,titel:r.titel,typ:"Reparatur",farbe:"#ea580c",modul:"reparaturen"}));
+  // Reisen: Start- (und End-)Datum
+  DB.urlaub.filter(u=>!u.deleted && u.von).forEach(u=>{
+    out.push({datum:u.von,titel:(u.titel||"Reise")+" (Start)",typ:"Reise",farbe:"#16a34a",modul:"urlaub"});
+    if(u.bis && u.bis!==u.von) out.push({datum:u.bis,titel:(u.titel||"Reise")+" (Ende)",typ:"Reise",farbe:"#16a34a",modul:"urlaub"});
+  });
+  // Wiederkehrende: nächste 6 Vorkommen
+  DB.wiederkehrend.filter(w=>!w.deleted).forEach(w=>{
+    let d=new Date(naechsteFaelligkeit(w)); const def=INTERVALLE.find(x=>x.key===w.intervall);
+    for(let i=0;i<6;i++){
+      out.push({datum:d.toISOString().slice(0,10),titel:w.titel,typ:"Wiederkehrend",farbe:"#7c3aed",modul:"todos"});
+      const nd=new Date(d);
+      if(w.intervall==="frei") nd.setDate(nd.getDate()+(parseInt(w.freiTage)||1));
+      else if(def.tage) nd.setDate(nd.getDate()+def.tage); else nd.setMonth(nd.getMonth()+def.monate);
+      d=nd;
+    }
+  });
+  return out;
+}
+let KAL_MONAT = null;  // {jahr, monat} – null = aktueller Monat
+RENDER.kalender = () => {
+  setHead("Kalender", "");
+  const heute = new Date();
+  if(!KAL_MONAT) KAL_MONAT = {jahr:heute.getFullYear(), monat:heute.getMonth()};
+  const {jahr,monat} = KAL_MONAT;
+  const monatsName = new Date(jahr,monat,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  document.getElementById("vsub").textContent = monatsName;
+
+  const eintraege = kalenderEintraege();
+  // nach Tag gruppieren (nur dieser Monat)
+  const proTag = {};
+  eintraege.forEach(e=>{ const d=new Date(e.datum); if(d.getFullYear()===jahr&&d.getMonth()===monat){ const t=d.getDate(); (proTag[t]=proTag[t]||[]).push(e); } });
+
+  const ersterTag = new Date(jahr,monat,1);
+  let startWochentag = ersterTag.getDay(); startWochentag = startWochentag===0?6:startWochentag-1; // Mo=0
+  const tageImMonat = new Date(jahr,monat+1,0).getDate();
+  const istHeute = t => heute.getFullYear()===jahr&&heute.getMonth()===monat&&heute.getDate()===t;
+
+  let zellen="";
+  for(let i=0;i<startWochentag;i++) zellen+=`<div class="kal-zelle leer"></div>`;
+  for(let t=1;t<=tageImMonat;t++){
+    const evs=proTag[t]||[];
+    const dots=evs.slice(0,4).map(e=>`<span class="kal-dot" style="background:${e.farbe}"></span>`).join("");
+    zellen+=`<div class="kal-zelle ${istHeute(t)?'heute':''} ${evs.length?'hat':''}" onclick="kalTag(${t})">
+      <div class="kal-num">${t}</div><div class="kal-dots">${dots}</div></div>`;
+  }
+
+  const wtage=["Mo","Di","Mi","Do","Fr","Sa","So"];
+  // kommende Termine (Liste unter dem Kalender)
+  const kommende = eintraege.filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=31;})
+    .sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,15);
+
+  vBody().innerHTML = `
+    <div class="kal-nav">
+      <button onclick="kalMonat(-1)">‹</button>
+      <div>${monatsName}</div>
+      <button onclick="kalMonat(1)">›</button>
+    </div>
+    <div class="kal-grid kal-head">${wtage.map(w=>`<div class="kal-wt">${w}</div>`).join("")}</div>
+    <div class="kal-grid">${zellen}</div>
+    <div class="kal-legende">
+      <span><span class="kal-dot" style="background:#1d4ed8"></span>Aufgabe</span>
+      <span><span class="kal-dot" style="background:#ea580c"></span>Reparatur</span>
+      <span><span class="kal-dot" style="background:#16a34a"></span>Reise</span>
+      <span><span class="kal-dot" style="background:#7c3aed"></span>Wiederkehrend</span>
+    </div>
+    <div class="section-label">Kommende Termine</div>
+    ${kommende.length? `<div class="list">${kommende.map(e=>{
+      const d=daysUntil(e.datum);
+      const wann=d===0?"heute":d===1?"morgen":"in "+d+" Tagen";
+      return `<div class="card" onclick="open_('${e.modul}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
+          <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
+            <div class="cmeta"><span class="pill cat">${e.typ}</span><span class="pill due">${fmtDate(e.datum)} · ${wann}</span></div></div></div></div>`;
+    }).join("")}</div>` : empty("cal","Keine Termine in den nächsten 31 Tagen")}`;
+  document.getElementById("addbar").style.display="none";
+  document.getElementById("fab").style.display="none";
+};
+window.kalMonat = delta => {
+  if(!KAL_MONAT){ const h=new Date(); KAL_MONAT={jahr:h.getFullYear(),monat:h.getMonth()}; }
+  let m=KAL_MONAT.monat+delta, j=KAL_MONAT.jahr;
+  if(m<0){m=11;j--;} if(m>11){m=0;j++;}
+  KAL_MONAT={jahr:j,monat:m}; RENDER.kalender();
+};
+window.kalTag = t => {
+  const {jahr,monat}=KAL_MONAT;
+  const datum=new Date(jahr,monat,t).toISOString().slice(0,10);
+  const evs=kalenderEintraege().filter(e=>e.datum===datum);
+  if(!evs.length) return;
+  openSheet(`<h3>${new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</h3>
+    <div class="list">${evs.map(e=>`<div class="card" onclick="closeModal();open_('${e.modul}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
+        <div><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
+          <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div></div></div>`).join("")}</div>`);
+};
+
 // ---- Reparaturen ----
 RENDER.reparaturen = () => {
-  setHead("Reparaturen", DB.reparaturen.filter(r=>!r.done).length+" offen");
-  const open = DB.reparaturen.filter(r=>!r.done).sort(sortByDue);
-  const done = DB.reparaturen.filter(r=>r.done);
+  setHead("Reparaturen", DB.reparaturen.filter(r=>!r.done&&!r.deleted).length+" offen");
+  const open = DB.reparaturen.filter(r=>!r.done&&!r.deleted).sort(sortByDue);
+  const done = DB.reparaturen.filter(r=>r.done&&!r.deleted);
   vBody().innerHTML = (DB.reparaturen.length? "" : empty("tool","Nichts zu reparieren"))
     + `<div class="list">${open.map(e=>aufgabeKarte(e,"rep")).join("")}</div>`
     + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(e=>aufgabeKarte(e,"rep")).join("")}</div>`:"");
@@ -1620,8 +1870,8 @@ RENDER.urlaub = () => {
     const ref = u.bis || u.von; if(!ref) return false;
     return daysUntil(ref) < 0;
   };
-  const aktiv = DB.urlaub.filter(u=>!istVergangen(u));
-  const archiv = DB.urlaub.filter(istVergangen);
+  const aktiv = DB.urlaub.filter(u=>!istVergangen(u)&&!u.deleted);
+  const archiv = DB.urlaub.filter(u=>istVergangen(u)&&!u.deleted);
   const liste = (URLAUB_ARCHIV ? archiv : aktiv).sort((a,b)=>{
     if(!a.von)return 1; if(!b.von)return -1;
     return URLAUB_ARCHIV ? new Date(b.von)-new Date(a.von) : new Date(a.von)-new Date(b.von);
@@ -1948,7 +2198,7 @@ window.routingSettings = () => {
 window.saveOrsKey = () => { const k=document.getElementById("orsKey").value.trim();
   if(k)localStorage.setItem("familienapp.orsKey",k); else localStorage.removeItem("familienapp.orsKey");
   closeModal(); };
-window.delReise = id => { if(confirm("Reise löschen?")){ DB.urlaub=DB.urlaub.filter(x=>x.id!==id); save(); closeModal(); goHome(); open_("urlaub"); } };
+window.delReise = id => { if(confirm("Reise in den Papierkorb verschieben?")){ inDenPapierkorb("urlaub", id); closeModal(); goHome(); open_("urlaub"); } };
 
 
 // ---- Packliste pro Reise ----
@@ -1988,7 +2238,7 @@ window.delPack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); r.packliste
 //  Kellerinventar
 // ============================================================
 RENDER.keller = () => {
-  setHead("Kellerinventar", DB.keller.length+" Kisten", {label:"+ Kiste", fn:newBox});
+  setHead("Kellerinventar", DB.keller.filter(k=>!k.deleted).length+" Kisten", {label:"+ Kiste", fn:newBox});
   vBody().innerHTML =
     `<div class="list" style="margin-bottom:8px"><div class="row" style="padding:4px 15px">
       <div style="color:var(--ink2)">${ICON.search}</div>
@@ -1999,6 +2249,7 @@ RENDER.keller = () => {
   document.getElementById("addbar").style.display="none";
 };
 function renderBoxes(boxes){
+  boxes = boxes.filter(b=>!b.deleted);
   const el=document.getElementById("kellerlist");
   if(!boxes.length){ el.innerHTML=empty("box","Keine Kisten — lege die erste an"); return; }
   el.innerHTML=`<div class="list">${boxes.map(b=>`
@@ -2098,7 +2349,7 @@ let IDEE_FILTER = "alle";
 RENDER.ideen = () => {
   setHead("Ideen", DB.ideen.length+" Ideen", {label:"+ Idee", fn:newIdea});
   const kats = ["alle", ...DB.ideenKategorien];
-  const liste = IDEE_FILTER==="alle" ? DB.ideen : DB.ideen.filter(i=>i.kategorie===IDEE_FILTER);
+  const liste = (IDEE_FILTER==="alle" ? DB.ideen : DB.ideen.filter(i=>i.kategorie===IDEE_FILTER)).filter(i=>!i.deleted);
   vBody().innerHTML =
     `<div class="chips">${kats.map(k=>`<div class="chip ${k===IDEE_FILTER?'on':''}" onclick="ideeFilter('${esc(k)}')">${k==='alle'?'Alle':esc(k)}</div>`).join("")}</div>`
     + (liste.length? `<div class="list">${liste.map(ideaKarte).join("")}</div>` : empty("bulb","Noch keine Ideen"));
@@ -2114,7 +2365,7 @@ function ideaKarte(i){
     ${i.tags&&i.tags.length?`<div class="tags">${i.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`:""}
     ${i.autor?`<div class="byline">von ${esc(i.autor)}</div>`:""}</div>`;
 }
-window.delIdea = id => { DB.ideen=DB.ideen.filter(x=>x.id!==id); save(); RENDER.ideen(); };
+window.delIdea = id => { inDenPapierkorb("ideen", id); RENDER.ideen(); };
 function newIdea(){ openSheet(ideaEditor()); }
 function ideaEditor(){
   return `<h3>Neue Idee</h3><div class="ml">Aktivität, Ausflugsziel, Ort oder etwas zum Kaufen</div>
@@ -2147,7 +2398,7 @@ let REZEPT_SUCHE = "";           // Zutaten-/Titelsuche
 RENDER.rezepte = () => {
   setHead("Rezepte", DB.rezepte.length+" Rezepte");
   const kats = ["alle", ...REZEPT_KATEGORIEN];
-  let liste = DB.rezepte.slice();
+  let liste = DB.rezepte.filter(r=>!r.deleted);
   if(REZEPT_FILTER!=="alle") liste = liste.filter(r=>r.kategorie===REZEPT_FILTER);
   if(REZEPT_SUCHE.trim()){
     const q=REZEPT_SUCHE.trim().toLowerCase();
@@ -2168,7 +2419,7 @@ window.rezFilter = k => { REZEPT_FILTER=k; RENDER.rezepte(); };
 window.rezSuche = v => {
   REZEPT_SUCHE = v;
   const q = v.trim().toLowerCase();
-  let liste = DB.rezepte.slice();
+  let liste = DB.rezepte.filter(r=>!r.deleted);
   if(REZEPT_FILTER!=="alle") liste = liste.filter(r=>r.kategorie===REZEPT_FILTER);
   if(q) liste = liste.filter(r => r.titel.toLowerCase().includes(q)
     || (r.zutaten||[]).some(z=>z.toLowerCase().includes(q)));
@@ -2249,7 +2500,7 @@ window.saveRezept = () => {
   else { const ex=DB.rezepte.find(x=>x.id===REZEPT.id); Object.assign(ex,REZEPT); }
   save(); closeModal(); RENDER.rezepte();
 };
-window.delRezept = id => { if(confirm("Rezept löschen?")){ DB.rezepte=DB.rezepte.filter(x=>x.id!==id); save(); closeModal(); RENDER.rezepte(); } };
+window.delRezept = id => { if(confirm("Rezept in den Papierkorb verschieben?")){ inDenPapierkorb("rezepte", id); closeModal(); RENDER.rezepte(); } };
 
 // Zutaten auswählen und in den eigenen Einkaufs-Entwurf übernehmen
 window.zutatenZuEinkauf = id => {
