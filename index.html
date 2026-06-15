@@ -390,7 +390,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.8.1";
+const APP_VERSION = "1.9.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -475,7 +475,7 @@ function seed(){
     empfaengerStandard: { "Alexander":["Ellen"], "Ellen":["Alexander"], "Mama":["Alexander"],
       "Julia":["Alexander","Ellen"], "Isabella":["Alexander","Ellen"] },
     artikelZaehler: {},   // zählt, wie oft ein Artikel verwendet wurde (für Auto-Schnellauswahl)
-    todos: [], todoListen: [], wiederkehrend: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [],
+    todos: [], todoListen: [], wiederkehrend: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [], termine: [],
     listen: [],
     einkaufStamm: ["Äpfel","Bananen","Tomaten","Gurke","Salat","Kartoffeln","Zwiebeln","Karotten","Paprika",
       "Hackfleisch","Hähnchen","Wurst","Schinken","Lachs",
@@ -539,6 +539,9 @@ DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.erstelle
 });
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
 if(!DB.todoListen) DB.todoListen = [];
+if(!DB.termine) DB.termine = [];
+// gelöschte Termine endgültig entfernen
+DB.termine = DB.termine.filter(t=> !t.deleted);
 if(!DB.rezepte) DB.rezepte = [];
 if(!DB.wiederkehrend) DB.wiederkehrend = [];
 // Reparatur: Städte, deren Name versehentlich ein Link ist
@@ -742,7 +745,7 @@ const MODULES = [
   {id:"papierkorb",  nm:"Papierkorb",     ic:ICON.trash,    count:()=>{ const n=papierkorbEintraege().filter(o=>!o.purged).length; return n? n+" Einträge":"leer"; }},
 ];
 function wmTotal(){ return DB.wohnmobil.reduce((s,k)=>s+k.pkte.length,0); }
-function kalenderCount(){ const n=kalenderEintraege().filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=14;}).length; return n? n+" in 14 Tagen":"frei"; }
+function kalenderCount(){ const n=kalenderEintraege().filter(e=>!e.zwischentag).filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=14;}).length; return n? n+" in 14 Tagen":"frei"; }
 
 // ---- Globale Suche über alle Module ----
 window.globalSucheClear = () => { document.getElementById("gsuche").value=""; globalSuche(""); };
@@ -1298,10 +1301,24 @@ function kalenderEintraege(){
   const out=[];
   DB.todos.filter(t=>!t.deleted && t.faellig).forEach(t=>out.push({datum:t.faellig,titel:t.titel,typ:"Aufgabe",farbe:"#1d4ed8",modul:"todos"}));
   DB.reparaturen.filter(r=>!r.deleted && r.faellig).forEach(r=>out.push({datum:r.faellig,titel:r.titel,typ:"Reparatur",farbe:"#ea580c",modul:"reparaturen"}));
-  // Reisen: Start- (und End-)Datum
+  // Reisen: jeden Tag von Start bis Ende markieren
   DB.urlaub.filter(u=>!u.deleted && u.von).forEach(u=>{
-    out.push({datum:u.von,titel:(u.titel||"Reise")+" (Start)",typ:"Reise",farbe:"#16a34a",modul:"urlaub"});
-    if(u.bis && u.bis!==u.von) out.push({datum:u.bis,titel:(u.titel||"Reise")+" (Ende)",typ:"Reise",farbe:"#16a34a",modul:"urlaub"});
+    const start=new Date(u.von+"T00:00:00");
+    const ende = u.bis ? new Date(u.bis+"T00:00:00") : new Date(u.von+"T00:00:00");
+    const titel=u.titel||"Reise";
+    const tage=Math.max(0, Math.round((ende-start)/86400000));
+    for(let i=0;i<=tage;i++){
+      const d=new Date(start); d.setDate(start.getDate()+i);
+      const istRand = (i===0 || i===tage);
+      const suffix = tage>0 ? (i===0?" (Anreise)":i===tage?" (Abreise)":"") : "";
+      out.push({datum:d.toISOString().slice(0,10),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",zwischentag:!istRand});
+    }
+    // Restaurant-Reservierungen dieser Reise
+    (u.staedte||[]).forEach(c=>{
+      (c.restaurants||[]).forEach(p=>{
+        if(p.resDatum) out.push({datum:p.resDatum,titel:"Reservierung: "+(p.name||"Restaurant")+(p.resZeit?" · "+p.resZeit:""),typ:"Reservierung",farbe:"#db2777",modul:"urlaub"});
+      });
+    });
   });
   // Wiederkehrende: nächste 6 Vorkommen
   DB.wiederkehrend.filter(w=>!w.deleted).forEach(w=>{
@@ -1313,6 +1330,10 @@ function kalenderEintraege(){
       else if(def.tage) nd.setDate(nd.getDate()+def.tage); else nd.setMonth(nd.getMonth()+def.monate);
       d=nd;
     }
+  });
+  // Eigene Kalendertermine (direkt im Kalender angelegt)
+  (DB.termine||[]).filter(t=>!t.deleted && t.datum).forEach(t=>{
+    out.push({datum:t.datum, titel:(t.zeit?t.zeit+" · ":"")+t.titel, typ:"Termin", farbe:"#0891b2", modul:"kalender", terminId:t.id});
   });
   return out;
 }
@@ -1345,8 +1366,9 @@ RENDER.kalender = () => {
   }
 
   const wtage=["Mo","Di","Mi","Do","Fr","Sa","So"];
-  // kommende Termine (Liste unter dem Kalender)
-  const kommende = eintraege.filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=31;})
+  // kommende Termine (Liste unter dem Kalender) – Reise-Zwischentage nicht einzeln auflisten
+  const kommende = eintraege.filter(e=>!e.zwischentag)
+    .filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=31;})
     .sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,15);
 
   vBody().innerHTML = `
@@ -1361,20 +1383,24 @@ RENDER.kalender = () => {
       <span><span class="kal-dot" style="background:#1d4ed8"></span>Aufgabe</span>
       <span><span class="kal-dot" style="background:#ea580c"></span>Reparatur</span>
       <span><span class="kal-dot" style="background:#16a34a"></span>Reise</span>
+      <span><span class="kal-dot" style="background:#db2777"></span>Reservierung</span>
+      <span><span class="kal-dot" style="background:#0891b2"></span>Termin</span>
       <span><span class="kal-dot" style="background:#7c3aed"></span>Wiederkehrend</span>
     </div>
     <div class="section-label">Kommende Termine</div>
     ${kommende.length? `<div class="list">${kommende.map(e=>{
       const d=daysUntil(e.datum);
       const wann=d===0?"heute":d===1?"morgen":"in "+d+" Tagen";
-      return `<div class="card" onclick="open_('${e.modul}')">
+      const loeschbar = e.typ==="Termin" && e.terminId;
+      return `<div class="card" onclick="${loeschbar?'':"open_('"+e.modul+"')"}">
+        ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
         <div style="display:flex;align-items:center;gap:10px">
           <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
           <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
             <div class="cmeta"><span class="pill cat">${e.typ}</span><span class="pill due">${fmtDate(e.datum)} · ${wann}</span></div></div></div></div>`;
     }).join("")}</div>` : empty("cal","Keine Termine in den nächsten 31 Tagen")}`;
   document.getElementById("addbar").style.display="none";
-  document.getElementById("fab").style.display="none";
+  showFab(()=>openTermin(null));
 };
 window.kalMonat = delta => {
   if(!KAL_MONAT){ const h=new Date(); KAL_MONAT={jahr:h.getFullYear(),monat:h.getMonth()}; }
@@ -1386,13 +1412,54 @@ window.kalTag = t => {
   const {jahr,monat}=KAL_MONAT;
   const datum=new Date(jahr,monat,t).toISOString().slice(0,10);
   const evs=kalenderEintraege().filter(e=>e.datum===datum);
-  if(!evs.length) return;
-  openSheet(`<h3>${new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</h3>
-    <div class="list">${evs.map(e=>`<div class="card" onclick="closeModal();open_('${e.modul}')">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
-        <div><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
-          <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div></div></div>`).join("")}</div>`);
+  const kopf=new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+  const liste = evs.length
+    ? `<div class="list">${evs.map(e=>{
+        const loeschbar = e.typ==="Termin" && e.terminId;
+        return `<div class="card" onclick="${loeschbar?'':"closeModal();open_('"+e.modul+"')"}">
+          ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
+            <div><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
+              <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div></div></div>`;
+      }).join("")}</div>`
+    : `<div class="ml" style="margin:0 0 12px">Keine Einträge an diesem Tag.</div>`;
+  openSheet(`<h3>${kopf}</h3>
+    ${liste}
+    <button class="btn" onclick="openTermin('${datum}')">+ Termin an diesem Tag</button>`);
+};
+
+// ---- Eigene Kalendertermine anlegen / bearbeiten / löschen ----
+window.openTermin = (datum) => {
+  window._terminEdit = null;
+  const heute = new Date().toISOString().slice(0,10);
+  openSheet(`<h3>Neuer Termin</h3>
+    <div class="fld"><label>Titel</label><input id="t_titel" placeholder="z.B. Zahnarzt"></div>
+    <div class="fld" style="display:flex;gap:10px">
+      <div style="flex:1"><label>Datum</label><input id="t_datum" type="date" value="${datum||heute}"></div>
+      <div style="flex:1"><label>Uhrzeit (optional)</label><input id="t_zeit" type="time"></div></div>
+    <div class="fld"><label>Notiz (optional)</label><textarea id="t_notiz" rows="2" placeholder=""></textarea></div>
+    <button class="btn" onclick="saveTermin()">Speichern</button>`);
+  setTimeout(()=>{const el=document.getElementById("t_titel"); if(el)el.focus();},50);
+};
+window.saveTermin = () => {
+  const titel=document.getElementById("t_titel").value.trim();
+  const datum=document.getElementById("t_datum").value;
+  if(!titel||!datum){ alert("Bitte Titel und Datum angeben."); return; }
+  DB.termine = DB.termine || [];
+  DB.termine.push({
+    id:uid(), titel, datum,
+    zeit:document.getElementById("t_zeit").value||"",
+    notiz:document.getElementById("t_notiz").value.trim(),
+    autor:ME, createdAt:now(), updatedAt:now()
+  });
+  save(); closeModal(); RENDER.kalender();
+};
+window.delTermin = id => {
+  if(!confirm("Diesen Termin löschen?")) return;
+  const t=(DB.termine||[]).find(x=>x.id===id);
+  if(t){ t.deleted=true; t.deletedAt=now(); t.updatedAt=now(); }
+  save(); closeModal(); RENDER.kalender();
 };
 
 // ---- Reparaturen ----
@@ -1892,6 +1959,7 @@ function reiseKarte(u){
   const badge = (d!==null && d>=0) ? `<span class="pill who">${d===0?"heute":"in "+d+" Tagen"}</span>` : "";
   const orte = (u.staedte||[]).map(s=>s.name).join(" · ");
   return `<div class="card" onclick="openReiseDetail('${u.id}')">
+    ${URLAUB_ARCHIV?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delReise('${u.id}')">×</div>`:""}
     <div class="cttl">${esc(u.titel||"Reise")}</div>
     <div class="cmeta">
       <span class="pill cat">${u.art==="tour"?"Tour":"Trip"}</span>
@@ -1964,7 +2032,7 @@ window.openReiseDetail = id => {
   document.getElementById("home").style.display="none";
   document.getElementById("view").classList.add("active");
   document.getElementById("addbar").style.display="none";
-  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}`, {label:"Bearb.", fn:()=>openReise(id)});
+  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}`, {label:"⋯", fn:()=>reiseMenu(id)});
   renderReiseDetail(r);
   showFab(()=>addCity(id));
   window.scrollTo(0,0);
@@ -2019,14 +2087,56 @@ function renderCity(r,c,i){
 }
 function poiGroup(rid,ci,key,titel,arr){
   return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
-    ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME; return `<div class="poi ${fremd?'poi-fremd':''}">
+    ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME;
+      const resTxt = p.resDatum ? `🍽️ Reservierung: ${fmtDate(p.resDatum)}${p.resZeit?" · "+p.resZeit+" Uhr":""}` : "";
+      return `<div class="poi ${fremd?'poi-fremd':''}">
       ${p.foto?`<img class="poi-foto" src="${p.foto}" onclick="zoomFoto('${rid}',${ci},'${key}',${pi})">`:""}
       <div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
+      ${resTxt?`<small style="display:block;color:var(--accent);font-weight:600;margin-top:2px">${resTxt}</small>`:""}
+      <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
       ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
+      ${(key==="restaurants")?`<a class="maplink" onclick="reservierungBearbeiten('${rid}',${ci},${pi})" style="cursor:pointer">📅 ${p.resDatum?"Reservierung ändern":"Reservierung"}</a>`:""}
+      ${(key==="restaurants"&&p.resDatum)?`<a class="maplink" onclick="reservierungZuKalender('${rid}',${ci},${pi})" style="cursor:pointer">In Kalender</a>`:""}
+      </span>
       ${p.autor?`<small class="poi-autor">${fremd?'von '+esc(p.autor):'von dir'}</small>`:""}</div>
       <div class="pdel" onclick="delPoi('${rid}',${ci},'${key}',${pi})">×</div></div>`;}).join("")
       : `<div style="color:var(--ink2);font-size:12.5px">—</div>`}</div>`;
 }
+// Reservierung an bestehendem Restaurant nachträglich setzen/ändern
+window.reservierungBearbeiten = (rid,ci,pi) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci].restaurants[pi]; if(!p)return;
+  window._resCtx={rid,ci,pi};
+  openSheet(`<h3>Reservierung – ${esc(p.name)}</h3>
+    <div class="fld"><label>Datum</label><input id="res_datum" type="date" value="${p.resDatum||""}"></div>
+    <div class="fld"><label>Uhrzeit</label><input id="res_zeit" type="time" value="${p.resZeit||""}"></div>
+    <button class="btn" onclick="saveReservierung()">Speichern</button>
+    ${p.resDatum?`<button class="btn ghost" style="color:var(--danger);border-color:var(--danger)" onclick="loescheReservierung()">Reservierung entfernen</button>`:""}`);
+};
+window.saveReservierung = () => {
+  const {rid,ci,pi}=window._resCtx;
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci].restaurants[pi];
+  p.resDatum=document.getElementById("res_datum").value;
+  p.resZeit=document.getElementById("res_zeit").value;
+  r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+window.loescheReservierung = () => {
+  const {rid,ci,pi}=window._resCtx;
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci].restaurants[pi];
+  p.resDatum=""; p.resZeit="";
+  r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+// Reservierung als Kalendertermin exportieren
+window.reservierungZuKalender = (rid,ci,pi) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci].restaurants[pi]; if(!p||!p.resDatum)return;
+  const titel="Reservierung: "+(p.name||"Restaurant");
+  const details=[p.adresse, p.resZeit?"Uhrzeit: "+p.resZeit:""].filter(Boolean).join(" · ");
+  const startISO = p.resZeit ? p.resDatum+"T"+p.resZeit : p.resDatum;
+  const gl=gcalLink(titel, startISO, startISO, details);
+  openSheet(`<h3>In Kalender eintragen</h3>
+    <div class="ml">„${esc(p.name)}" – ${fmtDate(p.resDatum)}${p.resZeit?" · "+p.resZeit+" Uhr":""}</div>
+    <a class="btn" href="${esc(gl)}" target="_blank" rel="noopener" onclick="closeModal()" style="display:block;text-align:center;text-decoration:none">In Google Kalender öffnen</a>
+    <button class="btn ghost" onclick="downloadICS([{titel:'${esc(titel.replace(/'/g,''))}',start:'${startISO}',end:'${startISO}',details:'${esc(details.replace(/'/g,''))}'}],'reservierung');closeModal()">Als Kalenderdatei (.ics) speichern</button>`);
+};
 window.zoomFoto = (rid,ci,key,pi) => {
   const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi];
   if(p.foto) openSheet(`<h3>${esc(p.name)}</h3><img src="${p.foto}" style="width:100%;border-radius:12px"><button class="btn ghost" onclick="closeModal()" style="margin-top:12px">Schließen</button>`);
@@ -2123,12 +2233,18 @@ window.saveCity = async () => {
 // POI hinzufügen (Stellplatz / Sehenswürdigkeit / Restaurant)
 window.addPoi = (rid,ci,key,titel) => {
   window._poiCtx = {rid,ci,key};
+  const istRest = key==="restaurants";
   openSheet(`<h3>${esc(titel.replace(/e$|n$/,""))} hinzufügen</h3>
     <div class="ml">Name eingeben. Adresse und Link sind optional – ein Link öffnet sich direkt.</div>
     <div class="fld"><label>Name</label><input id="poi_name" placeholder="z.B. Kolosseum"></div>
     <div class="fld"><label>Adresse (optional)</label><input id="poi_addr" placeholder="Straße, Ort"></div>
     <div class="fld"><label>Link (optional)</label>
       <textarea id="poi_link" rows="2" placeholder="https://… (auch mit Text davor – wird automatisch erkannt)"></textarea></div>
+    ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
+      <div style="display:flex;gap:10px">
+        <input id="poi_res_datum" type="date" style="flex:1">
+        <input id="poi_res_zeit" type="time" style="flex:1">
+      </div></div>`:""}
     <div class="fld"><label>Foto (optional)</label><div id="poiFotoSlot"></div></div>
     <button class="btn" onclick="doAddPoi()">Hinzufügen</button>`);
   window._poiFoto = "";
@@ -2150,9 +2266,12 @@ window.doAddPoi = () => {
   const addr=document.getElementById("poi_addr").value.trim();
   const link=cleanLink(document.getElementById("poi_link").value);
   const g=parseGeo(addr);
+  const rd=document.getElementById("poi_res_datum"), rz=document.getElementById("poi_res_zeit");
+  const resDatum = rd ? rd.value : "";
+  const resZeit  = rz ? rz.value : "";
   const r=DB.urlaub.find(x=>x.id===rid);
   r.staedte[ci][key]=r.staedte[ci][key]||[];
-  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME });
+  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
   r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
 window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
@@ -2198,7 +2317,23 @@ window.routingSettings = () => {
 window.saveOrsKey = () => { const k=document.getElementById("orsKey").value.trim();
   if(k)localStorage.setItem("familienapp.orsKey",k); else localStorage.removeItem("familienapp.orsKey");
   closeModal(); };
-window.delReise = id => { if(confirm("Reise in den Papierkorb verschieben?")){ inDenPapierkorb("urlaub", id); closeModal(); goHome(); open_("urlaub"); } };
+// Menü in der Reise-Detailansicht: Bearbeiten oder Löschen
+window.reiseMenu = id => {
+  const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
+  openSheet(`<h3>${esc(r.titel||"Reise")}</h3>
+    <button class="btn" onclick="closeModal();openReise('${id}')">Reise bearbeiten</button>
+    <button class="btn ghost" style="color:var(--danger);border-color:var(--danger)" onclick="delReise('${id}')">Reise löschen</button>
+    <button class="btn ghost" onclick="closeModal()">Abbrechen</button>`);
+};
+// Reise in den Papierkorb verschieben – funktioniert aus Detailansicht UND Archiv
+window.delReise = id => {
+  if(!confirm("Reise in den Papierkorb verschieben?")) return;
+  inDenPapierkorb("urlaub", id);
+  closeModal();
+  DETAIL_OPEN = null;
+  goHome();
+  open_("urlaub");
+};
 
 
 // ---- Packliste pro Reise ----
