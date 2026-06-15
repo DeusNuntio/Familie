@@ -183,6 +183,8 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
 .pill.cat{background:var(--accent-soft);color:var(--accent)}
 .card .cphoto{margin-top:10px;border-radius:10px;width:100%;max-height:200px;object-fit:cover;display:block}
 .card .cdel{position:absolute;top:12px;right:12px;color:var(--ink2);opacity:.5;font-size:18px;cursor:pointer}
+.wieder-bar{margin-top:10px;height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.wieder-fill{height:100%;border-radius:6px;transition:width .3s}
 
 /* ---- Add bar / FAB ---- */
 .addbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -1108,14 +1110,16 @@ RENDER.todos = () => {
       : empty("lists","Noch keine Listen — unten mit + anlegen"));
     showFab(newTodoListe);
   } else {
-    // Wiederkehrende Aufgaben (Kalender)
+    // Wiederkehrende Aufgaben (Hausreinigung & Wartung)
     document.getElementById("vsub").textContent = DB.wiederkehrend.filter(w=>!w.deleted).length+" Einträge";
+    const STUFE_RANG = { hoch:0, mittel:1, niedrig:2 };
     const sorted = [...DB.wiederkehrend.filter(w=>!w.deleted)].sort((a,b)=>{
-      const na=naechsteFaelligkeit(a), nb=naechsteFaelligkeit(b);
-      return new Date(na)-new Date(nb);
+      const ra=STUFE_RANG[dringlichkeit(a)], rb=STUFE_RANG[dringlichkeit(b)];
+      if(ra!==rb) return ra-rb;                 // dringendste zuerst
+      return new Date(naechsteFaelligkeit(a))-new Date(naechsteFaelligkeit(b));
     });
     vBody().innerHTML = tabs
-      + `<div class="ml" style="margin:0 16px 10px">Aufgaben, die regelmäßig wiederkommen. Sie erscheinen automatisch in „Aufgaben", wenn sie fällig werden.</div>`
+      + `<div class="ml" style="margin:0 16px 10px">Aufgaben, die regelmäßig wiederkehren (z.B. Fenster putzen, Waschmaschine reinigen). Die Dringlichkeit steigt mit der Zeit: <b style="color:${PRIO_FARBE.niedrig}">Niedrig</b> → <b style="color:${PRIO_FARBE.mittel}">Mittel</b> (ab der Hälfte) → <b style="color:${PRIO_FARBE.hoch}">Hoch</b> (kurz vor Ende). Bei „Hoch" landet die Aufgabe zusätzlich in „Aufgaben". Tippe auf „✓ Jetzt erledigt", sobald du sie gemacht hast.</div>`
       + (DB.wiederkehrend.filter(w=>!w.deleted).length
         ? `<div class="list">${sorted.map(wiederCard).join("")}</div>`
         : empty("checklist","Noch nichts Wiederkehrendes — unten mit + anlegen"));
@@ -1198,49 +1202,145 @@ function intervallLabel(w){
   if(w.intervall==="frei") return `alle ${w.freiTage||0} Tage`;
   return i? i.label : "";
 }
-// Nächste Fälligkeit ab dem Startdatum, fortlaufend bis >= heute
-function naechsteFaelligkeit(w){
-  if(!w.start) return new Date().toISOString().slice(0,10);
-  let d = new Date(w.start+"T00:00:00");
-  const heute = new Date(); heute.setHours(0,0,0,0);
+// Länge eines Intervalls in Tagen (für Fortschritt/Dringlichkeit)
+function intervallTage(w){
   const def = INTERVALLE.find(x=>x.key===w.intervall);
-  let guard=0;
-  while(d < heute && guard<1000){
-    guard++;
-    if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
-    else if(def.tage) d.setDate(d.getDate()+def.tage);
-    else d.setMonth(d.getMonth()+def.monate);
+  if(!def) return 30;
+  if(w.intervall==="frei") return Math.max(1, parseInt(w.freiTage)||1);
+  if(def.tage) return def.tage;
+  return Math.round((def.monate||1)*30.44); // Monate näherungsweise in Tage
+}
+// Datum, ab dem das aktuelle Intervall läuft: letzte Erledigung, sonst Start
+function basisDatum(w){
+  if(w.letzteErledigung) return w.letzteErledigung;
+  return w.start || new Date().toISOString().slice(0,10);
+}
+// Nächste Fälligkeit ab Basis (erledigungsbasiert)
+function naechsteFaelligkeit(w){
+  const basis = basisDatum(w);
+  let d = new Date(basis+"T00:00:00");
+  // Genau ein Intervall ab Basis weiter
+  if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
+  else { const def=INTERVALLE.find(x=>x.key===w.intervall);
+    if(def && def.tage) d.setDate(d.getDate()+def.tage);
+    else if(def) d.setMonth(d.getMonth()+def.monate);
+  }
+  // Falls noch nie erledigt UND Start liegt in der Vergangenheit: bis heute fortschreiben,
+  // damit die erste Fälligkeit nicht künstlich überfällig erscheint.
+  if(!w.letzteErledigung){
+    const heute = new Date(); heute.setHours(0,0,0,0);
+    const def = INTERVALLE.find(x=>x.key===w.intervall);
+    let guard=0;
+    while(d < heute && guard<2000){
+      guard++;
+      if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
+      else if(def && def.tage) d.setDate(d.getDate()+def.tage);
+      else if(def) d.setMonth(d.getMonth()+def.monate);
+    }
   }
   return d.toISOString().slice(0,10);
+}
+// Dringlichkeitsstufe nach Zeitfortschritt im laufenden Intervall:
+//  < 50 % -> niedrig, 50-85 % -> mittel, > 85 % oder überfällig -> hoch
+function dringlichkeit(w){
+  const ges = intervallTage(w);
+  const rest = daysUntil(naechsteFaelligkeit(w)); // Tage bis fällig (negativ = überfällig)
+  if(rest===null) return "niedrig";
+  const verbraucht = ges - rest;             // wie viele Tage des Intervalls vorbei
+  const anteil = ges>0 ? verbraucht/ges : 1; // 0 = gerade erledigt, 1 = fällig
+  if(rest < 0 || anteil >= 0.85) return "hoch";
+  if(anteil >= 0.50) return "mittel";
+  return "niedrig";
+}
+const PRIO_FARBE = { niedrig:"#16a34a", mittel:"#d97706", hoch:"#dc2626" };
+const PRIO_LABEL = { niedrig:"Niedrig", mittel:"Mittel", hoch:"Hoch" };
+// "zuletzt erledigt vor X" – menschenlesbar
+function zuletztText(w){
+  if(!w.letzteErledigung) return "noch nie erledigt";
+  const tage = -daysUntil(w.letzteErledigung); // Tage seit Erledigung
+  if(tage<=0) return "heute erledigt";
+  if(tage===1) return "gestern erledigt";
+  if(tage<7) return `vor ${tage} Tagen erledigt`;
+  if(tage<14) return "vor 1 Woche erledigt";
+  if(tage<31) return `vor ${Math.round(tage/7)} Wochen erledigt`;
+  if(tage<60) return "vor 1 Monat erledigt";
+  if(tage<365) return `vor ${Math.round(tage/30.44)} Monaten erledigt`;
+  return `vor ${(tage/365).toFixed(1)} Jahren erledigt`;
 }
 function wiederCard(w){
   const naechste = naechsteFaelligkeit(w);
   const d = daysUntil(naechste);
-  const wann = d<0?"überfällig" : d===0?"heute fällig" : d===1?"morgen" : "in "+d+" Tagen";
-  return `<div class="card" onclick="openWiederEditor('${w.id}')">
+  const wann = d<0?(-d===1?"1 Tag überfällig":(-d)+" Tage überfällig") : d===0?"heute fällig" : d===1?"morgen fällig" : "in "+d+" Tagen fällig";
+  const stufe = dringlichkeit(w);
+  const farbe = PRIO_FARBE[stufe];
+  // Fortschrittsbalken: Anteil des verbrauchten Intervalls
+  const ges = intervallTage(w);
+  const verbraucht = ges - (d===null?0:d);
+  const anteil = Math.max(0, Math.min(1, ges>0?verbraucht/ges:1));
+  return `<div class="card" style="border-left:4px solid ${farbe}" onclick="openWiederEditor('${w.id}')">
     <div class="cttl">${esc(w.titel)}</div>
     <div class="cmeta">
       <span class="pill cat">${esc(intervallLabel(w))}</span>
+      <span class="pill" style="background:${farbe}1a;color:${farbe}">${PRIO_LABEL[stufe]}</span>
       <span class="pill due ${d<0?'over':''}">${ICON.checklist} ${wann}</span>
       ${(w.werListe&&w.werListe.length)?w.werListe.map(p=>`<span class="pill who">${esc(p)}</span>`).join(""):""}</div>
-    <div class="cdesc">nächster Termin: ${fmtDate(naechste)}</div>
+    <div class="wieder-bar"><div class="wieder-fill" style="width:${(anteil*100).toFixed(0)}%;background:${farbe}"></div></div>
+    <div class="cdesc" style="display:flex;justify-content:space-between;gap:8px">
+      <span>${zuletztText(w)}</span><span style="color:var(--ink2)">nächster Termin: ${fmtDate(naechste)}</span></div>
+    <div style="margin-top:10px">
+      <button class="cbtn" style="width:100%;color:${farbe};border-color:${farbe};font-weight:650" onclick="event.stopPropagation();erledigtWieder('${w.id}')">✓ Jetzt erledigt</button></div>
     ${w.autor?`<div class="byline">angelegt von ${esc(w.autor)}</div>`:""}</div>`;
 }
+// Aufgabe als heute erledigt markieren -> Intervall startet neu
+window.erledigtWieder = id => {
+  const w = DB.wiederkehrend.find(x=>x.id===id); if(!w) return;
+  w.letzteErledigung = new Date().toISOString().slice(0,10);
+  w.erzeugt = [];               // Marker zurücksetzen, damit das nächste Intervall wieder ein To-do erzeugen kann
+  // ein evtl. offenes, automatisch erzeugtes To-do dieser Aufgabe abräumen
+  DB.todos.forEach(t=>{ if(t.ausWiederkehrend===id && !t.done && !t.deleted){ t.done=true; t.updatedAt=now(); } });
+  w.updatedAt = now(); save(); RENDER.todos();
+};
 window.openWiederEditor = id => {
   const w = id ? DB.wiederkehrend.find(x=>x.id===id)
-              : {titel:"",intervall:"monatlich",freiTage:14,start:new Date().toISOString().slice(0,10),werListe:[],prio:"mittel"};
+              : {titel:"",intervall:"monatlich",freiTage:14,start:new Date().toISOString().slice(0,10),werListe:[]};
   window._wEdit = id || null;
+  const vorlagen = !id ? `<div class="fld"><label>Vorlage (optional)</label>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      ${REINIGUNG_VORLAGEN.map(v=>`<button type="button" class="cbtn" style="padding:6px 11px;font-size:12.5px" onclick="wVorlage('${esc(v.t)}','${v.iv}',${v.ft||0})">${esc(v.t)}</button>`).join("")}
+    </div></div>` : "";
   openSheet(`<h3>${id?"Wiederkehrende Aufgabe":"Neue wiederkehrende Aufgabe"}</h3>
-    <div class="fld"><label>Aufgabe</label><input id="w_titel" value="${esc(w.titel)}" placeholder="z.B. Rauchmelder prüfen"></div>
+    ${vorlagen}
+    <div class="fld"><label>Aufgabe</label><input id="w_titel" value="${esc(w.titel)}" placeholder="z.B. Fenster putzen"></div>
     <div class="fld"><label>Intervall</label>
       <select id="w_intervall" onchange="wIntervallChange()">${INTERVALLE.map(i=>`<option value="${i.key}" ${w.intervall===i.key?'selected':''}>${i.label}</option>`).join("")}</select></div>
     <div class="fld" id="w_freiWrap" style="display:${w.intervall==='frei'?'block':'none'}">
       <label>Alle wie viele Tage?</label><input id="w_freiTage" type="number" min="1" value="${w.freiTage||14}"></div>
-    <div class="fld"><label>Erster Termin / Start</label><input id="w_start" type="date" value="${w.start||""}"></div>
+    <div class="fld"><label>Zuletzt erledigt am (optional)</label>
+      <input id="w_letzte" type="date" value="${w.letzteErledigung||""}">
+      <div class="ml" style="margin-top:6px">Leer lassen, wenn noch nie erledigt. Das Intervall – und damit die Dringlichkeit – läuft ab diesem Datum.</div></div>
     <div class="fld"><label>Wer (mehrere möglich)</label>
       <div class="whopick" id="w_wer">${DB.nutzer.map(n=>{const sel=w.werListe&&w.werListe.includes(n);return `<div class="w ${sel?'on':''}" data-v="${esc(n)}" onclick="whoPick(this)"><div style="width:18px;height:18px;border-radius:50%;background:currentColor;opacity:.25"></div>${esc(n)}</div>`;}).join("")}</div></div>
     <button class="btn" onclick="saveWieder()">Speichern</button>
     ${id?`<button class="btn danger" onclick="delWieder('${id}')">Löschen</button>`:""}`);
+};
+// Schnellvorlagen für typische Reinigungs-/Wartungsaufgaben
+const REINIGUNG_VORLAGEN = [
+  {t:"Fenster putzen", iv:"vierteljaehrlich"},
+  {t:"Waschmaschine reinigen", iv:"monatlich"},
+  {t:"Spülmaschine reinigen", iv:"monatlich"},
+  {t:"Kühlschrank reinigen", iv:"monatlich"},
+  {t:"Dunstabzug-Filter", iv:"monatlich"},
+  {t:"Bad gründlich", iv:"woechentlich"},
+  {t:"Staubsaugen", iv:"woechentlich"},
+  {t:"Bettwäsche wechseln", iv:"frei", ft:14},
+  {t:"Rauchmelder prüfen", iv:"halbjaehrlich"},
+  {t:"Heizung entlüften", iv:"jaehrlich"},
+];
+window.wVorlage = (titel, iv, ft) => {
+  const ti=document.getElementById("w_titel"); if(ti) ti.value=titel;
+  const sel=document.getElementById("w_intervall"); if(sel) sel.value=iv;
+  if(ft){ const f=document.getElementById("w_freiTage"); if(f) f.value=ft; }
+  wIntervallChange();
 };
 window.wIntervallChange = () => {
   const v=document.getElementById("w_intervall").value;
@@ -1249,45 +1349,47 @@ window.wIntervallChange = () => {
 window.saveWieder = () => {
   const titel=document.getElementById("w_titel").value.trim(); if(!titel)return;
   const werListe=[...document.querySelectorAll("#w_wer .w.on")].map(el=>el.dataset.v);
+  const letzte = document.getElementById("w_letzte").value || "";
   const obj = {
     titel,
     intervall: document.getElementById("w_intervall").value,
     freiTage: parseInt(document.getElementById("w_freiTage").value)||14,
-    start: document.getElementById("w_start").value || new Date().toISOString().slice(0,10),
-    werListe, prio:"mittel", updatedAt:now()
+    letzteErledigung: letzte || null,
+    // start dient nur noch als Fallback, falls noch nie erledigt
+    start: letzte || document.getElementById("w_start") && document.getElementById("w_start").value || new Date().toISOString().slice(0,10),
+    werListe, updatedAt:now()
   };
+  // Bei geänderter Basis: erzeugte Marker zurücksetzen
+  if(window._wEdit){ const ex=DB.wiederkehrend.find(x=>x.id===window._wEdit);
+    if(ex && ex.letzteErledigung!==obj.letzteErledigung) obj.erzeugt=[];
+  }
   if(window._wEdit){ const ex=DB.wiederkehrend.find(x=>x.id===window._wEdit); Object.assign(ex,obj); }
   else { DB.wiederkehrend.push({id:uid(), autor:ME, createdAt:now(), ...obj}); }
   save(); closeModal(); RENDER.todos();
 };
 window.delWieder = id => { if(confirm("Wiederkehrende Aufgabe löschen?")){ DB.wiederkehrend=DB.wiederkehrend.filter(x=>x.id!==id); save(); closeModal(); RENDER.todos(); } };
 
-// Erzeugt aus fälligen wiederkehrenden Aufgaben echte To-dos (einmal pro Termin)
+// Erzeugt aus wiederkehrenden Aufgaben ein echtes To-do, sobald die Dringlichkeit "Hoch" erreicht
 function erzeugeFaelligeWiederkehrend(){
   if(!DB.wiederkehrend) return;
-  const heute = new Date(); heute.setHours(0,0,0,0);
   let erzeugt=false;
   DB.wiederkehrend.forEach(w=>{
     if(w.deleted) return;
+    if(dringlichkeit(w)!=="hoch") return;   // erst bei "Hoch" (kurz vor Ende / überfällig)
     const naechste = naechsteFaelligkeit(w);
-    const d = daysUntil(naechste);
-    // wenn innerhalb der nächsten 3 Tage oder fällig und noch nicht erzeugt für diesen Termin
-    if(d<=3){
-      const marker = w.id+"@"+naechste;
-      w.erzeugt = w.erzeugt || [];
-      if(!w.erzeugt.includes(marker)){
-        DB.todos.push({
-          id:uid(), titel:w.titel, notiz:"(wiederkehrend: "+intervallLabel(w)+")",
-          faellig:naechste, prio:w.prio||"mittel",
-          werListe:w.werListe||[], wer:(w.werListe||[]).join(", "),
-          done:false, autor:w.autor||ME, ausWiederkehrend:w.id,
-          createdAt:now(), updatedAt:now()
-        });
-        w.erzeugt.push(marker);
-        // alte Marker begrenzen
-        if(w.erzeugt.length>20) w.erzeugt = w.erzeugt.slice(-20);
-        erzeugt=true;
-      }
+    const marker = w.id+"@"+naechste;
+    w.erzeugt = w.erzeugt || [];
+    if(!w.erzeugt.includes(marker)){
+      DB.todos.push({
+        id:uid(), titel:w.titel, notiz:"(wiederkehrend: "+intervallLabel(w)+")",
+        faellig:naechste, prio:"hoch",
+        werListe:w.werListe||[], wer:(w.werListe||[]).join(", "),
+        done:false, autor:w.autor||ME, ausWiederkehrend:w.id,
+        createdAt:now(), updatedAt:now()
+      });
+      w.erzeugt.push(marker);
+      if(w.erzeugt.length>20) w.erzeugt = w.erzeugt.slice(-20);
+      erzeugt=true;
     }
   });
   if(erzeugt) save();
