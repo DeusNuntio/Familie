@@ -355,6 +355,8 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
     <div id="gsuche-ergebnis"></div>
     <div id="countdownSlot"></div>
     <div class="grid" id="tiles"></div>
+    <div id="fuerDichSlot"></div>
+    <div id="nachrichtenSlot"></div>
   </div>
 
   <!-- DETAIL -->
@@ -392,7 +394,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "1.9.1";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -825,7 +827,7 @@ function renderFuerDich(){
   let slot = document.getElementById("fuerDichSlot");
   if(!slot){
     slot = document.createElement("div"); slot.id="fuerDichSlot";
-    document.getElementById("countdownSlot").after(slot);
+    document.getElementById("tiles").after(slot);
   }
   // Prüft, ob die angemeldete Person zuständig ist (Einzel- oder Mehrfachzuweisung)
   const istMeins = e => {
@@ -863,6 +865,44 @@ function renderFuerDich(){
 // ============================================================
 //  Benachrichtigungen (z.B. "neue Einkaufsliste")
 // ============================================================
+// Handy-Benachrichtigung (Web Notifications API). Erscheint, wenn die App
+// im Hintergrund läuft / das Display an ist und die Berechtigung erteilt wurde.
+function handyBenachrichtigung(titel, text){
+  try{
+    if(!("Notification" in window)) return;
+    if(Notification.permission!=="granted") return;
+    const n = new Notification(titel, {
+      body: text||"",
+      icon: document.querySelector('link[rel="apple-touch-icon"]')?.href,
+      tag: "familie-nadig",
+      renotify: true
+    });
+    n.onclick = () => { try{ window.focus(); }catch(e){} n.close(); };
+  }catch(e){}
+}
+// Berechtigung anfragen (über eine Nutzeraktion, z.B. im Sync-Dialog)
+window.benachrichtigungenAktivieren = (still) => {
+  if(!("Notification" in window)){ if(!still) alert("Dieses Gerät unterstützt keine Benachrichtigungen."); return; }
+  if(Notification.permission==="granted"){ if(!still) alert("Benachrichtigungen sind bereits aktiv."); return; }
+  if(Notification.permission==="denied"){ if(!still) alert("Benachrichtigungen wurden im Browser/Gerät blockiert. Bitte in den Einstellungen für diese Seite erlauben."); return; }
+  Notification.requestPermission().then(p=>{
+    if(p==="granted" && !still) handyBenachrichtigung("Benachrichtigungen aktiv", "Du wirst informiert, sobald eine neue Liste da ist.");
+    if(modal.classList.contains("active")) closeModal();
+  }).catch(()=>{});
+};
+// HTML-Block für den Benachrichtigungs-Status im Sync-Dialog
+function benachrichtigungStatusHtml(){
+  if(!("Notification" in window))
+    return `<div class="ml" style="margin-bottom:14px">Dieses Gerät unterstützt keine Handy-Benachrichtigungen.</div>`;
+  const p = Notification.permission;
+  if(p==="granted")
+    return `<div class="fld" style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--ink2)">Handy-Benachrichtigungen</div>
+      <div style="font-weight:650;color:var(--ok)">Aktiv – du wirst über neue Listen informiert</div></div>`;
+  if(p==="denied")
+    return `<div class="ml" style="margin-bottom:14px">Handy-Benachrichtigungen sind blockiert. Bitte in den Browser-/Geräteeinstellungen für diese Seite erlauben.</div>`;
+  return `<button class="btn ghost" onclick="benachrichtigungenAktivieren(false)" style="margin-bottom:14px">🔔 Benachrichtigungen aufs Handy aktivieren</button>`;
+}
 // Erstellt eine Nachricht für alle anderen Nutzer (außer dem Absender).
 function notify(text, opts){
   opts = opts || {};
@@ -888,7 +928,7 @@ function renderNachrichten(){
   let slot = document.getElementById("nachrichtenSlot");
   if(!slot){
     slot = document.createElement("div"); slot.id="nachrichtenSlot";
-    document.getElementById("countdownSlot").after(slot);
+    document.getElementById("tiles").after(slot);
   }
   const offen = ungeleseneNachrichten();
   if(!offen.length){ slot.innerHTML=""; return; }
@@ -1441,7 +1481,7 @@ function kalenderEintraege(){
 }
 let KAL_MONAT = null;  // {jahr, monat} – null = aktueller Monat
 RENDER.kalender = () => {
-  setHead("Kalender", "");
+  setHead("Kalender", "", {label:"📅 Export", fn:kalAlleExport});
   const heute = new Date();
   if(!KAL_MONAT) KAL_MONAT = {jahr:heute.getFullYear(), monat:heute.getMonth()};
   const {jahr,monat} = KAL_MONAT;
@@ -1514,21 +1554,65 @@ window.kalTag = t => {
   const {jahr,monat}=KAL_MONAT;
   const datum=new Date(jahr,monat,t).toISOString().slice(0,10);
   const evs=kalenderEintraege().filter(e=>e.datum===datum);
+  window._kalTagDatum = datum;
   const kopf=new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
   const liste = evs.length
-    ? `<div class="list">${evs.map(e=>{
+    ? `<div class="list">${evs.map((e,i)=>{
         const loeschbar = e.typ==="Termin" && e.terminId;
-        return `<div class="card" onclick="${loeschbar?'':"closeModal();open_('"+e.modul+"')"}">
+        return `<div class="card">
           ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
           <div style="display:flex;align-items:center;gap:10px">
             <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
-            <div><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
-              <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div></div></div>`;
+            <div style="flex:1" onclick="${loeschbar?'':"closeModal();open_('"+e.modul+"')"}">
+              <div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
+              <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div>
+            <button class="cbtn" style="flex:0 0 auto;padding:6px 11px;font-size:13px" onclick="event.stopPropagation();kalExport(${i})">📅 Export</button>
+          </div></div>`;
       }).join("")}</div>`
     : `<div class="ml" style="margin:0 0 12px">Keine Einträge an diesem Tag.</div>`;
   openSheet(`<h3>${kopf}</h3>
     ${liste}
     <button class="btn" onclick="openTermin('${datum}')">+ Termin an diesem Tag</button>`);
+};
+// Einzelnen Kalendereintrag exportieren (Google Kalender oder .ics)
+window.kalExport = idx => {
+  const datum = window._kalTagDatum;
+  const evs = kalenderEintraege().filter(e=>e.datum===datum);
+  const e = evs[idx]; if(!e) return;
+  const titel = e.titel; const det = e.typ;
+  const gl = gcalLink(titel, e.datum, e.datum, det);
+  const safe = s => (s||"").replace(/'/g,"");
+  const fname = (titel||"termin").replace(/[^a-z0-9]/gi,"_");
+  openSheet(`<h3>In Kalender eintragen</h3>
+    <div class="ml">„${esc(titel)}" – ${fmtDate(e.datum)}</div>
+    <a class="btn" href="${esc(gl)}" target="_blank" rel="noopener" onclick="closeModal()" style="display:block;text-align:center;text-decoration:none">In Google Kalender öffnen</a>
+    <button class="btn ghost" onclick="downloadICS([{titel:'${esc(safe(titel))}',start:'${e.datum}',end:'${e.datum}',details:'${esc(safe(det))}'}],'${esc(fname)}');closeModal()">Als Kalenderdatei (.ics) speichern</button>
+    <div class="ml" style="margin-top:10px">Der Google-Link trägt den Termin direkt ein. Die .ics-Datei funktioniert mit jedem Kalender (Apple, Outlook …).</div>`);
+};
+// Alle kommenden Termine (nächste 90 Tage) gesammelt als .ics exportieren
+window.kalAlleExport = () => {
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  const grenze = new Date(heute); grenze.setDate(grenze.getDate()+90);
+  const evs = kalenderEintraege()
+    .filter(e=>!e.zwischentag)
+    .filter(e=>{ const d=new Date(e.datum); return d>=heute && d<=grenze; })
+    .sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  if(!evs.length){ alert("Keine Termine in den nächsten 90 Tagen."); return; }
+  openSheet(`<h3>Termine exportieren</h3>
+    <div class="ml">${evs.length} Termine der nächsten 90 Tage als Kalenderdatei. Die .ics-Datei lässt sich in Google Kalender (Einstellungen → Importieren), Apple Kalender oder Outlook einlesen.</div>
+    <button class="btn" onclick="kalAlleExportTun()">Als Kalenderdatei (.ics) speichern</button>
+    <div class="ml" style="margin-top:10px">Einzelne Termine kannst du über die Tagesansicht auch direkt in Google Kalender öffnen.</div>`);
+};
+window.kalAlleExportTun = () => {
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  const grenze = new Date(heute); grenze.setDate(grenze.getDate()+90);
+  const evs = kalenderEintraege()
+    .filter(e=>!e.zwischentag)
+    .filter(e=>{ const d=new Date(e.datum); return d>=heute && d<=grenze; })
+    .sort((a,b)=>new Date(a.datum)-new Date(b.datum))
+    .map(e=>({titel:e.titel, start:e.datum, end:e.datum, details:e.typ}));
+  downloadICS(evs, "familie-nadig-termine");
+  closeModal();
 };
 
 // ---- Eigene Kalendertermine anlegen / bearbeiten / löschen ----
@@ -1745,7 +1829,10 @@ function abgeschickteListeHtml(l, istEigene, imArchiv){
   const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
   const erledigt = l.artikel.filter(a=>a.d);
   const editing = (window._editListe===l.id);
-  const aufgeklappt = imArchiv ? (window._openListe===l.id) : (window._openListe===l.id || editing || offen.length>0);
+  // Listen sind standardmäßig eingeklappt. Nur manuell geöffnete oder gerade
+  // bearbeitete Listen werden aufgeklappt – das hält die Übersicht sauber,
+  // sobald Artikel abgehakt werden.
+  const aufgeklappt = (window._openListe===l.id) || editing;
   // Kopfzeile
   let kopfInfo;
   if(l.zusammengefuehrt) kopfInfo = `zusammengeführt · ${offen.length} offen`;
@@ -2877,6 +2964,8 @@ window.Sync = (() => {
   }
   async function fullSync(){ if(!online||busy)return; busy=true; setStatus("Synchronisiere…",true);
     try{
+      // Vor dem Abgleich merken, welche Nachrichten ich schon kenne
+      const bekannteNachrichten = new Set((DB.nachrichten||[]).map(n=>n.id));
       const fern=(await readFile("daten.json"))||{};
       for(const k of LISTEN){
         if(k==="urlaub") DB.urlaub = mergeReisen(DB.urlaub||[], fern.urlaub||[]);
@@ -2884,6 +2973,16 @@ window.Sync = (() => {
       }
       if(fern._sync && new Date(fern._sync)>new Date(DB._sync||0))
         for(const k of OBJEKTE) if(fern[k]!==undefined) DB[k]=fern[k];
+      // Neu eingegangene, für mich bestimmte ungelesene Nachrichten -> Handy-Benachrichtigung
+      try{
+        const neue = (DB.nachrichten||[]).filter(n=>
+          !bekannteNachrichten.has(n.id) &&
+          n.von!==ME &&
+          (!n.ziel || n.ziel===ME) &&
+          !(n.gelesenVon||[]).includes(ME)
+        );
+        neue.forEach(n=> handyBenachrichtigung("Familie Nadig", n.text));
+      }catch(e){}
       localStorage.setItem(KEY,JSON.stringify(DB));
       await writeFile("daten.json", DB);
       _lastSync = new Date();
@@ -2906,6 +3005,7 @@ window.syncTap = () => {
       <div class="fld" style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px">
         <div style="font-size:13px;color:var(--ink2)">Status</div>
         <div style="font-weight:650">Verbunden${last?" · zuletzt "+last:""}</div></div>
+      ${benachrichtigungStatusHtml()}
       <button class="btn" onclick="Sync.fullSync();closeModal()">Jetzt abgleichen</button>
       <button class="btn ghost" onclick="Sync.logout();closeModal()">Von OneDrive abmelden</button>`);
   } else {
