@@ -394,7 +394,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.1";
+const APP_VERSION = "1.9.2";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -2793,6 +2793,17 @@ function rezeptSheet(){
     <div class="fld"><label>Link (optional)</label>
       <textarea id="rz_link" rows="2" placeholder="https://… (Text davor wird automatisch entfernt)">${esc(r.link||"")}</textarea></div>
     ${lk?`<a class="maplink" href="${esc(lk)}" target="_blank" rel="noopener" style="margin-bottom:12px">${ICON.link} Rezept öffnen</a>`:""}
+    <div class="fld">
+      <button class="btn ghost" style="width:100%" onclick="toggleRezImport()">${ICON.chef} Rezept einfügen &amp; aufteilen</button>
+      <div id="rezImportBox" style="display:none;margin-top:10px">
+        <textarea id="rz_import" rows="6" placeholder="Komplettes Rezept von einer Webseite hier einfügen – Zutaten und Zubereitung werden automatisch getrennt."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1" onclick="rezImportSplit()">Aufteilen</button>
+          <button class="btn ghost" style="flex:1" onclick="toggleRezImport()">Schließen</button>
+        </div>
+        <div style="color:var(--ink2);font-size:12px;margin-top:6px">Erkennt Mengenangaben automatisch als Zutaten. Ergebnis bitte vor dem Speichern prüfen.</div>
+      </div>
+    </div>
     <div class="fld"><label>Zutaten</label><div id="zutatenSlot"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <input id="rz_zutat" placeholder="Zutat, z.B. 500 g Hackfleisch" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px" enterkeyhint="done">
@@ -2813,6 +2824,78 @@ function renderZutaten(){
 }
 window.addZutat = () => { const inp=document.getElementById("rz_zutat"); const v=inp.value.trim(); if(!v)return; REZEPT.zutaten.push(v); inp.value=""; renderZutaten(); inp.focus(); };
 window.rmZutat = i => { REZEPT.zutaten.splice(i,1); renderZutaten(); };
+
+window.toggleRezImport = () => {
+  const box = document.getElementById("rezImportBox"); if(!box) return;
+  box.style.display = box.style.display==="none" ? "block" : "none";
+  if(box.style.display==="block"){ const t=document.getElementById("rz_import"); if(t) t.focus(); }
+};
+
+// Heuristische Aufteilung eines eingefügten Rezepts in Zutaten + Zubereitung
+window.rezImportSplit = () => {
+  const ta = document.getElementById("rz_import"); if(!ta) return;
+  const raw = ta.value; if(!raw.trim()){ alert("Bitte zuerst ein Rezept einfügen."); return; }
+
+  const EINHEITEN = ["g","kg","mg","l","ml","el","tl","msp","prise","prisen","stück","stk","stange","stangen","zehe","zehen","bund","dose","dosen","packung","pck","pkg","tasse","tassen","becher","scheibe","scheiben","blatt","blätter","kopf","köpfe","zweig","zweige","cl","dl","tropfen","handvoll","portion","portionen"];
+  const reMenge = /^\s*(?:[½¼¾⅓⅔⅛]|\d+[.,/]?\d*)\s*(?:[½¼¾⅓⅔⅛])?/;
+  const reEinheitStart = new RegExp("^\\s*(?:"+EINHEITEN.join("|")+")\\b","i");
+  // Überschriften, die einen Abschnittswechsel markieren
+  const reZubHead = /^\s*(zubereitung|anleitung|anweisung|zubereitungsschritte|schritte|so geht'?s|so wird'?s gemacht|kochanleitung|arbeitsschritte)\s*:?\s*$/i;
+  const reZutHead = /^\s*(zutaten|einkaufsliste|du brauchst|man braucht|für (?:das|die|den)\b.*)\s*:?\s*$/i;
+  const reSchrittNr = /^\s*(?:schritt\s*)?\d+\s*[.):]\s+/i;
+
+  // 1) normalisieren: Zeilen, Aufzählungszeichen entfernen
+  const lines = raw.replace(/\r/g,"")
+    .split("\n")
+    .map(l => l.replace(/^\s*[-•*▢□●○‣·–—]\s*/,"").replace(/\u00a0/g," ").trimEnd())
+    .filter(l => l.trim().length);
+
+  const zutaten = [];
+  const zubLines = [];
+  // mode: null = unbekannt, "zut" = Zutatenabschnitt, "zub" = Zubereitungsabschnitt
+  let mode = null;
+
+  const istZutatZeile = (l) => {
+    const t = l.trim();
+    if(t.length > 90) return false;                 // lange Sätze = eher Anleitung
+    if(/[.!?]$/.test(t) && t.split(" ").length > 7) return false; // ganzer Satz
+    if(reMenge.test(t)) return true;                // beginnt mit Menge/Zahl
+    if(reEinheitStart.test(t)) return true;         // beginnt mit Einheit
+    if(EINHEITEN.some(e => new RegExp("\\b"+e+"\\b","i").test(t)) && t.split(" ").length <= 6) return true;
+    return false;
+  };
+
+  for(const l of lines){
+    if(reZubHead.test(l)){ mode="zub"; continue; }   // Überschrift selbst nicht übernehmen
+    if(reZutHead.test(l)){ mode="zut"; continue; }
+
+    if(mode==="zub"){ zubLines.push(l); continue; }
+    if(mode==="zut"){
+      if(istZutatZeile(l) || l.trim().split(" ").length <= 5){ zutaten.push(l.trim()); }
+      else { zubLines.push(l); }                      // langer Satz im Zutatenblock -> Anleitung
+      continue;
+    }
+    // Kein Abschnitt erkannt: pro Zeile entscheiden
+    if(istZutatZeile(l)){ zutaten.push(l.trim()); }
+    else if(reSchrittNr.test(l)){ zubLines.push(l.replace(reSchrittNr,"")); }
+    else if(zutaten.length || zubLines.length){ zubLines.push(l); } // Fließtext nach erstem Inhalt = Anleitung
+    // sonst (kurze Kopfzeile vor jeglichem Inhalt, z.B. Titel) verwerfen
+  }
+
+  if(!zutaten.length && !zubLines.length){ alert("Konnte nichts erkennen. Bitte Text prüfen."); return; }
+
+  // Ergebnis übernehmen (anhängen, nicht überschreiben)
+  REZEPT.zutaten = REZEPT.zutaten.concat(zutaten);
+  const neueZub = zubLines.join("\n").trim();
+  if(neueZub){
+    const feld = document.getElementById("rz_zub");
+    if(feld){ feld.value = (feld.value.trim() ? feld.value.trim()+"\n\n" : "") + neueZub; }
+  }
+  renderZutaten();
+  ta.value = "";
+  toggleRezImport();
+  alert(zutaten.length+" Zutat(en) und "+(neueZub?zubLines.length:0)+" Zeile(n) Zubereitung übernommen. Bitte prüfen.");
+};
 window.saveRezept = () => {
   REZEPT.titel = document.getElementById("rz_titel").value.trim() || "Rezept";
   REZEPT.kategorie = document.getElementById("rz_kat").value;
