@@ -306,9 +306,28 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .cbtn:active{background:var(--accent-soft)}
 .city-actions .cbtn{flex:1}
-.leg{display:flex;align-items:center;gap:10px;padding:8px 16px;margin:2px 0}
+.leg{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 16px;margin:2px 0}
+.leg .legrow{display:flex;align-items:center;gap:10px;width:100%}
 .leg .lline{flex:1;height:0;border-top:2px dashed var(--line)}
 .leg .linfo{font-size:12.5px;color:var(--ink2);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.leg .legacts{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.leg .legacts a{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
+.leg .legacts a.muted{color:var(--ink2)}
+/* Zwischenstopps auf einer Etappe */
+.stops{width:100%;display:flex;flex-direction:column;gap:6px;margin:2px 0}
+.stop{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px dashed var(--line);
+  border-radius:10px;padding:7px 10px;font-size:13px}
+.stop .si{color:var(--accent);flex-shrink:0;margin-top:1px}
+.stop .sn{flex:1;min-width:0;word-break:break-word}
+.stop .sn small{display:block;color:var(--ink2);font-size:11.5px;margin-top:1px;white-space:pre-wrap}
+.stop .sdel{color:var(--ink2);opacity:.5;cursor:pointer;font-size:15px;flex-shrink:0}
+.stop .smap{font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.leg .stopadd{font-size:12px;color:var(--ink2);cursor:pointer;font-weight:600}
+.cdur{font-size:12.5px;color:var(--accent);font-weight:600;margin:6px 0 2px;display:flex;align-items:center;gap:6px}
+.chint{font-size:12.5px;color:var(--ink2);background:var(--line);padding:6px 9px;border-radius:8px;
+  margin:8px 0 2px;white-space:pre-wrap;display:flex;gap:6px}
+.chint .hi{flex-shrink:0}
+.poi-hint{display:block;color:var(--ink2);font-size:11.5px;margin-top:2px;white-space:pre-wrap}
 .subgroup{margin-top:12px}
 .subgroup .sgh{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .subgroup .sgh span.add{cursor:pointer;font-size:18px;line-height:1}
@@ -394,7 +413,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.2";
+const APP_VERSION = "1.9.3";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -627,6 +646,21 @@ function downscale(dataUrl, cb){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function empty(ic,txt){ return `<div class="empty"><div class="ei">${ICON[ic]||""}</div>${txt}</div>`; }
 function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr); }
+// Liefert ein Maps-Routen-Ziel ("lat,lon" bevorzugt, sonst Name) für einen Ort.
+function mapsPoint(o){
+  if(!o) return "";
+  if(o.lat!=null) return o.lat+","+o.lon;
+  return [o.name,o.plz,o.land].filter(Boolean).join(", ") || o.adresse || o.name || "";
+}
+// Google-Maps-Routenlink von a nach b, optional über Zwischenstopps (Array von Orten).
+function mapsRouteLink(a, b, stops){
+  const orig = encodeURIComponent(mapsPoint(a));
+  const dest = encodeURIComponent(mapsPoint(b));
+  let url = "https://www.google.com/maps/dir/?api=1&origin="+orig+"&destination="+dest+"&travelmode=driving";
+  const wp = (stops||[]).map(mapsPoint).filter(Boolean);
+  if(wp.length) url += "&waypoints="+wp.map(encodeURIComponent).join("%7C");
+  return url;
+}
 // Schneidet alles vor dem ersten http(s):// ab und liefert einen sauberen Link – oder "" wenn keiner drin ist.
 function cleanLink(text){
   if(!text) return "";
@@ -2268,6 +2302,8 @@ function renderCity(r,c,i){
         <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} ${istLink?"Link öffnen":"Karte öffnen"}</a>
         <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
       </div>
+      ${c.aufenthalt?`<div class="cdur">${ICON.clock||"🕒"} Aufenthalt: ${esc(c.aufenthalt)}</div>`:""}
+      ${c.hinweis?`<div class="chint"><span class="hi">📌</span><span>${esc(c.hinweis)}</span></div>`:""}
       ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
       ${poiGroup(r.id,i,"stellplaetze",utype,stell)}
       ${poiGroup(r.id,i,"sehens","Sehenswürdigkeiten",seh)}
@@ -2281,6 +2317,7 @@ function poiGroup(rid,ci,key,titel,arr){
       return `<div class="poi ${fremd?'poi-fremd':''}">
       ${p.foto?`<img class="poi-foto" src="${p.foto}" onclick="zoomFoto('${rid}',${ci},'${key}',${pi})">`:""}
       <div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
+      ${p.hinweis?`<small class="poi-hint">📌 ${esc(p.hinweis)}</small>`:""}
       ${resTxt?`<small style="display:block;color:var(--accent);font-weight:600;margin-top:2px">${resTxt}</small>`:""}
       <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
       ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
@@ -2333,6 +2370,7 @@ window.zoomFoto = (rid,ci,key,pi) => {
 function renderLeg(r,i){
   const a=r.staedte[i], b=r.staedte[i+1];
   r._legs = r._legs||{};
+  const stops = a.stopps||[];
   const key = a.lat+","+a.lon+">"+b.lat+","+b.lon;
   const cached = r._legs[key];
   let info;
@@ -2340,7 +2378,26 @@ function renderLeg(r,i){
   else if(cached==="err") info = `<span class="linfo" id="leg_${i}" onclick="calcLeg('${r.id}',${i})" style="cursor:pointer;color:var(--accent)">Berechnung fehlgeschlagen – erneut ›</span>`;
   else if(cached) info = `<span class="linfo">${ICON.car} ${cached.km.toFixed(0)} km · ${fmtDauer(cached.min)} <small>(${cached.profil})</small></span>`;
   else info = `<span class="linfo" id="leg_${i}" style="color:var(--ink2)">berechne…</span>`;
-  return `<div class="leg"><div class="lline"></div>${info}<div class="lline"></div></div>`;
+  // Google-Maps-Routenlink (führt optional über die Zwischenstopps)
+  const routeHref = mapsRouteLink(a, b, stops);
+  const stopsHtml = stops.length ? `<div class="stops">${stops.map((s,si)=>{
+    const tgt = openTarget(s) || (s.lat!=null?mapsLink(s.lat+","+s.lon):(s.name?mapsLink(s.name):""));
+    const meta = [s.entfernung, s.dauer].filter(Boolean).join(" · ");
+    return `<div class="stop"><span class="si">${ICON.pin}</span>
+      <div class="sn">${esc(s.name)}
+        ${meta?`<small>${ICON.car?"":""}${esc(meta)}</small>`:""}
+        ${s.hinweis?`<small>📌 ${esc(s.hinweis)}</small>`:""}
+        ${tgt?`<a class="smap" href="${esc(tgt)}" target="_blank" rel="noopener">Karte öffnen</a>`:""}</div>
+      <span class="sdel" onclick="delStop('${r.id}',${i},${si})">×</span></div>`;
+  }).join("")}</div>` : "";
+  return `<div class="leg">
+    <div class="legrow"><div class="lline"></div>${info}<div class="lline"></div></div>
+    ${stopsHtml}
+    <div class="legacts">
+      <a href="${esc(routeHref)}" target="_blank" rel="noopener">🗺️ Route in Google Maps</a>
+      <a onclick="addStop('${r.id}',${i})">+ Zwischenstopp</a>
+    </div>
+  </div>`;
 }
 // Alle noch nicht berechneten Etappen automatisch nacheinander rechnen
 window.autoCalcLegs = async rid => {
@@ -2368,6 +2425,53 @@ window.calcLeg = async (rid,i) => {
   }catch(e){ r._legs=r._legs||{}; r._legs[key]="err"; renderReiseDetail(r); }
 };
 
+// Zwischenstopp auf einer Etappe (zwischen Stadt i und i+1) hinzufügen
+window.addStop = (rid,i) => {
+  window._stopCtx = { rid, i };
+  openSheet(`<h3>Zwischenstopp hinzufügen</h3>
+    <div class="ml">Ein Ort zum Anhalten zwischen zwei Stationen – z.B. eine Sehenswürdigkeit unterwegs. Stadtname oder Adresse genügt; Entfernung und Fahrzeit werden gesucht.</div>
+    <div class="fld"><label>Name / Ort</label><input id="st_name" placeholder="z.B. Burg Eltz"></div>
+    <div class="fld"><label>Adresse oder Maps-Link (optional)</label>
+      <textarea id="st_link" rows="2" placeholder="https://… oder Adresse"></textarea></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <textarea id="st_hint" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …"></textarea></div>
+    <div class="geo-status" id="st_geo"></div>
+    <button class="btn" onclick="saveStop()">Hinzufügen</button>`);
+};
+window.saveStop = async () => {
+  const { rid, i } = window._stopCtx;
+  const r = DB.urlaub.find(x=>x.id===rid); if(!r) return;
+  const name = document.getElementById("st_name").value.trim(); if(!name) return;
+  const linkRaw = document.getElementById("st_link").value.trim();
+  const hinweis = document.getElementById("st_hint").value.trim();
+  const link = cleanLink(linkRaw);
+  const st = document.getElementById("st_geo"); st.textContent="Suche Koordinaten & Entfernung…";
+  const g = parseGeo(linkRaw);
+  let lat=g.lat, lon=g.lon;
+  if(lat==null){
+    try{ const geo = await geocode([name, linkRaw].filter(Boolean).join(", ")); lat=geo.lat; lon=geo.lon; }
+    catch(e){ /* ohne Koordinaten speichern */ }
+  }
+  const stop = { id:uid(), name, link, hinweis, lat, lon, adresse:g.label||(link?"":linkRaw) };
+  // Entfernung & Fahrzeit vom vorherigen Ort (Stadt i) zum Stopp – wie in der App üblich
+  const a = r.staedte[i];
+  if(a && a.lat!=null && lat!=null){
+    try{ const res = await routeBetween(a, stop);
+      stop.entfernung = res.km.toFixed(0)+" km"; stop.dauer = fmtDauer(res.min); }
+    catch(e){ /* keine Route ermittelbar */ }
+  }
+  const c = r.staedte[i];
+  c.stopps = c.stopps||[]; c.stopps.push(stop);
+  r._legs = {};
+  r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+  autoCalcLegs(rid);
+};
+window.delStop = (rid,i,si) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const c=r.staedte[i];
+  if(!c.stopps) return;
+  c.stopps.splice(si,1); r.updatedAt=now(); save(); renderReiseDetail(r);
+};
+
 window.toggleCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[i]._open=!r.staedte[i]._open; renderReiseDetail(r); };
 window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(confirm("Stadt entfernen?")){ r.staedte.splice(i,1); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); } };
 
@@ -2376,7 +2480,7 @@ window.addCity = rid => { editCityForm(rid, null); };
 window.editCity = (rid, i) => { editCityForm(rid, i); };
 function editCityForm(rid, i){
   const r = DB.urlaub.find(x=>x.id===rid);
-  const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null };
+  const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null, aufenthalt:"", hinweis:"" };
   window._cityCtx = { rid, i };
   const hasCoords = c.lat!=null;
   openSheet(`<h3>${i!=null?"Stadt bearbeiten":"Stadt / Ort hinzufügen"}</h3>
@@ -2387,6 +2491,10 @@ function editCityForm(rid, i){
       <div style="flex:2"><label>Land (optional)</label><input id="c_land" value="${esc(c.land||"")}" placeholder="Deutschland"></div></div>
     <div class="fld"><label>Google-Maps-Link (optional)</label>
       <input id="c_link" value="${esc(c.link||"")}" placeholder="https://maps.app.goo.gl/…"></div>
+    <div class="fld"><label>Aufenthaltsdauer (optional)</label>
+      <input id="c_aufenthalt" value="${esc(c.aufenthalt||"")}" placeholder="z.B. 2 Nächte / 3 Tage"></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <textarea id="c_hinweis" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(c.hinweis||"")}</textarea></div>
     <div class="geo-status" id="c_geo">${hasCoords?"✓ Koordinaten vorhanden ("+c.lat.toFixed(3)+", "+c.lon.toFixed(3)+")":"Noch keine Koordinaten"}</div>
     <button class="btn" onclick="saveCity()">${i!=null?"Speichern":"Hinzufügen"}</button>`);
 }
@@ -2397,6 +2505,8 @@ window.saveCity = async () => {
   const plz  = document.getElementById("c_plz").value.trim();
   const land = document.getElementById("c_land").value.trim();
   const link = cleanLink(document.getElementById("c_link").value);
+  const aufenthalt = document.getElementById("c_aufenthalt").value.trim();
+  const hinweis = document.getElementById("c_hinweis").value.trim();
   if(!name){ document.getElementById("c_geo").textContent="Bitte einen Stadtnamen eingeben."; return; }
   const st = document.getElementById("c_geo"); st.textContent="Suche Koordinaten…";
   // Suchtext für Geocoding: Name + PLZ + Land
@@ -2406,11 +2516,11 @@ window.saveCity = async () => {
   catch(e){ /* offline / file:// – ohne Koordinaten speichern */ }
   if(i!=null){
     const c = r.staedte[i];
-    c.name=name; c.plz=plz; c.land=land; c.link=link;
+    c.name=name; c.plz=plz; c.land=land; c.link=link; c.aufenthalt=aufenthalt; c.hinweis=hinweis;
     if(lat!=null){ c.lat=lat; c.lon=lon; }
   } else {
-    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon,
-      stellplaetze:[], sehens:[], restaurants:[], _open:true });
+    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon, aufenthalt, hinweis,
+      stellplaetze:[], sehens:[], restaurants:[], stopps:[], _open:true });
   }
   r._legs = {};            // Etappen neu berechnen lassen
   r.updatedAt=now(); save(); closeModal();
@@ -2429,6 +2539,8 @@ window.addPoi = (rid,ci,key,titel) => {
     <div class="fld"><label>Adresse (optional)</label><input id="poi_addr" placeholder="Straße, Ort"></div>
     <div class="fld"><label>Link (optional)</label>
       <textarea id="poi_link" rows="2" placeholder="https://… (auch mit Text davor – wird automatisch erkannt)"></textarea></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <textarea id="poi_hint" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …"></textarea></div>
     ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
       <div style="display:flex;gap:10px">
         <input id="poi_res_datum" type="date" style="flex:1">
@@ -2454,13 +2566,14 @@ window.doAddPoi = () => {
   const name=document.getElementById("poi_name").value.trim(); if(!name)return;
   const addr=document.getElementById("poi_addr").value.trim();
   const link=cleanLink(document.getElementById("poi_link").value);
+  const hinweis=document.getElementById("poi_hint").value.trim();
   const g=parseGeo(addr);
   const rd=document.getElementById("poi_res_datum"), rz=document.getElementById("poi_res_zeit");
   const resDatum = rd ? rd.value : "";
   const resZeit  = rz ? rz.value : "";
   const r=DB.urlaub.find(x=>x.id===rid);
   r.staedte[ci][key]=r.staedte[ci][key]||[];
-  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
+  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
   r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
 window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
