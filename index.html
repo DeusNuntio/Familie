@@ -301,6 +301,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .city .cbody{padding:0 15px 14px;border-top:1px solid var(--line)}
 .city.collapsed .cbody{display:none}
 .city-actions{display:flex;gap:8px;margin:12px 0 4px}
+.city-foto{width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:12px;cursor:pointer;display:block}
 .cbtn{text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;
   font-size:13px;font-weight:600;color:var(--accent);background:var(--bg);cursor:pointer;
   text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
@@ -328,6 +329,11 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   margin:8px 0 2px;white-space:pre-wrap;display:flex;gap:6px}
 .chint .hi{flex-shrink:0}
 .poi-hint{display:block;color:var(--ink2);font-size:11.5px;margin-top:2px;white-space:pre-wrap}
+.pdist{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.pdist-h{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.pdist-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0}
+.pdist-n{flex:1;min-width:0;word-break:break-word}
+.pdist-v{color:var(--ink2);white-space:nowrap;display:flex;align-items:center;gap:5px;font-weight:600}
 .subgroup{margin-top:12px}
 .subgroup .sgh{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .subgroup .sgh span.add{cursor:pointer;font-size:18px;line-height:1}
@@ -413,7 +419,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.3";
+const APP_VERSION = "1.9.4";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -1487,13 +1493,24 @@ function kalenderEintraege(){
       const d=new Date(start); d.setDate(start.getDate()+i);
       const istRand = (i===0 || i===tage);
       const suffix = tage>0 ? (i===0?" (Anreise)":i===tage?" (Abreise)":"") : "";
-      out.push({datum:d.toISOString().slice(0,10),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",zwischentag:!istRand});
+      out.push({datum:d.toISOString().slice(0,10),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",reiseId:u.id,zwischentag:!istRand});
     }
     // Restaurant-Reservierungen dieser Reise
     (u.staedte||[]).forEach(c=>{
       (c.restaurants||[]).forEach(p=>{
-        if(p.resDatum) out.push({datum:p.resDatum,titel:"Reservierung: "+(p.name||"Restaurant")+(p.resZeit?" · "+p.resZeit:""),typ:"Reservierung",farbe:"#db2777",modul:"urlaub"});
+        if(p.resDatum) out.push({datum:p.resDatum,titel:"Reservierung: "+(p.name||"Restaurant")+(p.resZeit?" · "+p.resZeit:""),typ:"Reservierung",farbe:"#db2777",modul:"urlaub",reiseId:u.id});
       });
+      // Aufenthalt pro Ort (von–bis): jeden Tag markieren, Klick führt zur Reise
+      if(c.von){
+        const cs=new Date(c.von+"T00:00:00");
+        const ce=c.bis?new Date(c.bis+"T00:00:00"):new Date(c.von+"T00:00:00");
+        const ct=Math.max(0,Math.round((ce-cs)/86400000));
+        for(let k=0;k<=ct;k++){
+          const d=new Date(cs); d.setDate(cs.getDate()+k);
+          const rand=(k===0||k===ct);
+          out.push({datum:d.toISOString().slice(0,10),titel:(c.name||"Ort")+" ("+titel+")",typ:"Ort",farbe:"#0d9488",modul:"urlaub",reiseId:u.id,zwischentag:!rand});
+        }
+      }
     });
   });
   // Wiederkehrende: nächste 6 Vorkommen
@@ -1559,6 +1576,7 @@ RENDER.kalender = () => {
       <span><span class="kal-dot" style="background:#1d4ed8"></span>Aufgabe</span>
       <span><span class="kal-dot" style="background:#ea580c"></span>Reparatur</span>
       <span><span class="kal-dot" style="background:#16a34a"></span>Reise</span>
+      <span><span class="kal-dot" style="background:#0d9488"></span>Ort</span>
       <span><span class="kal-dot" style="background:#db2777"></span>Reservierung</span>
       <span><span class="kal-dot" style="background:#0891b2"></span>Termin</span>
       <span><span class="kal-dot" style="background:#7c3aed"></span>Wiederkehrend</span>
@@ -1568,7 +1586,8 @@ RENDER.kalender = () => {
       const d=daysUntil(e.datum);
       const wann=d===0?"heute":d===1?"morgen":"in "+d+" Tagen";
       const loeschbar = e.typ==="Termin" && e.terminId;
-      return `<div class="card" onclick="${loeschbar?'':"open_('"+e.modul+"')"}">
+      const klick = loeschbar ? "" : (e.modul==="urlaub" ? "kalZuReise('"+(e.reiseId||"")+"')" : "open_('"+e.modul+"')");
+      return `<div class="card" onclick="${klick}">
         ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
         <div style="display:flex;align-items:center;gap:10px">
           <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
@@ -1577,6 +1596,13 @@ RENDER.kalender = () => {
     }).join("")}</div>` : empty("cal","Keine Termine in den nächsten 31 Tagen")}`;
   document.getElementById("addbar").style.display="none";
   showFab(()=>openTermin(null));
+};
+// Öffnet aus dem Kalender heraus eine konkrete Reise (sonst die Reise-Übersicht)
+window.kalZuReise = (reiseId) => {
+  closeModal();
+  if(reiseId && DB.urlaub.find(u=>u.id===reiseId && !u.deleted)){
+    open_("urlaub"); openReiseDetail(reiseId);
+  } else { open_("urlaub"); }
 };
 window.kalMonat = delta => {
   if(!KAL_MONAT){ const h=new Date(); KAL_MONAT={jahr:h.getFullYear(),monat:h.getMonth()}; }
@@ -1597,7 +1623,7 @@ window.kalTag = t => {
           ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
           <div style="display:flex;align-items:center;gap:10px">
             <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
-            <div style="flex:1" onclick="${loeschbar?'':"closeModal();open_('"+e.modul+"')"}">
+            <div style="flex:1" onclick="${loeschbar?'':(e.modul==="urlaub"?"kalZuReise('"+(e.reiseId||"")+"')":"closeModal();open_('"+e.modul+"')")}">
               <div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
               <div class="cmeta"><span class="pill cat">${e.typ}</span></div></div>
             <button class="cbtn" style="flex:0 0 auto;padding:6px 11px;font-size:13px" onclick="event.stopPropagation();kalExport(${i})">📅 Export</button>
@@ -2282,6 +2308,16 @@ function renderReiseDetail(r){
   }
   body.innerHTML = html;
   if(r.art==="tour") enableCityDrag(r);
+  // Entfernungen POIs -> Stellplatz im Hintergrund berechnen
+  r.staedte.forEach((c,i)=>{
+    const basis=(c.stellplaetze||[]).find(s=>s.lat!=null);
+    const ziele=[].concat((c.sehens||[]),(c.restaurants||[])).filter(p=>p.lat!=null);
+    if(basis && ziele.length){
+      c._poiDist=c._poiDist||{};
+      const offen = ziele.some(p=>{ const k=basis.lat+","+basis.lon+">"+p.lat+","+p.lon; return !c._poiDist[k]||c._poiDist[k]==="err"; });
+      if(offen) calcPoiDist(r.id,i);
+    }
+  });
 }
 function renderCity(r,c,i){
   const stell=(c.stellplaetze||[]), seh=(c.sehens||[]), rest=(c.restaurants||[]);
@@ -2298,18 +2334,52 @@ function renderCity(r,c,i){
       <div class="cdel" onclick="event.stopPropagation();delCity('${r.id}',${i})">×</div>
     </div>
     <div class="cbody">
+      ${c.foto?`<img class="city-foto" src="${c.foto}" onclick="zoomCityFoto('${r.id}',${i})">`:""}
       <div class="city-actions">
         <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} ${istLink?"Link öffnen":"Karte öffnen"}</a>
         <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
       </div>
-      ${c.aufenthalt?`<div class="cdur">${ICON.clock||"🕒"} Aufenthalt: ${esc(c.aufenthalt)}</div>`:""}
+      ${(c.von||c.bis)?`<div class="cdur">${ICON.clock||"🕒"} ${c.von&&c.bis?fmtDate(c.von)+" – "+fmtDate(c.bis):fmtDate(c.von||c.bis)}</div>`:""}
       ${c.hinweis?`<div class="chint"><span class="hi">📌</span><span>${esc(c.hinweis)}</span></div>`:""}
       ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
       ${poiGroup(r.id,i,"stellplaetze",utype,stell)}
       ${poiGroup(r.id,i,"sehens","Sehenswürdigkeiten",seh)}
       ${poiGroup(r.id,i,"restaurants","Restaurants",rest)}
+      ${poiDistanzen(r,c,i)}
     </div></div>`;
 }
+// Liste: Entfernung jeder Sehenswürdigkeit/Restaurant zum (ersten) Stellplatz der Stadt
+function poiDistanzen(r,c,i){
+  const basis = (c.stellplaetze||[]).find(s=>s.lat!=null);
+  const ziele = [].concat((c.sehens||[]), (c.restaurants||[])).filter(p=>p.lat!=null);
+  if(!basis || !ziele.length) return "";
+  c._poiDist = c._poiDist || {};
+  const rows = ziele.map(p=>{
+    const key = basis.lat+","+basis.lon+">"+p.lat+","+p.lon;
+    const d = c._poiDist[key];
+    let txt;
+    if(d==="err") txt = `<span style="color:var(--accent)">erneut ›</span>`;
+    else if(d) txt = `${ICON.car} ${d.km.toFixed(0)} km · ${fmtDauer(d.min)}`;
+    else txt = `<span style="color:var(--ink2)">berechne…</span>`;
+    return `<div class="pdist-row"><span class="pdist-n">${esc(p.name)}</span><span class="pdist-v">${txt}</span></div>`;
+  }).join("");
+  return `<div class="pdist"><div class="pdist-h">Entfernung ab ${esc(basis.name)}</div>${rows}</div>`;
+}
+// Distanzen aller POIs einer Stadt zum Stellplatz nacheinander berechnen
+window.calcPoiDist = async (rid,ci) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[ci]; if(!c)return;
+  const basis=(c.stellplaetze||[]).find(s=>s.lat!=null); if(!basis)return;
+  const ziele=[].concat((c.sehens||[]),(c.restaurants||[])).filter(p=>p.lat!=null);
+  c._poiDist=c._poiDist||{};
+  for(const p of ziele){
+    const key=basis.lat+","+basis.lon+">"+p.lat+","+p.lon;
+    if(c._poiDist[key] && c._poiDist[key]!=="err") continue;
+    try{ c._poiDist[key]=await routeBetween(basis,p); }
+    catch(e){ c._poiDist[key]="err"; }
+    if(CURRENT==="urlaub" && DETAIL_OPEN===rid) renderReiseDetail(r);
+  }
+};
 function poiGroup(rid,ci,key,titel,arr){
   return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
     ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME;
@@ -2321,6 +2391,7 @@ function poiGroup(rid,ci,key,titel,arr){
       ${resTxt?`<small style="display:block;color:var(--accent);font-weight:600;margin-top:2px">${resTxt}</small>`:""}
       <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
       ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
+      <a class="maplink" onclick="editPoi('${rid}',${ci},'${key}',${pi})" style="cursor:pointer">✎ Bearbeiten</a>
       ${(key==="restaurants")?`<a class="maplink" onclick="reservierungBearbeiten('${rid}',${ci},${pi})" style="cursor:pointer">📅 ${p.resDatum?"Reservierung ändern":"Reservierung"}</a>`:""}
       ${(key==="restaurants"&&p.resDatum)?`<a class="maplink" onclick="reservierungZuKalender('${rid}',${ci},${pi})" style="cursor:pointer">In Kalender</a>`:""}
       </span>
@@ -2329,6 +2400,10 @@ function poiGroup(rid,ci,key,titel,arr){
       : `<div style="color:var(--ink2);font-size:12.5px">—</div>`}</div>`;
 }
 // Reservierung an bestehendem Restaurant nachträglich setzen/ändern
+window.zoomCityFoto = (rid,i) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const c=r.staedte[i];
+  if(c&&c.foto) openSheet(`<h3>${esc(c.name)}</h3><img src="${c.foto}" style="width:100%;border-radius:12px"><button class="btn ghost" onclick="closeModal()" style="margin-top:12px">Schließen</button>`);
+};
 window.reservierungBearbeiten = (rid,ci,pi) => {
   const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci].restaurants[pi]; if(!p)return;
   window._resCtx={rid,ci,pi};
@@ -2480,7 +2555,7 @@ window.addCity = rid => { editCityForm(rid, null); };
 window.editCity = (rid, i) => { editCityForm(rid, i); };
 function editCityForm(rid, i){
   const r = DB.urlaub.find(x=>x.id===rid);
-  const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null, aufenthalt:"", hinweis:"" };
+  const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null, von:"", bis:"", hinweis:"", foto:"" };
   window._cityCtx = { rid, i };
   const hasCoords = c.lat!=null;
   openSheet(`<h3>${i!=null?"Stadt bearbeiten":"Stadt / Ort hinzufügen"}</h3>
@@ -2491,12 +2566,28 @@ function editCityForm(rid, i){
       <div style="flex:2"><label>Land (optional)</label><input id="c_land" value="${esc(c.land||"")}" placeholder="Deutschland"></div></div>
     <div class="fld"><label>Google-Maps-Link (optional)</label>
       <input id="c_link" value="${esc(c.link||"")}" placeholder="https://maps.app.goo.gl/…"></div>
-    <div class="fld"><label>Aufenthaltsdauer (optional)</label>
-      <input id="c_aufenthalt" value="${esc(c.aufenthalt||"")}" placeholder="z.B. 2 Nächte / 3 Tage"></div>
+    <div class="fld"><label>Aufenthalt von – bis (optional)</label>
+      <div style="display:flex;gap:10px">
+        <input id="c_von" type="date" value="${esc(c.von||"")}" style="flex:1">
+        <input id="c_bis" type="date" value="${esc(c.bis||"")}" style="flex:1">
+      </div></div>
     <div class="fld"><label>Hinweis (optional)</label>
       <textarea id="c_hinweis" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(c.hinweis||"")}</textarea></div>
+    <div class="fld"><label>Foto (optional)</label><div id="cityFotoSlot"></div></div>
     <div class="geo-status" id="c_geo">${hasCoords?"✓ Koordinaten vorhanden ("+c.lat.toFixed(3)+", "+c.lon.toFixed(3)+")":"Noch keine Koordinaten"}</div>
     <button class="btn" onclick="saveCity()">${i!=null?"Speichern":"Hinzufügen"}</button>`);
+  window._cityFoto = c.foto||"";
+  renderCityFoto();
+}
+function renderCityFoto(){
+  const slot=document.getElementById("cityFotoSlot"); if(!slot)return;
+  if(window._cityFoto){
+    slot.innerHTML=`<div class="photo-thumb"><img src="${window._cityFoto}"><button class="rm" onclick="window._cityFoto='';renderCityFoto()">×</button></div>`;
+  } else {
+    slot.innerHTML=`<div class="photo-pick">
+      <button onclick="pickPhoto(true,d=>{window._cityFoto=d;renderCityFoto()})">${ICON.cam}Kamera</button>
+      <button onclick="pickPhoto(false,d=>{window._cityFoto=d;renderCityFoto()})">${ICON.image}Galerie</button></div>`;
+  }
 }
 window.saveCity = async () => {
   const { rid, i } = window._cityCtx;
@@ -2505,9 +2596,12 @@ window.saveCity = async () => {
   const plz  = document.getElementById("c_plz").value.trim();
   const land = document.getElementById("c_land").value.trim();
   const link = cleanLink(document.getElementById("c_link").value);
-  const aufenthalt = document.getElementById("c_aufenthalt").value.trim();
+  const von = document.getElementById("c_von").value;
+  const bis = document.getElementById("c_bis").value;
   const hinweis = document.getElementById("c_hinweis").value.trim();
+  const foto = window._cityFoto||"";
   if(!name){ document.getElementById("c_geo").textContent="Bitte einen Stadtnamen eingeben."; return; }
+  if(von && bis && bis < von){ document.getElementById("c_geo").textContent="Das Bis-Datum liegt vor dem Von-Datum."; return; }
   const st = document.getElementById("c_geo"); st.textContent="Suche Koordinaten…";
   // Suchtext für Geocoding: Name + PLZ + Land
   const query = [name, plz, land].filter(Boolean).join(", ");
@@ -2516,10 +2610,10 @@ window.saveCity = async () => {
   catch(e){ /* offline / file:// – ohne Koordinaten speichern */ }
   if(i!=null){
     const c = r.staedte[i];
-    c.name=name; c.plz=plz; c.land=land; c.link=link; c.aufenthalt=aufenthalt; c.hinweis=hinweis;
+    c.name=name; c.plz=plz; c.land=land; c.link=link; c.von=von; c.bis=bis; c.hinweis=hinweis; c.foto=foto;
     if(lat!=null){ c.lat=lat; c.lon=lon; }
   } else {
-    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon, aufenthalt, hinweis,
+    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon, von, bis, hinweis, foto,
       stellplaetze:[], sehens:[], restaurants:[], stopps:[], _open:true });
   }
   r._legs = {};            // Etappen neu berechnen lassen
@@ -2530,27 +2624,35 @@ window.saveCity = async () => {
 };
 
 // POI hinzufügen (Stellplatz / Sehenswürdigkeit / Restaurant)
-window.addPoi = (rid,ci,key,titel) => {
-  window._poiCtx = {rid,ci,key};
+window.addPoi = (rid,ci,key,titel) => { poiForm(rid,ci,key,titel,null); };
+window.editPoi = (rid,ci,key,pi) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const arr=r.staedte[ci][key]||[];
+  const titel = key==="stellplaetze" ? (r.unterkunft==="wohnmobil"?"Stellplätze":"Hotels") : key==="sehens"?"Sehenswürdigkeiten":"Restaurants";
+  poiForm(rid,ci,key,titel,pi);
+};
+function poiForm(rid,ci,key,titel,pi){
+  const r=DB.urlaub.find(x=>x.id===rid);
+  const p = (pi!=null) ? r.staedte[ci][key][pi] : { name:"", adresse:"", link:"", hinweis:"", foto:"", resDatum:"", resZeit:"" };
+  window._poiCtx = {rid,ci,key,pi};
   const istRest = key==="restaurants";
-  openSheet(`<h3>${esc(titel.replace(/e$|n$/,""))} hinzufügen</h3>
+  openSheet(`<h3>${pi!=null?"Bearbeiten":esc(titel.replace(/e$|n$/,""))+" hinzufügen"}</h3>
     <div class="ml">Name eingeben. Adresse und Link sind optional – ein Link öffnet sich direkt.</div>
-    <div class="fld"><label>Name</label><input id="poi_name" placeholder="z.B. Kolosseum"></div>
-    <div class="fld"><label>Adresse (optional)</label><input id="poi_addr" placeholder="Straße, Ort"></div>
+    <div class="fld"><label>Name</label><input id="poi_name" value="${esc(p.name||"")}" placeholder="z.B. Kolosseum"></div>
+    <div class="fld"><label>Adresse (optional)</label><input id="poi_addr" value="${esc(p.adresse||"")}" placeholder="Straße, Ort"></div>
     <div class="fld"><label>Link (optional)</label>
-      <textarea id="poi_link" rows="2" placeholder="https://… (auch mit Text davor – wird automatisch erkannt)"></textarea></div>
+      <textarea id="poi_link" rows="2" placeholder="https://… (auch mit Text davor – wird automatisch erkannt)">${esc(p.link||"")}</textarea></div>
     <div class="fld"><label>Hinweis (optional)</label>
-      <textarea id="poi_hint" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …"></textarea></div>
+      <textarea id="poi_hint" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(p.hinweis||"")}</textarea></div>
     ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
       <div style="display:flex;gap:10px">
-        <input id="poi_res_datum" type="date" style="flex:1">
-        <input id="poi_res_zeit" type="time" style="flex:1">
+        <input id="poi_res_datum" type="date" value="${esc(p.resDatum||"")}" style="flex:1">
+        <input id="poi_res_zeit" type="time" value="${esc(p.resZeit||"")}" style="flex:1">
       </div></div>`:""}
     <div class="fld"><label>Foto (optional)</label><div id="poiFotoSlot"></div></div>
-    <button class="btn" onclick="doAddPoi()">Hinzufügen</button>`);
-  window._poiFoto = "";
+    <button class="btn" onclick="doSavePoi()">${pi!=null?"Speichern":"Hinzufügen"}</button>`);
+  window._poiFoto = p.foto||"";
   renderPoiFoto();
-};
+}
 function renderPoiFoto(){
   const slot=document.getElementById("poiFotoSlot"); if(!slot)return;
   if(window._poiFoto){
@@ -2561,8 +2663,8 @@ function renderPoiFoto(){
       <button onclick="pickPhoto(false,d=>{window._poiFoto=d;renderPoiFoto()})">${ICON.image}Galerie</button></div>`;
   }
 }
-window.doAddPoi = () => {
-  const {rid,ci,key}=window._poiCtx;
+window.doSavePoi = () => {
+  const {rid,ci,key,pi}=window._poiCtx;
   const name=document.getElementById("poi_name").value.trim(); if(!name)return;
   const addr=document.getElementById("poi_addr").value.trim();
   const link=cleanLink(document.getElementById("poi_link").value);
@@ -2573,7 +2675,14 @@ window.doAddPoi = () => {
   const resZeit  = rz ? rz.value : "";
   const r=DB.urlaub.find(x=>x.id===rid);
   r.staedte[ci][key]=r.staedte[ci][key]||[];
-  r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
+  if(pi!=null){
+    const p=r.staedte[ci][key][pi];
+    p.name=name; p.adresse=g.label||addr; p.link=link; p.hinweis=hinweis;
+    p.lat=g.lat; p.lon=g.lon; p.foto=window._poiFoto||"";
+    if(rd){ p.resDatum=resDatum; p.resZeit=resZeit; }
+  } else {
+    r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
+  }
   r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
 window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
