@@ -337,6 +337,27 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .subgroup{margin-top:12px}
 .subgroup .sgh{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .subgroup .sgh span.add{cursor:pointer;font-size:18px;line-height:1}
+/* Warnsymbol fehlende Adresse */
+.warn-adr{display:inline-flex;align-items:center;margin-left:6px;font-size:13px;line-height:1;cursor:help;vertical-align:middle}
+/* Reservierungsstatus-Hintergründe */
+.poi.res-ja{background:#dcfce7;border-radius:8px;padding:8px 9px;border-bottom:none;margin-bottom:6px}
+.poi.res-nein{background:#fee2e2;border-radius:8px;padding:8px 9px;border-bottom:none;margin-bottom:6px}
+.res-toggle{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.res-toggle button{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer}
+.res-toggle button.on-ja{background:#16a34a;border-color:#16a34a;color:#fff}
+.res-toggle button.on-nein{background:#dc2626;border-color:#dc2626;color:#fff}
+/* Tagesplanung */
+.tagesplan{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.tagesplan-h{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.tag-card{background:var(--line);border-radius:10px;padding:10px 11px;margin-bottom:10px}
+.tag-titel{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.tag-zeile{display:flex;gap:7px;align-items:flex-start;font-size:13px;padding:3px 0}
+.tag-zeile .tz-ic{flex-shrink:0;width:18px;text-align:center}
+.tag-zeile .tz-tx{flex:1;min-width:0;word-break:break-word}
+.tag-zeile .tz-tx small{display:block;color:var(--ink2);font-size:11.5px}
+.tag-zeile .tz-del{color:var(--ink2);opacity:.5;cursor:pointer;font-size:15px;flex-shrink:0}
+.tag-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag-add button{font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer}
 .poi{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
 .poi:last-child{border-bottom:none}
 .poi .pn{flex:1;font-size:14px}
@@ -419,7 +440,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.4";
+const APP_VERSION = "1.9.5";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -683,6 +704,29 @@ function openTarget(obj){
   return "";
 }
 function fmtDate(iso){ if(!iso)return ""; const d=new Date(iso); return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+// Anzahl Tage zwischen zwei Datumsangaben (inkl. beider Tage), z.B. für "5 Tage"
+function tageAnzahl(von,bis){
+  if(!von) return 0;
+  const a=new Date(von+"T00:00:00"); const b=bis?new Date(bis+"T00:00:00"):a;
+  const diff=Math.round((b-a)/86400000)+1;
+  return diff>0?diff:0;
+}
+function tageSuffix(von,bis){
+  const n=tageAnzahl(von,bis);
+  return n?` <span style="color:var(--ink2);font-weight:500">· ${n} ${n===1?"Tag":"Tage"}</span>`:"";
+}
+// Liste der Datumsangaben (ISO) von–bis, für die Tagesplanung
+function datumsListe(von,bis){
+  if(!von) return [];
+  const out=[]; const a=new Date(von+"T00:00:00"); const b=bis?new Date(bis+"T00:00:00"):a;
+  for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(d.toISOString().slice(0,10));
+  return out;
+}
+// kleines Warndreieck mit Ausrufezeichen, wenn Adresse/Ort fehlt
+function warnAdresse(fehlt,titel){
+  if(!fehlt) return "";
+  return `<span class="warn-adr" title="${esc(titel||"Adresse fehlt")}">⚠️</span>`;
+}
 function daysUntil(iso){ if(!iso)return null; const d=new Date(iso); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
 
 // ---- Kalender-Export ----
@@ -1495,9 +1539,13 @@ function kalenderEintraege(){
       const suffix = tage>0 ? (i===0?" (Anreise)":i===tage?" (Abreise)":"") : "";
       out.push({datum:d.toISOString().slice(0,10),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",reiseId:u.id,zwischentag:!istRand});
     }
-    // Restaurant-Reservierungen dieser Reise
+    // Restaurant-Reservierungen dieser Reise (Tagesplan + ältere restaurants-Struktur)
     (u.staedte||[]).forEach(c=>{
-      (c.restaurants||[]).forEach(p=>{
+      const restEintraege = [].concat(
+        (c.restaurants||[]),
+        tagesEintraege(c).filter(e=>e.typ==="restaurant")
+      );
+      restEintraege.forEach(p=>{
         if(p.resDatum) out.push({datum:p.resDatum,titel:"Reservierung: "+(p.name||"Restaurant")+(p.resZeit?" · "+p.resZeit:""),typ:"Reservierung",farbe:"#db2777",modul:"urlaub",reiseId:u.id});
       });
       // Aufenthalt pro Ort (von–bis): jeden Tag markieren, Klick führt zur Reise
@@ -2214,7 +2262,7 @@ function reiseKarte(u){
       <span class="pill cat">${u.art==="tour"?"Tour":"Trip"}</span>
       ${u.unterkunft==="wohnmobil"?'<span class="pill cat">Wohnmobil</span>':'<span class="pill cat">Hotel</span>'}
       ${badge}</div>
-    ${(u.von||u.bis)?`<div class="cdesc">${fmtDate(u.von)}${u.bis?" – "+fmtDate(u.bis):""}</div>`:""}
+    ${(u.von||u.bis)?`<div class="cdesc">${fmtDate(u.von)}${u.bis?" – "+fmtDate(u.bis):""}${tageSuffix(u.von,u.bis)}</div>`:""}
     ${orte?`<div class="cdesc">${esc(orte)}</div>`:""}
     ${u.autor?`<div class="byline">angelegt von ${esc(u.autor)}</div>`:""}
   </div>`;
@@ -2281,7 +2329,7 @@ window.openReiseDetail = id => {
   document.getElementById("home").style.display="none";
   document.getElementById("view").classList.add("active");
   document.getElementById("addbar").style.display="none";
-  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}`, {label:"⋯", fn:()=>reiseMenu(id)});
+  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}${r.von?" · "+tageAnzahl(r.von,r.bis)+" "+(tageAnzahl(r.von,r.bis)===1?"Tag":"Tage"):""}`, {label:"⋯", fn:()=>reiseMenu(id)});
   renderReiseDetail(r);
   showFab(()=>addCity(id));
   window.scrollTo(0,0);
@@ -2311,7 +2359,7 @@ function renderReiseDetail(r){
   // Entfernungen POIs -> Stellplatz im Hintergrund berechnen
   r.staedte.forEach((c,i)=>{
     const basis=(c.stellplaetze||[]).find(s=>s.lat!=null);
-    const ziele=[].concat((c.sehens||[]),(c.restaurants||[])).filter(p=>p.lat!=null);
+    const ziele=tagesEintraege(c).filter(p=>p.lat!=null);
     if(basis && ziele.length){
       c._poiDist=c._poiDist||{};
       const offen = ziele.some(p=>{ const k=basis.lat+","+basis.lon+">"+p.lat+","+p.lon; return !c._poiDist[k]||c._poiDist[k]==="err"; });
@@ -2320,8 +2368,7 @@ function renderReiseDetail(r){
   });
 }
 function renderCity(r,c,i){
-  const stell=(c.stellplaetze||[]), seh=(c.sehens||[]), rest=(c.restaurants||[]);
-  const total=stell.length+seh.length+rest.length;
+  const stell=(c.stellplaetze||[]);
   const utype = r.unterkunft==="wohnmobil" ? "Stellplätze" : "Hotels";
   // Was öffnet die Karte? Eigener Maps-Link, sonst Koordinaten, sonst Name.
   const mapHref = openTarget(c);
@@ -2330,7 +2377,7 @@ function renderCity(r,c,i){
     <div class="chead">
       ${r.art==="tour"?`<div class="cdrag" data-drag="${i}">⠿</div>`:""}
       <div class="cnum">${i+1}</div>
-      <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}</div>
+      <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}${warnAdresse(c.lat==null, "Adresse/Koordinaten fehlen – „Bearbeiten“ öffnen")}</div>
       <div class="cdel" onclick="event.stopPropagation();delCity('${r.id}',${i})">×</div>
     </div>
     <div class="cbody">
@@ -2339,19 +2386,18 @@ function renderCity(r,c,i){
         <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} ${istLink?"Link öffnen":"Karte öffnen"}</a>
         <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
       </div>
-      ${(c.von||c.bis)?`<div class="cdur">${ICON.clock||"🕒"} ${c.von&&c.bis?fmtDate(c.von)+" – "+fmtDate(c.bis):fmtDate(c.von||c.bis)}</div>`:""}
+      ${(c.von||c.bis)?`<div class="cdur">${ICON.clock||"🕒"} ${c.von&&c.bis?fmtDate(c.von)+" – "+fmtDate(c.bis):fmtDate(c.von||c.bis)}${tageSuffix(c.von,c.bis)}</div>`:""}
       ${c.hinweis?`<div class="chint"><span class="hi">📌</span><span>${esc(c.hinweis)}</span></div>`:""}
       ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
       ${poiGroup(r.id,i,"stellplaetze",utype,stell)}
-      ${poiGroup(r.id,i,"sehens","Sehenswürdigkeiten",seh)}
-      ${poiGroup(r.id,i,"restaurants","Restaurants",rest)}
+      ${renderTagesplan(r,c,i)}
       ${poiDistanzen(r,c,i)}
     </div></div>`;
 }
 // Liste: Entfernung jeder Sehenswürdigkeit/Restaurant zum (ersten) Stellplatz der Stadt
 function poiDistanzen(r,c,i){
   const basis = (c.stellplaetze||[]).find(s=>s.lat!=null);
-  const ziele = [].concat((c.sehens||[]), (c.restaurants||[])).filter(p=>p.lat!=null);
+  const ziele = tagesEintraege(c).filter(p=>p.lat!=null);
   if(!basis || !ziele.length) return "";
   c._poiDist = c._poiDist || {};
   const rows = ziele.map(p=>{
@@ -2370,7 +2416,7 @@ window.calcPoiDist = async (rid,ci) => {
   const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
   const c=r.staedte[ci]; if(!c)return;
   const basis=(c.stellplaetze||[]).find(s=>s.lat!=null); if(!basis)return;
-  const ziele=[].concat((c.sehens||[]),(c.restaurants||[])).filter(p=>p.lat!=null);
+  const ziele=tagesEintraege(c).filter(p=>p.lat!=null);
   c._poiDist=c._poiDist||{};
   for(const p of ziele){
     const key=basis.lat+","+basis.lon+">"+p.lat+","+p.lon;
@@ -2381,14 +2427,23 @@ window.calcPoiDist = async (rid,ci) => {
   }
 };
 function poiGroup(rid,ci,key,titel,arr){
+  // Reservierbar: Campingplätze/Stellplätze und Restaurants
+  const reservierbar = (key==="stellplaetze" || key==="restaurants");
   return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
     ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME;
+      const adrFehlt = !p.adresse && !cleanLink(p.link) && p.lat==null;
       const resTxt = p.resDatum ? `🍽️ Reservierung: ${fmtDate(p.resDatum)}${p.resZeit?" · "+p.resZeit+" Uhr":""}` : "";
-      return `<div class="poi ${fremd?'poi-fremd':''}">
+      const resCls = reservierbar ? (p.resStatus==="ja"?" res-ja":(p.resStatus==="nein"?" res-nein":"")) : "";
+      const resToggle = reservierbar ? `<span class="res-toggle">
+        <button class="${p.resStatus==="ja"?"on-ja":""}" onclick="setResStatus('${rid}',${ci},'${key}',${pi},'ja')">✓ Reserviert</button>
+        <button class="${p.resStatus==="nein"?"on-nein":""}" onclick="setResStatus('${rid}',${ci},'${key}',${pi},'nein')">✕ Nicht möglich</button>
+      </span>` : "";
+      return `<div class="poi ${fremd?'poi-fremd':''}${resCls}">
       ${p.foto?`<img class="poi-foto" src="${p.foto}" onclick="zoomFoto('${rid}',${ci},'${key}',${pi})">`:""}
-      <div class="pn">${esc(p.name)}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
+      <div class="pn">${esc(p.name)}${warnAdresse(adrFehlt, "Adresse fehlt – bitte ergänzen")}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
       ${p.hinweis?`<small class="poi-hint">📌 ${esc(p.hinweis)}</small>`:""}
       ${resTxt?`<small style="display:block;color:var(--accent);font-weight:600;margin-top:2px">${resTxt}</small>`:""}
+      ${resToggle}
       <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
       ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
       <a class="maplink" onclick="editPoi('${rid}',${ci},'${key}',${pi})" style="cursor:pointer">✎ Bearbeiten</a>
@@ -2399,6 +2454,181 @@ function poiGroup(rid,ci,key,titel,arr){
       <div class="pdel" onclick="delPoi('${rid}',${ci},'${key}',${pi})">×</div></div>`;}).join("")
       : `<div style="color:var(--ink2);font-size:12.5px">—</div>`}</div>`;
 }
+// Reservierungsstatus eines Campingplatzes/Restaurants setzen (grün = reserviert, rot = nicht möglich)
+window.setResStatus = (rid,ci,key,pi,status) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const p=r.staedte[ci][key][pi]; if(!p)return;
+  p.resStatus = (p.resStatus===status) ? "" : status;   // erneuter Klick hebt Auswahl auf
+  r.updatedAt=now(); save(); renderReiseDetail(r);
+};
+
+// ---- Detaillierte Tagesplanung pro Aufenthaltstag ----
+// Typen der Tagesplanung
+const TAGES_TYPEN = [
+  {key:"sehen",     label:"Sehenswürdigkeit", ic:"🏛️"},
+  {key:"restaurant",label:"Restaurant",       ic:"🍽️"},
+  {key:"wanderung", label:"Wanderung",        ic:"🥾"},
+  {key:"aktivitaet",label:"Aktivität",        ic:"🎯"}
+];
+function tagTypInfo(t){ return TAGES_TYPEN.find(x=>x.key===t) || {label:t, ic:"•"}; }
+// Alle Tagesplan-Einträge einer Stadt (über alle Tage) flach einsammeln
+function tagesEintraege(c){
+  const tp=c.tagesplan||{}; const out=[];
+  Object.keys(tp).forEach(d=>(tp[d]||[]).forEach(e=>out.push(Object.assign({_datum:d},e))));
+  return out;
+}
+function renderTagesplan(r,c,i){
+  c.tagesplan = c.tagesplan || {};
+  const tage = datumsListe(c.von, c.bis);
+  // Ohne Aufenthaltsdatum: Hinweis, Planung erst nach Datumseingabe
+  if(!tage.length){
+    return `<div class="tagesplan"><div class="tagesplan-h">Tagesplanung</div>
+      <div style="color:var(--ink2);font-size:12.5px">Trage oben unter „Bearbeiten“ das Aufenthaltsdatum (von – bis) ein, dann erscheint hier für jeden Tag eine eigene Planung.</div></div>`;
+  }
+  let html = `<div class="tagesplan"><div class="tagesplan-h">Tagesplanung</div>`;
+  tage.forEach((d,di)=>{
+    const eintraege = c.tagesplan[d] || [];
+    const wt = new Date(d+"T00:00:00").toLocaleDateString("de-DE",{weekday:"long"});
+    html += `<div class="tag-card">
+      <div class="tag-titel">📅 Tag ${di+1} · ${wt}, ${fmtDate(d)}</div>`;
+    if(eintraege.length){
+      eintraege.forEach((e,ei)=>{
+        const info=tagTypInfo(e.typ);
+        const tgt=openTarget(e);
+        const adrFehlt = !e.adresse && !cleanLink(e.link) && e.lat==null;
+        const resCls = (e.typ==="restaurant") ? (e.resStatus==="ja"?" res-ja":(e.resStatus==="nein"?" res-nein":"")) : "";
+        html += `<div class="tag-zeile${resCls}" style="${resCls?"border-radius:8px;padding:6px 8px;margin:2px 0":""}">
+          <span class="tz-ic">${info.ic}</span>
+          <span class="tz-tx">${esc(e.name)}${warnAdresse(adrFehlt,"Adresse fehlt – bitte ergänzen")}
+            ${e.adresse?`<small>${esc(e.adresse)}</small>`:""}
+            ${e.hinweis?`<small>📌 ${esc(e.hinweis)}</small>`:""}
+            ${e.resDatum?`<small style="color:var(--accent);font-weight:600">🍽️ Reservierung: ${fmtDate(e.resDatum)}${e.resZeit?" · "+e.resZeit+" Uhr":""}</small>`:""}
+            <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
+            <span style="font-size:11px;color:var(--ink2);font-weight:600">${info.label}</span>
+            ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(e.link)?"Link":"Karte"}</a>`:""}
+            <a class="maplink" onclick="editTagEintrag('${r.id}',${i},'${d}',${ei})" style="cursor:pointer">✎ Bearbeiten</a>
+            ${(e.typ==="restaurant")?`<a class="maplink" onclick="setTagRes('${r.id}',${i},'${d}',${ei},'ja')" style="cursor:pointer;color:${e.resStatus==="ja"?"#16a34a":"var(--ink2)"}">✓ Reserviert</a>
+            <a class="maplink" onclick="setTagRes('${r.id}',${i},'${d}',${ei},'nein')" style="cursor:pointer;color:${e.resStatus==="nein"?"#dc2626":"var(--ink2)"}">✕ Nicht möglich</a>`:""}
+            </span>
+          </span>
+          <span class="tz-del" onclick="delTagEintrag('${r.id}',${i},'${d}',${ei})">×</span>
+        </div>`;
+      });
+    } else {
+      html += `<div style="color:var(--ink2);font-size:12px;padding:2px 0">Noch nichts geplant.</div>`;
+    }
+    html += `<div class="tag-add">
+      ${TAGES_TYPEN.map(t=>`<button onclick="addTagEintrag('${r.id}',${i},'${d}','${t.key}')">+ ${t.ic} ${t.label}</button>`).join("")}
+    </div></div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+// Tagesplan-Eintrag hinzufügen / bearbeiten
+window.addTagEintrag = (rid,ci,datum,typ) => { tagEintragForm(rid,ci,datum,typ,null); };
+window.editTagEintrag = (rid,ci,datum,ei) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const e=(r.staedte[ci].tagesplan[datum]||[])[ei];
+  tagEintragForm(rid,ci,datum,e?e.typ:"sehen",ei);
+};
+function tagEintragForm(rid,ci,datum,typ,ei){
+  const r=DB.urlaub.find(x=>x.id===rid);
+  const liste = r.staedte[ci].tagesplan?.[datum] || [];
+  const e = (ei!=null) ? liste[ei] : { typ, name:"", adresse:"", link:"", hinweis:"", foto:"", resDatum:"", resZeit:"", resStatus:"" };
+  window._tagCtx = {rid,ci,datum,ei};
+  const info=tagTypInfo(e.typ);
+  const istRest = e.typ==="restaurant";
+  openSheet(`<h3>${ei!=null?"Bearbeiten":info.label+" hinzufügen"} ${info.ic}</h3>
+    <div class="ml">${fmtDate(datum)} – Name eingeben. Adresse und Link sind optional.</div>
+    <div class="fld"><label>Art</label>
+      <div class="seg">${TAGES_TYPEN.map(t=>`<div class="opt ${e.typ===t.key?'on':''}" onclick="tagSetTyp('${t.key}')">${t.ic}</div>`).join("")}</div></div>
+    <div class="fld"><label>Name</label><input id="tg_name" value="${esc(e.name||"")}" placeholder="z.B. Kolosseum"></div>
+    <div class="fld"><label>Adresse (optional)</label><input id="tg_addr" value="${esc(e.adresse||"")}" placeholder="Straße, Ort"></div>
+    <div class="fld"><label>Link (optional)</label>
+      <textarea id="tg_link" rows="2" placeholder="https://… (auch mit Text davor – wird erkannt)">${esc(e.link||"")}</textarea></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <textarea id="tg_hint" rows="2" placeholder="z.B. Tickets vorab buchen …">${esc(e.hinweis||"")}</textarea></div>
+    ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
+      <div style="display:flex;gap:10px">
+        <input id="tg_res_datum" type="date" value="${esc(e.resDatum||"")}" style="flex:1">
+        <input id="tg_res_zeit" type="time" value="${esc(e.resZeit||"")}" style="flex:1">
+      </div></div>`:""}
+    <button class="btn" onclick="saveTagEintrag()">${ei!=null?"Speichern":"Hinzufügen"}</button>`);
+}
+window.tagSetTyp = (typ) => {
+  // aktuelle Eingaben sichern und Formular mit neuem Typ neu rendern
+  const ctx=window._tagCtx; const r=DB.urlaub.find(x=>x.id===ctx.rid);
+  const liste=r.staedte[ctx.ci].tagesplan?.[ctx.datum]||[];
+  const e = (ctx.ei!=null) ? liste[ctx.ei] : null;
+  const cur = {
+    name:document.getElementById("tg_name").value,
+    adresse:document.getElementById("tg_addr").value,
+    link:document.getElementById("tg_link").value,
+    hinweis:document.getElementById("tg_hint").value
+  };
+  const rd=document.getElementById("tg_res_datum"), rz=document.getElementById("tg_res_zeit");
+  // Temporär in einem Puffer halten
+  window._tagBuf = Object.assign({}, e||{}, cur, {typ}, rd?{resDatum:rd.value}:{}, rz?{resZeit:rz.value}:{});
+  // Form neu öffnen mit Puffer
+  tagEintragFormBuf();
+};
+function tagEintragFormBuf(){
+  const {rid,ci,datum,ei}=window._tagCtx;
+  const e = window._tagBuf;
+  const info=tagTypInfo(e.typ);
+  const istRest = e.typ==="restaurant";
+  openSheet(`<h3>${ei!=null?"Bearbeiten":info.label+" hinzufügen"} ${info.ic}</h3>
+    <div class="ml">${fmtDate(datum)} – Name eingeben. Adresse und Link sind optional.</div>
+    <div class="fld"><label>Art</label>
+      <div class="seg">${TAGES_TYPEN.map(t=>`<div class="opt ${e.typ===t.key?'on':''}" onclick="tagSetTyp('${t.key}')">${t.ic}</div>`).join("")}</div></div>
+    <div class="fld"><label>Name</label><input id="tg_name" value="${esc(e.name||"")}" placeholder="z.B. Kolosseum"></div>
+    <div class="fld"><label>Adresse (optional)</label><input id="tg_addr" value="${esc(e.adresse||"")}" placeholder="Straße, Ort"></div>
+    <div class="fld"><label>Link (optional)</label>
+      <textarea id="tg_link" rows="2" placeholder="https://…">${esc(e.link||"")}</textarea></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <textarea id="tg_hint" rows="2" placeholder="z.B. Tickets vorab buchen …">${esc(e.hinweis||"")}</textarea></div>
+    ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
+      <div style="display:flex;gap:10px">
+        <input id="tg_res_datum" type="date" value="${esc(e.resDatum||"")}" style="flex:1">
+        <input id="tg_res_zeit" type="time" value="${esc(e.resZeit||"")}" style="flex:1">
+      </div></div>`:""}
+    <button class="btn" onclick="saveTagEintrag()">${ei!=null?"Speichern":"Hinzufügen"}</button>`);
+}
+window.saveTagEintrag = async () => {
+  const {rid,ci,datum,ei}=window._tagCtx;
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[ci];
+  const name=document.getElementById("tg_name").value.trim(); if(!name)return;
+  const addr=document.getElementById("tg_addr").value.trim();
+  const link=cleanLink(document.getElementById("tg_link").value);
+  const hinweis=document.getElementById("tg_hint").value.trim();
+  const rd=document.getElementById("tg_res_datum"), rz=document.getElementById("tg_res_zeit");
+  const buf = window._tagBuf || {};
+  const typ = buf.typ || (ei!=null ? c.tagesplan[datum][ei].typ : "sehen");
+  const g=parseGeo(addr);
+  c.tagesplan = c.tagesplan || {};
+  c.tagesplan[datum] = c.tagesplan[datum] || [];
+  if(ei!=null){
+    const e=c.tagesplan[datum][ei];
+    e.typ=typ; e.name=name; e.adresse=g.label||addr; e.link=link; e.hinweis=hinweis;
+    e.lat=g.lat; e.lon=g.lon;
+    if(rd){ e.resDatum=rd.value; e.resZeit=rz?rz.value:""; }
+  } else {
+    c.tagesplan[datum].push({ id:uid(), typ, name, adresse:g.label||addr, link, hinweis,
+      lat:g.lat, lon:g.lon, foto:"", autor:ME,
+      resDatum:rd?rd.value:"", resZeit:rz?rz.value:"", resStatus:"" });
+  }
+  window._tagBuf=null;
+  c._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+window.delTagEintrag = (rid,ci,datum,ei) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const arr=r.staedte[ci].tagesplan?.[datum];
+  if(!arr)return; arr.splice(ei,1); r.updatedAt=now(); save(); renderReiseDetail(r);
+};
+window.setTagRes = (rid,ci,datum,ei,status) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const e=r.staedte[ci].tagesplan?.[datum]?.[ei];
+  if(!e)return; e.resStatus=(e.resStatus===status)?"":status;
+  r.updatedAt=now(); save(); renderReiseDetail(r);
+};
 // Reservierung an bestehendem Restaurant nachträglich setzen/ändern
 window.zoomCityFoto = (rid,i) => {
   const r=DB.urlaub.find(x=>x.id===rid); const c=r.staedte[i];
@@ -2459,7 +2689,7 @@ function renderLeg(r,i){
     const tgt = openTarget(s) || (s.lat!=null?mapsLink(s.lat+","+s.lon):(s.name?mapsLink(s.name):""));
     const meta = [s.entfernung, s.dauer].filter(Boolean).join(" · ");
     return `<div class="stop"><span class="si">${ICON.pin}</span>
-      <div class="sn">${esc(s.name)}
+      <div class="sn">${esc(s.name)}${warnAdresse(s.lat==null && !cleanLink(s.link), "Adresse fehlt")}
         ${meta?`<small>${ICON.car?"":""}${esc(meta)}</small>`:""}
         ${s.hinweis?`<small>📌 ${esc(s.hinweis)}</small>`:""}
         ${tgt?`<a class="smap" href="${esc(tgt)}" target="_blank" rel="noopener">Karte öffnen</a>`:""}</div>
@@ -2568,8 +2798,8 @@ function editCityForm(rid, i){
       <input id="c_link" value="${esc(c.link||"")}" placeholder="https://maps.app.goo.gl/…"></div>
     <div class="fld"><label>Aufenthalt von – bis (optional)</label>
       <div style="display:flex;gap:10px">
-        <input id="c_von" type="date" value="${esc(c.von||"")}" style="flex:1">
-        <input id="c_bis" type="date" value="${esc(c.bis||"")}" style="flex:1">
+        <input id="c_von" type="date" value="${esc(c.von||"")}" style="flex:1" onchange="document.getElementById('c_bis').min=this.value; if(document.getElementById('c_bis').value && document.getElementById('c_bis').value<this.value) document.getElementById('c_bis').value=this.value;">
+        <input id="c_bis" type="date" value="${esc(c.bis||"")}" min="${esc(c.von||"")}" style="flex:1">
       </div></div>
     <div class="fld"><label>Hinweis (optional)</label>
       <textarea id="c_hinweis" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(c.hinweis||"")}</textarea></div>
