@@ -339,9 +339,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .subgroup .sgh span.add{cursor:pointer;font-size:18px;line-height:1}
 /* Warnsymbol fehlende Adresse */
 .warn-adr{display:inline-flex;align-items:center;margin-left:6px;font-size:13px;line-height:1;cursor:help;vertical-align:middle}
-/* Reservierungsstatus-Hintergründe */
-.poi.res-ja{background:#dcfce7;border-radius:8px;padding:8px 9px;border-bottom:none;margin-bottom:6px}
-.poi.res-nein{background:#fee2e2;border-radius:8px;padding:8px 9px;border-bottom:none;margin-bottom:6px}
+/* Reservierungsstatus-Buttons */
 .res-toggle{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
 .res-toggle button{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer}
 .res-toggle button.on-ja{background:#16a34a;border-color:#16a34a;color:#fff}
@@ -440,7 +438,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.5";
+const APP_VERSION = "1.9.6";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -2429,16 +2427,16 @@ window.calcPoiDist = async (rid,ci) => {
 function poiGroup(rid,ci,key,titel,arr){
   // Reservierbar: Campingplätze/Stellplätze und Restaurants
   const reservierbar = (key==="stellplaetze" || key==="restaurants");
+  const sichtbar = (arr||[]).filter(p=>!p.deleted);
   return `<div class="subgroup"><div class="sgh">${titel}<span class="add" onclick="addPoi('${rid}',${ci},'${key}','${titel}')">+</span></div>
-    ${arr.length? arr.map((p,pi)=>{ const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME;
+    ${sichtbar.length? arr.map((p,pi)=>{ if(p.deleted) return ""; const tgt=openTarget(p); const fremd=p.autor && p.autor!==ME;
       const adrFehlt = !p.adresse && !cleanLink(p.link) && p.lat==null;
       const resTxt = p.resDatum ? `🍽️ Reservierung: ${fmtDate(p.resDatum)}${p.resZeit?" · "+p.resZeit+" Uhr":""}` : "";
-      const resCls = reservierbar ? (p.resStatus==="ja"?" res-ja":(p.resStatus==="nein"?" res-nein":"")) : "";
       const resToggle = reservierbar ? `<span class="res-toggle">
         <button class="${p.resStatus==="ja"?"on-ja":""}" onclick="setResStatus('${rid}',${ci},'${key}',${pi},'ja')">✓ Reserviert</button>
         <button class="${p.resStatus==="nein"?"on-nein":""}" onclick="setResStatus('${rid}',${ci},'${key}',${pi},'nein')">✕ Nicht möglich</button>
       </span>` : "";
-      return `<div class="poi ${fremd?'poi-fremd':''}${resCls}">
+      return `<div class="poi ${fremd?'poi-fremd':''}">
       ${p.foto?`<img class="poi-foto" src="${p.foto}" onclick="zoomFoto('${rid}',${ci},'${key}',${pi})">`:""}
       <div class="pn">${esc(p.name)}${warnAdresse(adrFehlt, "Adresse fehlt – bitte ergänzen")}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
       ${p.hinweis?`<small class="poi-hint">📌 ${esc(p.hinweis)}</small>`:""}
@@ -2459,7 +2457,7 @@ window.setResStatus = (rid,ci,key,pi,status) => {
   const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
   const p=r.staedte[ci][key][pi]; if(!p)return;
   p.resStatus = (p.resStatus===status) ? "" : status;   // erneuter Klick hebt Auswahl auf
-  r.updatedAt=now(); save(); renderReiseDetail(r);
+  p.updatedAt=now(); r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r);
 };
 
 // ---- Detaillierte Tagesplanung pro Aufenthaltstag ----
@@ -2474,7 +2472,7 @@ function tagTypInfo(t){ return TAGES_TYPEN.find(x=>x.key===t) || {label:t, ic:"�
 // Alle Tagesplan-Einträge einer Stadt (über alle Tage) flach einsammeln
 function tagesEintraege(c){
   const tp=c.tagesplan||{}; const out=[];
-  Object.keys(tp).forEach(d=>(tp[d]||[]).forEach(e=>out.push(Object.assign({_datum:d},e))));
+  Object.keys(tp).forEach(d=>(tp[d]||[]).forEach(e=>{ if(!e.deleted) out.push(Object.assign({_datum:d},e)); }));
   return out;
 }
 function renderTagesplan(r,c,i){
@@ -2491,13 +2489,14 @@ function renderTagesplan(r,c,i){
     const wt = new Date(d+"T00:00:00").toLocaleDateString("de-DE",{weekday:"long"});
     html += `<div class="tag-card">
       <div class="tag-titel">📅 Tag ${di+1} · ${wt}, ${fmtDate(d)}</div>`;
-    if(eintraege.length){
+    const sichtbar = eintraege.filter(e=>!e.deleted);
+    if(sichtbar.length){
       eintraege.forEach((e,ei)=>{
+        if(e.deleted) return;
         const info=tagTypInfo(e.typ);
         const tgt=openTarget(e);
         const adrFehlt = !e.adresse && !cleanLink(e.link) && e.lat==null;
-        const resCls = (e.typ==="restaurant") ? (e.resStatus==="ja"?" res-ja":(e.resStatus==="nein"?" res-nein":"")) : "";
-        html += `<div class="tag-zeile${resCls}" style="${resCls?"border-radius:8px;padding:6px 8px;margin:2px 0":""}">
+        html += `<div class="tag-zeile">
           <span class="tz-ic">${info.ic}</span>
           <span class="tz-tx">${esc(e.name)}${warnAdresse(adrFehlt,"Adresse fehlt – bitte ergänzen")}
             ${e.adresse?`<small>${esc(e.adresse)}</small>`:""}
@@ -2612,22 +2611,26 @@ window.saveTagEintrag = async () => {
     e.typ=typ; e.name=name; e.adresse=g.label||addr; e.link=link; e.hinweis=hinweis;
     e.lat=g.lat; e.lon=g.lon;
     if(rd){ e.resDatum=rd.value; e.resZeit=rz?rz.value:""; }
+    e.updatedAt=now();
   } else {
     c.tagesplan[datum].push({ id:uid(), typ, name, adresse:g.label||addr, link, hinweis,
       lat:g.lat, lon:g.lon, foto:"", autor:ME,
-      resDatum:rd?rd.value:"", resZeit:rz?rz.value:"", resStatus:"" });
+      resDatum:rd?rd.value:"", resZeit:rz?rz.value:"", resStatus:"", updatedAt:now() });
   }
   window._tagBuf=null;
-  c._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+  c._open=true; c.updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
 window.delTagEintrag = (rid,ci,datum,ei) => {
   const r=DB.urlaub.find(x=>x.id===rid); const arr=r.staedte[ci].tagesplan?.[datum];
-  if(!arr)return; arr.splice(ei,1); r.updatedAt=now(); save(); renderReiseDetail(r);
+  if(!arr)return;
+  // Tombstone statt hart löschen, damit die Löschung auch auf andere Geräte synchronisiert
+  const e=arr[ei]; if(e){ e.deleted=true; e.deletedAt=now(); e.updatedAt=now(); }
+  r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r);
 };
 window.setTagRes = (rid,ci,datum,ei,status) => {
   const r=DB.urlaub.find(x=>x.id===rid); const e=r.staedte[ci].tagesplan?.[datum]?.[ei];
   if(!e)return; e.resStatus=(e.resStatus===status)?"":status;
-  r.updatedAt=now(); save(); renderReiseDetail(r);
+  e.updatedAt=now(); r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r);
 };
 // Reservierung an bestehendem Restaurant nachträglich setzen/ändern
 window.zoomCityFoto = (rid,i) => {
@@ -2842,9 +2845,10 @@ window.saveCity = async () => {
     const c = r.staedte[i];
     c.name=name; c.plz=plz; c.land=land; c.link=link; c.von=von; c.bis=bis; c.hinweis=hinweis; c.foto=foto;
     if(lat!=null){ c.lat=lat; c.lon=lon; }
+    c.updatedAt=now();
   } else {
     r.staedte.push({ id:uid(), name, plz, land, link, lat, lon, von, bis, hinweis, foto,
-      stellplaetze:[], sehens:[], restaurants:[], stopps:[], _open:true });
+      stellplaetze:[], sehens:[], restaurants:[], stopps:[], tagesplan:{}, _open:true, updatedAt:now() });
   }
   r._legs = {};            // Etappen neu berechnen lassen
   r.updatedAt=now(); save(); closeModal();
@@ -2910,12 +2914,13 @@ window.doSavePoi = () => {
     p.name=name; p.adresse=g.label||addr; p.link=link; p.hinweis=hinweis;
     p.lat=g.lat; p.lon=g.lon; p.foto=window._poiFoto||"";
     if(rd){ p.resDatum=resDatum; p.resZeit=resZeit; }
+    p.updatedAt=now();
   } else {
-    r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit });
+    r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit, updatedAt:now() });
   }
-  r.staedte[ci]._open=true; r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+  r.staedte[ci]._open=true; r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
-window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[ci][key].splice(pi,1); r.updatedAt=now(); save(); renderReiseDetail(r); };
+window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi]; if(p){ p.deleted=true; p.deletedAt=now(); p.updatedAt=now(); } r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r); };
 
 // Drag&Drop Sortierung (nur Tour)
 function enableCityDrag(r){
@@ -3463,15 +3468,28 @@ window.Sync = (() => {
     for(const e of fern){ if(!e||!e.id)continue; const d=m.get(e.id);
       if(!d||new Date(e.updatedAt||0)>new Date(d.updatedAt||0))m.set(e.id,e); }
     return [...m.values()].filter(e=>!e.deleted); }
-  // POI-Listen einer Stadt eintragsweise zusammenführen (id-basiert, sonst nach Name)
+  // POI-Listen einer Stadt eintragsweise zusammenführen (id-basiert, sonst nach Name).
+  // Bei gleicher id gewinnt der zuletzt geänderte Eintrag (Last-Write-Wins über updatedAt).
   function mergePois(lokal=[],fern=[]){
     const m=new Map();
     const keyOf=p=>p.id||("n:"+(p.name||"")+(p.adresse||""));
     for(const p of lokal) m.set(keyOf(p),p);
-    for(const p of fern){ const k=keyOf(p); if(!m.has(k)) m.set(k,p); }
-    return [...m.values()];
+    for(const p of fern){ const k=keyOf(p); const ex=m.get(k);
+      if(!ex){ m.set(k,p); }
+      else if(new Date(p.updatedAt||0) > new Date(ex.updatedAt||0)){ m.set(k,p); }
+    }
+    // Tombstones (deleted) bleiben erhalten, damit die Löschung auf alle Geräte propagiert.
+    // Sehr alte Tombstones (>30 Tage) werden entfernt.
+    return [...m.values()].filter(p=>!(p.deleted && p.deletedAt && (Date.now()-new Date(p.deletedAt).getTime())>30*86400000));
   }
-  // Reisen tief mergen: gleiche Reise -> Städte & deren POIs zusammenführen statt überschreiben
+  // Tagesplan zweier Städte zusammenführen (pro Datum die Einträge per Last-Write-Wins mergen)
+  function mergeTagesplan(lokal={},fern={}){
+    const out={};
+    const tage=new Set([...Object.keys(lokal||{}),...Object.keys(fern||{})]);
+    tage.forEach(d=>{ out[d]=mergePois(lokal[d]||[], fern[d]||[]); });
+    return out;
+  }
+  // Reisen tief mergen: gleiche Reise -> Städte & deren Inhalte zusammenführen statt überschreiben
   function mergeReisen(lokal=[],fern=[]){
     const m=new Map();
     for(const r of lokal) if(r&&r.id) m.set(r.id,r);
@@ -3485,9 +3503,15 @@ window.Sync = (() => {
       (lr.staedte||[]).forEach(c=>cityMap.set(c.id||c.name,{...c}));
       (fr.staedte||[]).forEach(c=>{ const k=c.id||c.name; const ex=cityMap.get(k);
         if(!ex){ cityMap.set(k,{...c}); }
-        else { // POIs jeder Gruppe mergen
-          ["stellplaetze","sehens","restaurants"].forEach(g=>{ ex[g]=mergePois(ex[g]||[], c[g]||[]); });
-          if(new Date(c.updatedAt||0)>new Date(ex.updatedAt||0)){ ex.name=c.name; ex.lat=c.lat; ex.lon=c.lon; ex.link=c.link; ex.plz=c.plz; ex.land=c.land; }
+        else {
+          // POI-Gruppen (inkl. Altdaten) eintragsweise mergen
+          ["stellplaetze","sehens","restaurants","stopps"].forEach(g=>{ ex[g]=mergePois(ex[g]||[], c[g]||[]); });
+          // Tagesplan datums- und eintragsweise mergen
+          ex.tagesplan = mergeTagesplan(ex.tagesplan||{}, c.tagesplan||{});
+          // jüngere Stadt-Grunddaten gewinnen (alle Felder, nicht nur name/lat/lon)
+          if(new Date(c.updatedAt||0)>new Date(ex.updatedAt||0)){
+            ["name","lat","lon","link","plz","land","von","bis","hinweis","foto","updatedAt"].forEach(f=>{ if(c[f]!==undefined) ex[f]=c[f]; });
+          }
         }
       });
       base.staedte=[...cityMap.values()];
