@@ -368,6 +368,26 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .geo-status{font-size:12px;color:var(--ink2);margin-top:6px;min-height:16px}
 .dragging{opacity:.5}
 .drop-target{border-top:2px solid var(--accent)!important}
+/* ---- Kartenansicht (Leaflet) ---- */
+#kartePanel{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;flex-direction:column}
+.karte-top{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.karte-titel{font-weight:700;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#karteMap{flex:1;background:#dde5f2}
+.karte-hint{padding:8px 14px calc(10px + env(safe-area-inset-bottom));font-size:11.5px;color:var(--ink2);text-align:center}
+.kmark{background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;
+  align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.kemoji{font-size:20px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.leaflet-popup-content{font-family:inherit;font-size:13.5px}
+/* ---- Budget ---- */
+.budget-row{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.budget-row .bn{flex:1;min-width:0}
+.budget-row .bv{font-weight:650;white-space:nowrap}
+.budget-row.sum{border-bottom:none;font-weight:700;font-size:15px;padding-top:10px}
+/* ---- Essensplan ---- */
+.essen-tag{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px;box-shadow:var(--shadow)}
+.essen-tag.heute{border-color:var(--accent);border-width:2px}
 </style>
 </head>
 <body>
@@ -431,6 +451,16 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   <div class="sheet" id="sheet"></div>
 </div>
 
+<!-- KARTE (Reise-Kartenansicht, Vollbild) -->
+<div id="kartePanel">
+  <div class="karte-top">
+    <div class="karte-titel" id="karteTitel">Karte</div>
+    <button class="back" onclick="karteSchliessen()">×</button>
+  </div>
+  <div id="karteMap"></div>
+  <div class="karte-hint" id="karteHint">Karte: © OpenStreetMap</div>
+</div>
+
 <!-- verstecktes Datei-Input für Fotos -->
 <input type="file" id="photoInput" accept="image/*" style="display:none">
 
@@ -438,7 +468,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "1.9.6";
+const APP_VERSION = "2.1.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -523,7 +553,7 @@ function seed(){
     empfaengerStandard: { "Alexander":["Ellen"], "Ellen":["Alexander"], "Mama":["Alexander"],
       "Julia":["Alexander","Ellen"], "Isabella":["Alexander","Ellen"] },
     artikelZaehler: {},   // zählt, wie oft ein Artikel verwendet wurde (für Auto-Schnellauswahl)
-    todos: [], todoListen: [], wiederkehrend: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [], termine: [],
+    todos: [], todoListen: [], wiederkehrend: [], reparaturen: [], urlaub: [], ideen: [], keller: [], rezepte: [], termine: [], essensplan: [],
     listen: [],
     einkaufStamm: ["Äpfel","Bananen","Tomaten","Gurke","Salat","Kartoffeln","Zwiebeln","Karotten","Paprika",
       "Hackfleisch","Hähnchen","Wurst","Schinken","Lachs",
@@ -588,10 +618,18 @@ DB.listen.forEach(l=>{ if(!l.status){ l.status="entwurf"; l.ersteller=l.erstelle
 if(!DB.ideenKategorien) DB.ideenKategorien = ["Urlaubsort/Ziel","Kaufen","Aktivität","Restaurant","Sonstiges"];
 if(!DB.todoListen) DB.todoListen = [];
 if(!DB.termine) DB.termine = [];
-// gelöschte Termine endgültig entfernen
-DB.termine = DB.termine.filter(t=> !t.deleted);
+// gelöschte Termine: Tombstone 30 Tage behalten, damit die Löschung synchronisiert
+DB.termine = DB.termine.filter(t=> !(t.deleted && t.deletedAt && (Date.now()-new Date(t.deletedAt).getTime())>30*86400000) );
 if(!DB.rezepte) DB.rezepte = [];
 if(!DB.wiederkehrend) DB.wiederkehrend = [];
+if(!DB.essensplan) DB.essensplan = [];
+nachrichtenAufraeumen();
+// Essensplan: Tombstones nach 30 Tagen, Einträge älter als 180 Tage endgültig entfernen
+DB.essensplan = DB.essensplan.filter(e=>{
+  if(e.deleted && e.deletedAt && (Date.now()-new Date(e.deletedAt).getTime())>30*86400000) return false;
+  if(e.datum && (Date.now()-new Date(e.datum+"T00:00:00").getTime())>180*86400000) return false;
+  return true;
+});
 // Reparatur: Städte, deren Name versehentlich ein Link ist
 (DB.urlaub||[]).forEach(r=>{
   (r.staedte||[]).forEach(c=>{
@@ -603,6 +641,8 @@ if(!DB.wiederkehrend) DB.wiederkehrend = [];
 });
 
 const initials = n => (n||"?").trim().slice(0,1).toUpperCase();
+// Liefert nur die nicht gelöschten Einträge einer Liste (Tombstones ausblenden)
+const aktiv = arr => (arr||[]).filter(x => !x || !x.deleted);
 
 // ---- Icons ----
 const ICON = {
@@ -624,6 +664,8 @@ const ICON = {
   chef:'<svg class="i" viewBox="0 0 24 24"><path d="M6 13a4 4 0 0 1-1-7.9A4 4 0 0 1 12 4a4 4 0 0 1 7 1.1A4 4 0 0 1 18 13z"/><path d="M6 13v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6"/></svg>',
   lists:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h2M7 12h2M7 16h2M12 8h5M12 12h5M12 16h5"/></svg>',
   image:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>',
+  meal:'<svg class="i" viewBox="0 0 24 24"><path d="M5 2v6a3 3 0 0 0 6 0V2M8 2v20"/><path d="M19 2c-2.5 2.5-3 6-1.5 8.5.4.7 1.5 1.5 1.5 1.5V22"/></svg>',
+  map:'<svg class="i" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
 };
 
 // ---- Foto: nativ (Capacitor) oder Web-Datei-Dialog ----
@@ -701,6 +743,18 @@ function openTarget(obj){
   if(obj.name) return mapsLink(obj.name);
   return "";
 }
+// Datum als YYYY-MM-DD in LOKALER Zeit. toISOString() wuerde durch den UTC-Versatz
+// in Mitteleuropa den Tag um eins zurueckschieben (MEZ und MESZ gleichermassen).
+function isoLokal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const heuteISO = () => isoLokal(new Date());
+// Monate addieren und dabei auf das Monatsende klemmen (31.01. + 1 Monat = 28./29.02.)
+function monateAddieren(d, n){
+  const tag = d.getDate();
+  const ziel = new Date(d.getFullYear(), d.getMonth()+n, 1);
+  const maxTag = new Date(ziel.getFullYear(), ziel.getMonth()+1, 0).getDate();
+  ziel.setDate(Math.min(tag, maxTag));
+  return ziel;
+}
 function fmtDate(iso){ if(!iso)return ""; const d=new Date(iso); return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
 // Anzahl Tage zwischen zwei Datumsangaben (inkl. beider Tage), z.B. für "5 Tage"
 function tageAnzahl(von,bis){
@@ -717,7 +771,7 @@ function tageSuffix(von,bis){
 function datumsListe(von,bis){
   if(!von) return [];
   const out=[]; const a=new Date(von+"T00:00:00"); const b=bis?new Date(bis+"T00:00:00"):a;
-  for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(d.toISOString().slice(0,10));
+  for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(isoLokal(d));
   return out;
 }
 // kleines Warndreieck mit Ausrufezeichen, wenn Adresse/Ort fehlt
@@ -823,6 +877,7 @@ const MODULES = [
   {id:"todos",       nm:"To-do",          ic:ICON.checkbox, count:()=>DB.todos.filter(t=>!t.done&&!t.deleted).length+" offen · "+DB.todoListen.filter(l=>!l.deleted).length+" Listen"},
   {id:"einkauf",     nm:"Einkaufslisten", ic:ICON.cart,     count:()=>{ const fm=DB.listen.filter(l=>l.status==="abgeschickt"&&!l.deleted&&(!l.empfaenger||!l.empfaenger.length||l.empfaenger.includes(ME))&&l.ersteller!==ME).length; return fm? fm+" für dich" : "antippen"; }},
   {id:"rezepte",     nm:"Rezepte",        ic:ICON.chef,     count:()=>DB.rezepte.filter(r=>!r.deleted).length+" Rezepte"},
+  {id:"essensplan",  nm:"Essensplan",     ic:ICON.meal,     count:()=>{ const n=essenWochenTage(0).reduce((a,d)=>a+essenAm(d).length,0); return n? n+" diese Woche":"planen"; }},
   {id:"reparaturen", nm:"Reparaturen",    ic:ICON.tool,     count:()=>DB.reparaturen.filter(r=>!r.done&&!r.deleted).length+" offen"},
   {id:"urlaub",      nm:"Urlaubsplanung", ic:ICON.plane,    count:()=>DB.urlaub.filter(u=>!u.deleted).length+" Reisen"},
   {id:"keller",      nm:"Kellerinventar", ic:ICON.box,      count:()=>DB.keller.filter(k=>!k.deleted).length+" Kisten"},
@@ -852,9 +907,10 @@ window.globalSuche = q => {
   DB.ideen.filter(i=>!i.deleted&&((i.titel||"").toLowerCase().includes(q)||(i.text||"").toLowerCase().includes(q))).forEach(i=>add("ideen",i.titel||i.text||"Idee","Idee",ICON.bulb));
   DB.urlaub.filter(u=>!u.deleted&&((u.titel||"").toLowerCase().includes(q)||(u.staedte||[]).some(s=>(s.name||"").toLowerCase().includes(q)))).forEach(u=>add("urlaub",u.titel||"Reise","Reise",ICON.plane));
   DB.keller.filter(k=>!k.deleted&&(k.name.toLowerCase().includes(q)||(k.items||[]).some(i=>i.toLowerCase().includes(q)))).forEach(k=>add("keller",k.name,"Kiste"+(k.items?.some(i=>i.toLowerCase().includes(q))?" · enthält Treffer":""),ICON.box));
-  DB.todoListen.filter(l=>!l.deleted&&(l.name.toLowerCase().includes(q)||(l.punkte||[]).some(p=>p.t.toLowerCase().includes(q)))).forEach(l=>add("todos",l.name,"To-do-Liste",ICON.lists));
+  (DB.essensplan||[]).filter(e=>!e.deleted&&(e.titel||"").toLowerCase().includes(q)).forEach(e=>add("essensplan",e.titel,"Essensplan · "+fmtDate(e.datum),ICON.meal));
+  DB.todoListen.filter(l=>!l.deleted&&(l.name.toLowerCase().includes(q)||aktiv(l.punkte).some(p=>p.t.toLowerCase().includes(q)))).forEach(l=>add("todos",l.name,"To-do-Liste",ICON.lists));
   // Einkaufsartikel
-  DB.listen.filter(l=>!l.deleted).forEach(l=>{ (l.artikel||[]).filter(a=>a.tx.toLowerCase().includes(q)).forEach(a=>add("einkauf",a.tx,"Einkauf · "+(l.ersteller||"Liste"),ICON.cart)); });
+  DB.listen.filter(l=>!l.deleted).forEach(l=>{ aktiv(l.artikel).filter(a=>a.tx.toLowerCase().includes(q)).forEach(a=>add("einkauf",a.tx,"Einkauf · "+(l.ersteller||"Liste"),ICON.cart)); });
   slot.innerHTML = treffer.length
     ? `<div class="section-label">${treffer.length} Treffer</div><div class="list">${treffer.slice(0,40).map(t=>`
         <div class="card" onclick="globalSucheClear();open_('${t.modul}')">
@@ -994,13 +1050,24 @@ function notify(text, opts){
     gelesenVon:[ME],
     createdAt:now(), updatedAt:now()
   });
+}
+// Alte Nachrichten aufräumen – NUR beim Start, mit Tombstone, damit die Löschung
+// synchronisiert und nicht vom Fernstand wiederhergestellt wird.
+function nachrichtenAufraeumen(){
   const grenze = Date.now()-30*86400000;
-  DB.nachrichten = DB.nachrichten.filter(n=>new Date(n.createdAt).getTime()>grenze);
+  (DB.nachrichten||[]).forEach(n=>{
+    if(!n.deleted && n.createdAt && new Date(n.createdAt).getTime()<=grenze){
+      n.deleted=true; n.deletedAt=now(); n.updatedAt=now();
+    }
+  });
+  DB.nachrichten = (DB.nachrichten||[]).filter(n=>
+    !(n.deleted && n.deletedAt && (Date.now()-new Date(n.deletedAt).getTime())>30*86400000));
 }
 // Nachrichten, die für den aktuellen Nutzer ungelesen sind
 function ungeleseneNachrichten(){
   if(!DB.nachrichten) return [];
   return DB.nachrichten.filter(n=>{
+    if(n.deleted) return false;
     if(n.von===ME) return false;
     if(n.ziel && n.ziel!==ME) return false;
     return !(n.gelesenVon||[]).includes(ME);
@@ -1043,6 +1110,9 @@ let DETAIL_OPEN = null;   // wenn eine Reise-Detailansicht offen ist
 function pushNav(){ try{ history.pushState({app:true}, ""); }catch(e){} }
 let _backBusy = false;
 function handleBack(){
+  // 0. Offene Kartenansicht? -> schließen
+  const kp=document.getElementById("kartePanel");
+  if(kp && kp.style.display==="flex"){ karteSchliessen(true); return true; }
   // 1. Offenes Modal? -> schließen (ohne erneuten history.back, da popstate schon zurückging)
   if(modal.classList.contains("active")){ modal.classList.remove("active"); return true; }
   // 2. Detailansicht offen (Reise / To-do-Liste)? -> zurück zur Liste
@@ -1253,7 +1323,7 @@ function sortByDue(a,b){ if(!a.faellig)return 1; if(!b.faellig)return -1; return
 
 // ---- To-do-Listen (Checklisten) ----
 function todoListCard(l){
-  const off = l.punkte.filter(p=>!p.d).length, total = l.punkte.length;
+  const off = aktiv(l.punkte).filter(p=>!p.d).length, total = aktiv(l.punkte).length;
   return `<div class="card" onclick="openTodoListe('${l.id}')">
     <div class="cttl">${esc(l.name)}</div>
     <div class="cmeta"><span class="pill ${off===0&&total>0?'prio-niedrig':'who'}">${total-off} / ${total} erledigt</span></div>
@@ -1277,14 +1347,14 @@ window.openTodoListe = id => {
   document.getElementById("home").style.display="none";
   document.getElementById("view").classList.add("active");
   document.getElementById("fab").style.display="none";
-  setHead(l.name, l.punkte.filter(p=>!p.d).length+" offen", {label:"⋯", fn:()=>todoListeMenu(id)});
+  setHead(l.name, aktiv(l.punkte).filter(p=>!p.d).length+" offen", {label:"⋯", fn:()=>todoListeMenu(id)});
   renderTodoListe(l);
   showAddBar("Punkt hinzufügen…", t=>addTLPunkt(id,t));
   window.scrollTo(0,0);
   if(!warVorherDetail) pushNav();
 };
 function renderTodoListe(l){
-  const off=l.punkte.filter(p=>!p.d), done=l.punkte.filter(p=>p.d);
+  const off=aktiv(l.punkte).filter(p=>!p.d), done=aktiv(l.punkte).filter(p=>p.d);
   vBody().innerHTML = (l.punkte.length? "" : empty("checklist","Noch keine Punkte"))
     + `<div class="list">${off.map(p=>tlRow(l.id,p)).join("")}</div>`
     + (done.length?`<div class="section-label">Erledigt</div><div class="list">${done.map(p=>tlRow(l.id,p)).join("")}</div>`:"");
@@ -1293,9 +1363,11 @@ function tlRow(lid,p){
   return `<div class="row ${p.d?'done':''}"><div class="cb ${p.d?'on':''}" onclick="toggleTL('${lid}','${p.id}')">${p.d?'✓':''}</div>
     <div class="tx">${esc(p.t)}</div><div class="del" onclick="delTL('${lid}','${p.id}')">×</div></div>`;
 }
-window.addTLPunkt = (lid,t) => { const l=DB.todoListen.find(x=>x.id===lid); l.punkte.push({id:uid(),t,d:false}); l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=l.punkte.filter(p=>!p.d).length+" offen"; };
-window.toggleTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); const p=l.punkte.find(x=>x.id===pid); p.d=!p.d; l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=l.punkte.filter(p=>!p.d).length+" offen"; };
-window.delTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); l.punkte=l.punkte.filter(x=>x.id!==pid); l.updatedAt=now(); save(); renderTodoListe(l); };
+window.addTLPunkt = (lid,t) => { const l=DB.todoListen.find(x=>x.id===lid); l.punkte.push({id:uid(),t,d:false}); l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=aktiv(l.punkte).filter(p=>!p.d).length+" offen"; };
+window.toggleTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); const p=l.punkte.find(x=>x.id===pid); p.d=!p.d; l.updatedAt=now(); save(); renderTodoListe(l); document.getElementById("vsub").textContent=aktiv(l.punkte).filter(p=>!p.d).length+" offen"; };
+window.delTL = (lid,pid) => { const l=DB.todoListen.find(x=>x.id===lid); if(!l)return;
+  const p=l.punkte.find(x=>x.id===pid); if(p){ p.deleted=true; p.deletedAt=now(); p.updatedAt=now(); }
+  l.updatedAt=now(); save(); renderTodoListe(l); };
 window.todoListeMenu = id => {
   const l=DB.todoListen.find(x=>x.id===id);
   openSheet(`<h3>${esc(l.name)}</h3>
@@ -1305,8 +1377,9 @@ window.todoListeMenu = id => {
     <button class="btn danger" onclick="delTodoListe('${id}')">Liste löschen</button>`);
 };
 window.renameTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.name=document.getElementById("tl_rename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
-window.resetTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.punkte.forEach(p=>p.d=false); l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
-window.delTodoListe = id => { if(confirm("Liste löschen?")){ DB.todoListen=DB.todoListen.filter(x=>x.id!==id); save(); closeModal(); TODO_TAB="listen"; open_("todos"); } };
+window.resetTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); aktiv(l.punkte).forEach(p=>p.d=false); l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
+window.delTodoListe = id => { if(!confirm("Liste in den Papierkorb verschieben?")) return;
+  inDenPapierkorb("todoListen", id); closeModal(); TODO_TAB="listen"; open_("todos"); };
 
 // ============================================================
 //  Wiederkehrende Aufgaben (To-do-Kalender)
@@ -1335,7 +1408,26 @@ function intervallTage(w){
 // Datum, ab dem das aktuelle Intervall läuft: letzte Erledigung, sonst Start
 function basisDatum(w){
   if(w.letzteErledigung) return w.letzteErledigung;
-  return w.start || new Date().toISOString().slice(0,10);
+  return w.start || heuteISO();
+}
+// Einen Intervallschritt weiterrechnen (gemeinsame Grundlage aller Fälligkeitsberechnungen)
+function intervallSchritt(d, w){
+  const def = INTERVALLE.find(x=>x.key===w.intervall);
+  if(w.intervall==="frei"){ const n=new Date(d); n.setDate(n.getDate()+(parseInt(w.freiTage)||1)); return n; }
+  if(def && def.tage){ const n=new Date(d); n.setDate(n.getDate()+def.tage); return n; }
+  if(def) return monateAddieren(d, def.monate);
+  return null;
+}
+// Letzte bereits verstrichene Fälligkeit seit der Basis (oder null, wenn noch keine).
+// Nötig, damit ein Termin nicht ersatzlos entfällt, wenn die App am Fälligkeitstag
+// nicht geöffnet wurde – die Fälligkeitsberechnung springt sonst zum nächsten Termin.
+function letzteVerstricheneFaelligkeit(w){
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  let d = new Date(basisDatum(w)+"T00:00:00");
+  let letzte = null, guard = 0;
+  let n = intervallSchritt(d, w);
+  while(n && n <= heute && guard < 2000){ guard++; letzte = n; n = intervallSchritt(n, w); }
+  return letzte ? isoLokal(letzte) : null;
 }
 // Nächste Fälligkeit ab Basis (erledigungsbasiert)
 function naechsteFaelligkeit(w){
@@ -1345,7 +1437,7 @@ function naechsteFaelligkeit(w){
   if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
   else { const def=INTERVALLE.find(x=>x.key===w.intervall);
     if(def && def.tage) d.setDate(d.getDate()+def.tage);
-    else if(def) d.setMonth(d.getMonth()+def.monate);
+    else if(def) d = monateAddieren(d, def.monate);
   }
   // Falls noch nie erledigt UND Start liegt in der Vergangenheit: bis heute fortschreiben,
   // damit die erste Fälligkeit nicht künstlich überfällig erscheint.
@@ -1357,10 +1449,10 @@ function naechsteFaelligkeit(w){
       guard++;
       if(w.intervall==="frei") d.setDate(d.getDate()+(parseInt(w.freiTage)||1));
       else if(def && def.tage) d.setDate(d.getDate()+def.tage);
-      else if(def) d.setMonth(d.getMonth()+def.monate);
+      else if(def) d = monateAddieren(d, def.monate);
     }
   }
-  return d.toISOString().slice(0,10);
+  return isoLokal(d);
 }
 // Dringlichkeitsstufe nach Zeitfortschritt im laufenden Intervall:
 //  < 50 % -> niedrig, 50-85 % -> mittel, > 85 % oder überfällig -> hoch
@@ -1416,7 +1508,7 @@ function wiederCard(w){
 // Aufgabe als heute erledigt markieren -> Intervall startet neu
 window.erledigtWieder = id => {
   const w = DB.wiederkehrend.find(x=>x.id===id); if(!w) return;
-  w.letzteErledigung = new Date().toISOString().slice(0,10);
+  w.letzteErledigung = heuteISO();
   w.erzeugt = [];               // Marker zurücksetzen, damit das nächste Intervall wieder ein To-do erzeugen kann
   // ein evtl. offenes, automatisch erzeugtes To-do dieser Aufgabe abräumen
   DB.todos.forEach(t=>{ if(t.ausWiederkehrend===id && !t.done && !t.deleted){ t.done=true; t.updatedAt=now(); } });
@@ -1424,7 +1516,7 @@ window.erledigtWieder = id => {
 };
 window.openWiederEditor = id => {
   const w = id ? DB.wiederkehrend.find(x=>x.id===id)
-              : {titel:"",intervall:"monatlich",freiTage:14,start:new Date().toISOString().slice(0,10),werListe:[]};
+              : {titel:"",intervall:"monatlich",freiTage:14,start:heuteISO(),werListe:[]};
   window._wEdit = id || null;
   const vorlagen = !id ? `<div class="fld"><label>Vorlage (optional)</label>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -1478,7 +1570,7 @@ window.saveWieder = () => {
     freiTage: parseInt(document.getElementById("w_freiTage").value)||14,
     letzteErledigung: letzte || null,
     // start dient nur noch als Fallback, falls noch nie erledigt
-    start: letzte || document.getElementById("w_start") && document.getElementById("w_start").value || new Date().toISOString().slice(0,10),
+    start: letzte || document.getElementById("w_start") && document.getElementById("w_start").value || heuteISO(),
     werListe, updatedAt:now()
   };
   // Bei geänderter Basis: erzeugte Marker zurücksetzen
@@ -1489,29 +1581,44 @@ window.saveWieder = () => {
   else { DB.wiederkehrend.push({id:uid(), autor:ME, createdAt:now(), ...obj}); }
   save(); closeModal(); RENDER.todos();
 };
-window.delWieder = id => { if(confirm("Wiederkehrende Aufgabe löschen?")){ DB.wiederkehrend=DB.wiederkehrend.filter(x=>x.id!==id); save(); closeModal(); RENDER.todos(); } };
+window.delWieder = id => { if(!confirm("Wiederkehrende Aufgabe in den Papierkorb verschieben?")) return;
+  inDenPapierkorb("wiederkehrend", id); closeModal(); RENDER.todos(); };
 
 // Erzeugt aus wiederkehrenden Aufgaben ein echtes To-do, sobald die Dringlichkeit "Hoch" erreicht
 function erzeugeFaelligeWiederkehrend(){
   if(!DB.wiederkehrend) return;
   let erzeugt=false;
+  // Legt genau ein To-do für einen Fälligkeitstermin an. Die ID ist deterministisch,
+  // damit zwei Geräte, die unabhängig voneinander erzeugen, kein Duplikat produzieren.
+  const anlegen = (w, datum) => {
+    const marker = w.id+"@"+datum;
+    const tid = "wk_"+w.id+"_"+datum;
+    w.erzeugt = w.erzeugt || [];
+    if(w.erzeugt.includes(marker)) return false;
+    if(DB.todos.some(t=>t.id===tid)) return false;
+    DB.todos.push({
+      id:tid, titel:w.titel, notiz:"(wiederkehrend: "+intervallLabel(w)+")",
+      faellig:datum, prio:"hoch",
+      werListe:w.werListe||[], wer:(w.werListe||[]).join(", "),
+      done:false, autor:w.autor||ME, ausWiederkehrend:w.id,
+      createdAt:now(), updatedAt:now()
+    });
+    w.erzeugt.push(marker);
+    if(w.erzeugt.length>20) w.erzeugt = w.erzeugt.slice(-20);
+    return true;
+  };
   DB.wiederkehrend.forEach(w=>{
     if(w.deleted) return;
-    if(dringlichkeit(w)!=="hoch") return;   // erst bei "Hoch" (kurz vor Ende / überfällig)
-    const naechste = naechsteFaelligkeit(w);
-    const marker = w.id+"@"+naechste;
-    w.erzeugt = w.erzeugt || [];
-    if(!w.erzeugt.includes(marker)){
-      DB.todos.push({
-        id:uid(), titel:w.titel, notiz:"(wiederkehrend: "+intervallLabel(w)+")",
-        faellig:naechste, prio:"hoch",
-        werListe:w.werListe||[], wer:(w.werListe||[]).join(", "),
-        done:false, autor:w.autor||ME, ausWiederkehrend:w.id,
-        createdAt:now(), updatedAt:now()
-      });
-      w.erzeugt.push(marker);
-      if(w.erzeugt.length>20) w.erzeugt = w.erzeugt.slice(-20);
-      erzeugt=true;
+    // 1) Bereits verstrichene Fälligkeit nachholen. Ohne das entfällt ein Termin
+    //    ersatzlos, wenn die App im engen Fälligkeitsfenster nicht geöffnet wurde.
+    const verpasst = letzteVerstricheneFaelligkeit(w);
+    if(verpasst && (!w.letzteErledigung || verpasst > w.letzteErledigung)){
+      if(anlegen(w, verpasst)) erzeugt = true;
+    }
+    // 2) Bevorstehende Fälligkeit ankündigen, sobald das Intervall weitgehend
+    //    verbraucht ist (unverändertes Verhalten).
+    if(dringlichkeit(w)==="hoch"){
+      if(anlegen(w, naechsteFaelligkeit(w))) erzeugt = true;
     }
   });
   if(erzeugt) save();
@@ -1525,6 +1632,7 @@ function kalenderEintraege(){
   const out=[];
   DB.todos.filter(t=>!t.deleted && t.faellig).forEach(t=>out.push({datum:t.faellig,titel:t.titel,typ:"Aufgabe",farbe:"#1d4ed8",modul:"todos"}));
   DB.reparaturen.filter(r=>!r.deleted && r.faellig).forEach(r=>out.push({datum:r.faellig,titel:r.titel,typ:"Reparatur",farbe:"#ea580c",modul:"reparaturen"}));
+  (DB.essensplan||[]).filter(e=>!e.deleted && e.datum).forEach(e=>out.push({datum:e.datum,titel:"Essen: "+e.titel,typ:"Essen",farbe:"#b45309",modul:"essensplan"}));
   // Reisen: jeden Tag von Start bis Ende markieren
   DB.urlaub.filter(u=>!u.deleted && u.von).forEach(u=>{
     const start=new Date(u.von+"T00:00:00");
@@ -1535,10 +1643,10 @@ function kalenderEintraege(){
       const d=new Date(start); d.setDate(start.getDate()+i);
       const istRand = (i===0 || i===tage);
       const suffix = tage>0 ? (i===0?" (Anreise)":i===tage?" (Abreise)":"") : "";
-      out.push({datum:d.toISOString().slice(0,10),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",reiseId:u.id,zwischentag:!istRand});
+      out.push({datum:isoLokal(d),titel:titel+suffix,typ:"Reise",farbe:"#16a34a",modul:"urlaub",reiseId:u.id,zwischentag:!istRand});
     }
     // Restaurant-Reservierungen dieser Reise (Tagesplan + ältere restaurants-Struktur)
-    (u.staedte||[]).forEach(c=>{
+    aktiv(u.staedte).forEach(c=>{
       const restEintraege = [].concat(
         (c.restaurants||[]),
         tagesEintraege(c).filter(e=>e.typ==="restaurant")
@@ -1554,7 +1662,7 @@ function kalenderEintraege(){
         for(let k=0;k<=ct;k++){
           const d=new Date(cs); d.setDate(cs.getDate()+k);
           const rand=(k===0||k===ct);
-          out.push({datum:d.toISOString().slice(0,10),titel:(c.name||"Ort")+" ("+titel+")",typ:"Ort",farbe:"#0d9488",modul:"urlaub",reiseId:u.id,zwischentag:!rand});
+          out.push({datum:isoLokal(d),titel:(c.name||"Ort")+" ("+titel+")",typ:"Ort",farbe:"#0d9488",modul:"urlaub",reiseId:u.id,zwischentag:!rand});
         }
       }
     });
@@ -1563,10 +1671,10 @@ function kalenderEintraege(){
   DB.wiederkehrend.filter(w=>!w.deleted).forEach(w=>{
     let d=new Date(naechsteFaelligkeit(w)); const def=INTERVALLE.find(x=>x.key===w.intervall);
     for(let i=0;i<6;i++){
-      out.push({datum:d.toISOString().slice(0,10),titel:w.titel,typ:"Wiederkehrend",farbe:"#7c3aed",modul:"todos"});
+      out.push({datum:isoLokal(d),titel:w.titel,typ:"Wiederkehrend",farbe:"#7c3aed",modul:"todos"});
       const nd=new Date(d);
       if(w.intervall==="frei") nd.setDate(nd.getDate()+(parseInt(w.freiTage)||1));
-      else if(def.tage) nd.setDate(nd.getDate()+def.tage); else nd.setMonth(nd.getMonth()+def.monate);
+      else if(def.tage) nd.setDate(nd.getDate()+def.tage); else nd = monateAddieren(nd, def.monate);
       d=nd;
     }
   });
@@ -1626,6 +1734,7 @@ RENDER.kalender = () => {
       <span><span class="kal-dot" style="background:#db2777"></span>Reservierung</span>
       <span><span class="kal-dot" style="background:#0891b2"></span>Termin</span>
       <span><span class="kal-dot" style="background:#7c3aed"></span>Wiederkehrend</span>
+      <span><span class="kal-dot" style="background:#b45309"></span>Essen</span>
     </div>
     <div class="section-label">Kommende Termine</div>
     ${kommende.length? `<div class="list">${kommende.map(e=>{
@@ -1658,7 +1767,7 @@ window.kalMonat = delta => {
 };
 window.kalTag = t => {
   const {jahr,monat}=KAL_MONAT;
-  const datum=new Date(jahr,monat,t).toISOString().slice(0,10);
+  const datum=isoLokal(new Date(jahr,monat,t));
   const evs=kalenderEintraege().filter(e=>e.datum===datum);
   window._kalTagDatum = datum;
   const kopf=new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
@@ -1724,7 +1833,7 @@ window.kalAlleExportTun = () => {
 // ---- Eigene Kalendertermine anlegen / bearbeiten / löschen ----
 window.openTermin = (datum) => {
   window._terminEdit = null;
-  const heute = new Date().toISOString().slice(0,10);
+  const heute = heuteISO();
   openSheet(`<h3>Neuer Termin</h3>
     <div class="fld"><label>Titel</label><input id="t_titel" placeholder="z.B. Zahnarzt"></div>
     <div class="fld" style="display:flex;gap:10px">
@@ -1932,8 +2041,8 @@ function autorFarbe(name){
 
 // HTML einer abgeschickten/zusammengeführten Liste. istEigene -> Ersteller-Sicht. imArchiv -> nur Lesen+Löschen
 function abgeschickteListeHtml(l, istEigene, imArchiv){
-  const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
-  const erledigt = l.artikel.filter(a=>a.d);
+  const offen = aktiv(l.artikel).filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
+  const erledigt = aktiv(l.artikel).filter(a=>a.d);
   const editing = (window._editListe===l.id);
   // Listen sind standardmäßig eingeklappt. Nur manuell geöffnete oder gerade
   // bearbeitete Listen werden aufgeklappt – das hält die Übersicht sauber,
@@ -1982,8 +2091,8 @@ function einRowRO(lid,a,editing,l){
 
 // HTML meines Entwurfs (voll bearbeitbar)
 function entwurfHtml(l){
-  const offen = l.artikel.filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
-  const erledigt = l.artikel.filter(a=>a.d);
+  const offen = aktiv(l.artikel).filter(a=>!a.d).sort((a,b)=>warenGruppeIndex(a.tx)-warenGruppeIndex(b.tx));
+  const erledigt = aktiv(l.artikel).filter(a=>a.d);
   AKT_LISTE = l.id;
   return `<div class="list">${offen.map(einRow).join("")}${erledigt.map(einRow).join("")}</div>
     <div style="padding:14px 16px 4px;display:flex;gap:8px">
@@ -1992,7 +2101,7 @@ function entwurfHtml(l){
 }
 // Liste behalten (nicht abschicken) -> als eigene "abgeschickte" Liste an mich selbst
 window.behalteListe = id => {
-  const l=DB.listen.find(x=>x.id===id); if(!l||!l.artikel.length){ alert("Die Liste ist leer."); return; }
+  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ alert("Die Liste ist leer."); return; }
   l.status="abgeschickt"; l.empfaenger=[ME]; l.abgeschicktAm=now(); l.nurFuerMich=true; l.updatedAt=now();
   save(); RENDER.einkauf();
 };
@@ -2027,7 +2136,7 @@ const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
 
 window.addEin = (tx, el) => {
   const l=aktListe(); if(!l) return;
-  if(l.artikel.some(a=>a.tx.toLowerCase()===tx.toLowerCase()&&!a.d)){
+  if(aktiv(l.artikel).some(a=>a.tx.toLowerCase()===tx.toLowerCase()&&!a.d)){
     if(el){ el.classList.add("chip-dup"); setTimeout(()=>el.classList.remove("chip-dup"),500); }
     return;
   }
@@ -2038,14 +2147,19 @@ window.addEin = (tx, el) => {
   else RENDER.einkauf();
 };
 window.toggleEin = id => { const l=aktListe(); const a=l.artikel.find(x=>x.id===id); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
-window.delEin = id => { const l=aktListe(); l.artikel=l.artikel.filter(x=>x.id!==id); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEin = id => { const l=aktListe(); if(!l)return; const a=l.artikel.find(x=>x.id===id);
+  if(a){ a.deleted=true; a.deletedAt=now(); a.updatedAt=now(); }
+  l.updatedAt=now(); save(); RENDER.einkauf(); };
 
 // Aktionen in abgeschickten Listen
 window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now();
   // Wenn jetzt alle Artikel abgehakt sind -> Liste ins Archiv
-  if(l.artikel.length && l.artikel.every(x=>x.d)){ l.archiviert=true; if(window._openListe===lid)window._openListe=null; }
+  const aktive=aktiv(l.artikel);
+  if(aktive.length && aktive.every(x=>x.d)){ l.archiviert=true; if(window._openListe===lid)window._openListe=null; }
   save(); RENDER.einkauf(); };
-window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); l.artikel=l.artikel.filter(x=>x.id!==aid); l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); if(!l)return; const a=l.artikel.find(x=>x.id===aid);
+  if(a){ a.deleted=true; a.deletedAt=now(); a.updatedAt=now(); }
+  l.updatedAt=now(); save(); RENDER.einkauf(); };
 window.addEinTo = (lid,tx) => { tx=(tx||"").trim(); if(!tx)return; const l=DB.listen.find(x=>x.id===lid);
   l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx);
   // Wenn ich der Ersteller bin und nachträglich etwas ergänze -> Empfänger informieren
@@ -2070,7 +2184,7 @@ function zaehleArtikel(tx){
 
 // Liste abschicken – mit Empfängerwahl (Vorschlag voreingestellt)
 window.abschickenDialog = id => {
-  const l=DB.listen.find(x=>x.id===id); if(!l||!l.artikel.length){ alert("Die Liste ist leer."); return; }
+  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ alert("Die Liste ist leer."); return; }
   const vorschlag = (DB.empfaengerStandard && DB.empfaengerStandard[ME]) || [];
   window._sendSel = new Set(vorschlag);
   const andere = DB.nutzer.filter(n=>n!==ME);
@@ -2088,7 +2202,7 @@ window.abschicken = id => {
   if(!empf.length){ alert("Bitte mindestens eine Person wählen."); return; }
   l.status="abgeschickt"; l.empfaenger=empf; l.abgeschicktAm=now(); l.updatedAt=now();
   empf.forEach(person=>{
-    notify(`Neue Einkaufsliste von ${ME} (${l.artikel.filter(a=>!a.d).length} Artikel)`, {ziel:person, listeId:l.id});
+    notify(`Neue Einkaufsliste von ${ME} (${aktiv(l.artikel).filter(a=>!a.d).length} Artikel)`, {ziel:person, listeId:l.id});
   });
   save(); closeModal(); RENDER.einkauf();
 };
@@ -2100,7 +2214,7 @@ window.mergeDialog = () => {
   openSheet(`<h3>Listen zusammenfügen</h3>
     <div class="ml">Wähle die Listen, die du im Supermarkt zusammen abarbeiten willst. Doppelte Artikel bleiben erhalten – farblich siehst du, von wem was ist. Die einzelnen Listen wandern danach ins Archiv.</div>
     ${listen.map(l=>`<div class="row" style="margin-bottom:6px" onclick="toggleMerge('${l.id}',this)">
-      <div class="cb on" data-id="${l.id}">✓</div><div class="tx">${l.zusammengefuehrt?"Zusammengeführte Liste":esc(listenName(l))} <small style="color:var(--ink2)">(${l.artikel.length})</small></div></div>`).join("")}
+      <div class="cb on" data-id="${l.id}">✓</div><div class="tx">${l.zusammengefuehrt?"Zusammengeführte Liste":esc(listenName(l))} <small style="color:var(--ink2)">(${aktiv(l.artikel).length})</small></div></div>`).join("")}
     <button class="btn" onclick="doMerge()" style="margin-top:8px">Zusammenfügen</button>`);
 };
 window.toggleMerge = (id,row) => {
@@ -2112,7 +2226,7 @@ window.doMerge = () => {
   const ids=[...window._mergeSel]; if(ids.length<2){ alert("Bitte mindestens zwei Listen wählen."); return; }
   const quellen = ids.map(id=>DB.listen.find(l=>l.id===id)).filter(Boolean);
   const artikel = [];
-  quellen.forEach(l=> l.artikel.forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller})) );
+  quellen.forEach(l=> aktiv(l.artikel).forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller})) );
   const merged = {
     id:uid(), status:"abgeschickt", ersteller:ME, empfaenger:[ME],
     artikel, createdAt:now(), updatedAt:now(), abgeschicktAm:now(), zusammengefuehrt:true,
@@ -2222,6 +2336,53 @@ async function routeBetween(a, b){
 }
 function fmtDauer(min){ const h=Math.floor(min/60), m=Math.round(min%60); return h?`${h} h ${m} min`:`${m} min`; }
 
+// ---- Reisebudget: Kosten-Eingaben parsen, formatieren und summieren ----
+// Akzeptiert deutsches Komma ("12,50"), liefert Zahl oder null.
+function parseKosten(v){
+  if(v==null || String(v).trim()==="") return null;
+  const f = parseFloat(String(v).replace(",",".").replace(/[^0-9.\-]/g,""));
+  return isNaN(f) ? null : Math.round(f*100)/100;
+}
+function fmtEuro(n){
+  if(n==null || isNaN(n)) return "";
+  return n.toLocaleString("de-DE",{minimumFractionDigits: (n%1)?2:0, maximumFractionDigits:2})+" €";
+}
+// Gesamtbudget einer Reise: Tagesplan-Kosten + Unterkunftskosten (Stellplätze/Hotels)
+function reiseBudget(r){
+  const proStadt=[];
+  let gesamt=0;
+  aktiv(r.staedte).forEach(c=>{
+    let uebernachtung=0;
+    (c.stellplaetze||[]).forEach(p=>{ if(!p.deleted && p.kosten!=null) uebernachtung+=p.kosten; });
+    const tage=[];
+    Object.keys(c.tagesplan||{}).sort().forEach(d=>{
+      let s=0;
+      (c.tagesplan[d]||[]).forEach(e=>{ if(!e.deleted && e.kosten!=null) s+=e.kosten; });
+      if(s>0) tage.push({datum:d, summe:s});
+    });
+    const summe = uebernachtung + tage.reduce((a,t)=>a+t.summe,0);
+    if(summe>0) proStadt.push({name:c.name, uebernachtung, tage, summe});
+    gesamt += summe;
+  });
+  return { gesamt: Math.round(gesamt*100)/100, proStadt };
+}
+// Budget-Übersicht als Sheet
+window.openReiseBudget = id => {
+  const r=DB.urlaub.find(x=>x.id===id); if(!r) return;
+  const b=reiseBudget(r);
+  const inhalt = b.proStadt.length
+    ? b.proStadt.map(s=>`
+        <div class="section-label" style="padding-left:0;padding-right:0">${esc(s.name)}</div>
+        ${s.uebernachtung>0?`<div class="budget-row"><span class="bn">Unterkunft</span><span class="bv">${fmtEuro(s.uebernachtung)}</span></div>`:""}
+        ${s.tage.map(t=>`<div class="budget-row"><span class="bn">${fmtDate(t.datum)}</span><span class="bv">${fmtEuro(t.summe)}</span></div>`).join("")}
+        <div class="budget-row sum" style="font-size:14px;padding-top:6px"><span class="bn">Zwischensumme</span><span class="bv">${fmtEuro(s.summe)}</span></div>`).join("")
+    : `<div class="ml">Noch keine Kosten erfasst. Kosten lassen sich bei Tagesplan-Einträgen und bei ${r.unterkunft==="wohnmobil"?"Stellplätzen":"Hotels"} eintragen (Feld „Kosten").</div>`;
+  openSheet(`<h3>Budget — ${esc(r.titel||"Reise")}</h3>
+    ${inhalt}
+    ${b.gesamt>0?`<div class="budget-row sum"><span class="bn">Gesamt</span><span class="bv">${fmtEuro(b.gesamt)}</span></div>`:""}
+    <button class="btn ghost" onclick="closeModal()" style="margin-top:14px">Schließen</button>`);
+};
+
 // ============================================================
 //  Urlaubsplanung
 // ============================================================
@@ -2252,7 +2413,7 @@ window.urlaubTab = a => { URLAUB_ARCHIV=a; RENDER.urlaub(); };
 function reiseKarte(u){
   const d = daysUntil(u.von);
   const badge = (d!==null && d>=0) ? `<span class="pill who">${d===0?"heute":"in "+d+" Tagen"}</span>` : "";
-  const orte = (u.staedte||[]).map(s=>s.name).join(" · ");
+  const orte = aktiv(u.staedte).map(s=>s.name).join(" · ");
   return `<div class="card" onclick="openReiseDetail('${u.id}')">
     ${URLAUB_ARCHIV?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delReise('${u.id}')">×</div>`:""}
     <div class="cttl">${esc(u.titel||"Reise")}</div>
@@ -2338,17 +2499,21 @@ function renderReiseDetail(r){
   const body = vBody();
   let html = "";
   if(r.hinweise) html += `<div class="card" style="margin:0 16px 12px"><div class="cdesc" style="margin:0">⚠︎ ${esc(r.hinweise)}</div></div>`;
-  // Packliste + Kalender-Export
-  html += `<div style="padding:0 16px 12px;display:flex;gap:8px">
-    <button class="btn ghost" onclick="openPackliste('${r.id}')" style="margin:0">Packliste (${(r.packliste||[]).filter(p=>!p.d).length})</button>
-    ${r.von?`<button class="btn ghost" onclick="reiseZuKalender('${r.id}')" style="margin:0">📅 Kalender</button>`:""}</div>`;
-  if(!r.staedte.length){
+  // Packliste + Karte + Budget + Kalender-Export
+  const budget = reiseBudget(r);
+  html += `<div style="padding:0 16px 12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost" onclick="openPackliste('${r.id}')" style="margin:0;flex:1 1 45%">Packliste (${(r.packliste||[]).filter(p=>!p.d&&!p.deleted).length})</button>
+    <button class="btn ghost" onclick="openReiseKarte('${r.id}')" style="margin:0;flex:1 1 45%">🗺️ Karte</button>
+    <button class="btn ghost" onclick="openReiseBudget('${r.id}')" style="margin:0;flex:1 1 45%">💶 Budget${budget.gesamt>0?" ("+fmtEuro(budget.gesamt)+")":""}</button>
+    ${r.von?`<button class="btn ghost" onclick="reiseZuKalender('${r.id}')" style="margin:0;flex:1 1 45%">📅 Kalender</button>`:""}</div>`;
+  const sichtbareStaedte = r.staedte.map((c,i)=>({c,i})).filter(x=>!x.c.deleted);
+  if(!sichtbareStaedte.length){
     html += empty("pin","Noch keine Stadt — unten mit + hinzufügen");
   } else {
     html += `<div class="list" id="cityList">`;
-    r.staedte.forEach((c,i)=>{
-      html += renderCity(r,c,i);
-      if(i < r.staedte.length-1) html += renderLeg(r,i);
+    sichtbareStaedte.forEach((x,pos)=>{
+      html += renderCity(r,x.c,x.i);
+      if(pos < sichtbareStaedte.length-1) html += renderLeg(r,x.i);
     });
     html += `</div>`;
   }
@@ -2356,7 +2521,8 @@ function renderReiseDetail(r){
   if(r.art==="tour") enableCityDrag(r);
   // Entfernungen POIs -> Stellplatz im Hintergrund berechnen
   r.staedte.forEach((c,i)=>{
-    const basis=(c.stellplaetze||[]).find(s=>s.lat!=null);
+    if(c.deleted) return;
+    const basis=aktiv(c.stellplaetze).find(s=>s.lat!=null);
     const ziele=tagesEintraege(c).filter(p=>p.lat!=null);
     if(basis && ziele.length){
       c._poiDist=c._poiDist||{};
@@ -2441,6 +2607,7 @@ function poiGroup(rid,ci,key,titel,arr){
       <div class="pn">${esc(p.name)}${warnAdresse(adrFehlt, "Adresse fehlt – bitte ergänzen")}${p.adresse?`<small>${esc(p.adresse)}</small>`:""}
       ${p.hinweis?`<small class="poi-hint">📌 ${esc(p.hinweis)}</small>`:""}
       ${resTxt?`<small style="display:block;color:var(--accent);font-weight:600;margin-top:2px">${resTxt}</small>`:""}
+      ${p.kosten!=null?`<small style="display:block;font-weight:600;margin-top:2px">💶 ${fmtEuro(p.kosten)}</small>`:""}
       ${resToggle}
       <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
       ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(p.link)?"Link öffnen":"Karte"}</a>`:""}
@@ -2487,8 +2654,9 @@ function renderTagesplan(r,c,i){
   tage.forEach((d,di)=>{
     const eintraege = c.tagesplan[d] || [];
     const wt = new Date(d+"T00:00:00").toLocaleDateString("de-DE",{weekday:"long"});
+    const tagSumme = eintraege.reduce((s,e)=>s+((!e.deleted&&e.kosten!=null)?e.kosten:0),0);
     html += `<div class="tag-card">
-      <div class="tag-titel">📅 Tag ${di+1} · ${wt}, ${fmtDate(d)}</div>`;
+      <div class="tag-titel">📅 Tag ${di+1} · ${wt}, ${fmtDate(d)}${tagSumme>0?` <span style="margin-left:auto;color:var(--accent)">${fmtEuro(tagSumme)}</span>`:""}</div>`;
     const sichtbar = eintraege.filter(e=>!e.deleted);
     if(sichtbar.length){
       eintraege.forEach((e,ei)=>{
@@ -2502,6 +2670,7 @@ function renderTagesplan(r,c,i){
             ${e.adresse?`<small>${esc(e.adresse)}</small>`:""}
             ${e.hinweis?`<small>📌 ${esc(e.hinweis)}</small>`:""}
             ${e.resDatum?`<small style="color:var(--accent);font-weight:600">🍽️ Reservierung: ${fmtDate(e.resDatum)}${e.resZeit?" · "+e.resZeit+" Uhr":""}</small>`:""}
+            ${e.kosten!=null?`<small style="font-weight:600">💶 ${fmtEuro(e.kosten)}</small>`:""}
             <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
             <span style="font-size:11px;color:var(--ink2);font-weight:600">${info.label}</span>
             ${tgt?`<a class="maplink" href="${esc(tgt)}" target="_blank" rel="noopener">${ICON.pin} ${cleanLink(e.link)?"Link":"Karte"}</a>`:""}
@@ -2532,7 +2701,7 @@ window.editTagEintrag = (rid,ci,datum,ei) => {
 function tagEintragForm(rid,ci,datum,typ,ei){
   const r=DB.urlaub.find(x=>x.id===rid);
   const liste = r.staedte[ci].tagesplan?.[datum] || [];
-  const e = (ei!=null) ? liste[ei] : { typ, name:"", adresse:"", link:"", hinweis:"", foto:"", resDatum:"", resZeit:"", resStatus:"" };
+  const e = (ei!=null) ? liste[ei] : { typ, name:"", adresse:"", link:"", hinweis:"", foto:"", resDatum:"", resZeit:"", resStatus:"", kosten:null };
   window._tagCtx = {rid,ci,datum,ei};
   const info=tagTypInfo(e.typ);
   const istRest = e.typ==="restaurant";
@@ -2546,6 +2715,8 @@ function tagEintragForm(rid,ci,datum,typ,ei){
       <textarea id="tg_link" rows="2" placeholder="https://… (auch mit Text davor – wird erkannt)">${esc(e.link||"")}</textarea></div>
     <div class="fld"><label>Hinweis (optional)</label>
       <textarea id="tg_hint" rows="2" placeholder="z.B. Tickets vorab buchen …">${esc(e.hinweis||"")}</textarea></div>
+    <div class="fld"><label>Kosten in € (optional, fürs Reisebudget)</label>
+      <input id="tg_kosten" inputmode="decimal" value="${e.kosten!=null?String(e.kosten).replace(".",","):""}" placeholder="z.B. 12,50"></div>
     ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
       <div style="display:flex;gap:10px">
         <input id="tg_res_datum" type="date" value="${esc(e.resDatum||"")}" style="flex:1">
@@ -2562,7 +2733,8 @@ window.tagSetTyp = (typ) => {
     name:document.getElementById("tg_name").value,
     adresse:document.getElementById("tg_addr").value,
     link:document.getElementById("tg_link").value,
-    hinweis:document.getElementById("tg_hint").value
+    hinweis:document.getElementById("tg_hint").value,
+    kosten:parseKosten(document.getElementById("tg_kosten") ? document.getElementById("tg_kosten").value : "")
   };
   const rd=document.getElementById("tg_res_datum"), rz=document.getElementById("tg_res_zeit");
   // Temporär in einem Puffer halten
@@ -2585,6 +2757,8 @@ function tagEintragFormBuf(){
       <textarea id="tg_link" rows="2" placeholder="https://…">${esc(e.link||"")}</textarea></div>
     <div class="fld"><label>Hinweis (optional)</label>
       <textarea id="tg_hint" rows="2" placeholder="z.B. Tickets vorab buchen …">${esc(e.hinweis||"")}</textarea></div>
+    <div class="fld"><label>Kosten in € (optional, fürs Reisebudget)</label>
+      <input id="tg_kosten" inputmode="decimal" value="${e.kosten!=null?String(e.kosten).replace(".",","):""}" placeholder="z.B. 12,50"></div>
     ${istRest?`<div class="fld"><label>Reservierung (optional)</label>
       <div style="display:flex;gap:10px">
         <input id="tg_res_datum" type="date" value="${esc(e.resDatum||"")}" style="flex:1">
@@ -2601,6 +2775,8 @@ window.saveTagEintrag = async () => {
   const link=cleanLink(document.getElementById("tg_link").value);
   const hinweis=document.getElementById("tg_hint").value.trim();
   const rd=document.getElementById("tg_res_datum"), rz=document.getElementById("tg_res_zeit");
+  const kostenEl=document.getElementById("tg_kosten");
+  const kosten=parseKosten(kostenEl?kostenEl.value:"");
   const buf = window._tagBuf || {};
   const typ = buf.typ || (ei!=null ? c.tagesplan[datum][ei].typ : "sehen");
   const g=parseGeo(addr);
@@ -2609,12 +2785,12 @@ window.saveTagEintrag = async () => {
   if(ei!=null){
     const e=c.tagesplan[datum][ei];
     e.typ=typ; e.name=name; e.adresse=g.label||addr; e.link=link; e.hinweis=hinweis;
-    e.lat=g.lat; e.lon=g.lon;
+    e.lat=g.lat; e.lon=g.lon; e.kosten=kosten;
     if(rd){ e.resDatum=rd.value; e.resZeit=rz?rz.value:""; }
     e.updatedAt=now();
   } else {
     c.tagesplan[datum].push({ id:uid(), typ, name, adresse:g.label||addr, link, hinweis,
-      lat:g.lat, lon:g.lon, foto:"", autor:ME,
+      lat:g.lat, lon:g.lon, foto:"", autor:ME, kosten,
       resDatum:rd?rd.value:"", resZeit:rz?rz.value:"", resStatus:"", updatedAt:now() });
   }
   window._tagBuf=null;
@@ -2775,13 +2951,17 @@ window.saveStop = async () => {
   autoCalcLegs(rid);
 };
 window.delStop = (rid,i,si) => {
-  const r=DB.urlaub.find(x=>x.id===rid); const c=r.staedte[i];
-  if(!c.stopps) return;
-  c.stopps.splice(si,1); r.updatedAt=now(); save(); renderReiseDetail(r);
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return; const c=r.staedte[i];
+  if(!c || !c.stopps) return;
+  const st=c.stopps[si]; if(st){ st.deleted=true; st.deletedAt=now(); st.updatedAt=now(); }
+  c.updatedAt=now(); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r);
 };
 
 window.toggleCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[i]._open=!r.staedte[i]._open; renderReiseDetail(r); };
-window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(confirm("Stadt entfernen?")){ r.staedte.splice(i,1); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); } };
+window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  if(!confirm("Stadt entfernen?")) return;
+  const c=r.staedte[i]; if(c){ c.deleted=true; c.deletedAt=now(); c.updatedAt=now(); }
+  r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); };
 
 // Stadt hinzufügen – kombiniertes Formular
 window.addCity = rid => { editCityForm(rid, null); };
@@ -2882,6 +3062,8 @@ function poiForm(rid,ci,key,titel,pi){
         <input id="poi_res_datum" type="date" value="${esc(p.resDatum||"")}" style="flex:1">
         <input id="poi_res_zeit" type="time" value="${esc(p.resZeit||"")}" style="flex:1">
       </div></div>`:""}
+    ${key==="stellplaetze"?`<div class="fld"><label>Kosten in € (optional, fürs Reisebudget)</label>
+      <input id="poi_kosten" inputmode="decimal" value="${p.kosten!=null?String(p.kosten).replace(".",","):""}" placeholder="z.B. 89"></div>`:""}
     <div class="fld"><label>Foto (optional)</label><div id="poiFotoSlot"></div></div>
     <button class="btn" onclick="doSavePoi()">${pi!=null?"Speichern":"Hinzufügen"}</button>`);
   window._poiFoto = p.foto||"";
@@ -2907,6 +3089,7 @@ window.doSavePoi = () => {
   const rd=document.getElementById("poi_res_datum"), rz=document.getElementById("poi_res_zeit");
   const resDatum = rd ? rd.value : "";
   const resZeit  = rz ? rz.value : "";
+  const kEl=document.getElementById("poi_kosten");
   const r=DB.urlaub.find(x=>x.id===rid);
   r.staedte[ci][key]=r.staedte[ci][key]||[];
   if(pi!=null){
@@ -2914,9 +3097,10 @@ window.doSavePoi = () => {
     p.name=name; p.adresse=g.label||addr; p.link=link; p.hinweis=hinweis;
     p.lat=g.lat; p.lon=g.lon; p.foto=window._poiFoto||"";
     if(rd){ p.resDatum=resDatum; p.resZeit=resZeit; }
+    if(kEl) p.kosten=parseKosten(kEl.value);
     p.updatedAt=now();
   } else {
-    r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit, updatedAt:now() });
+    r.staedte[ci][key].push({ id:uid(), name, adresse:g.label||addr, link, hinweis, lat:g.lat, lon:g.lon, foto:window._poiFoto||"", autor:ME, resDatum, resZeit, kosten:kEl?parseKosten(kEl.value):null, updatedAt:now() });
   }
   r.staedte[ci]._open=true; r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
@@ -2963,6 +3147,124 @@ window.routingSettings = () => {
 window.saveOrsKey = () => { const k=document.getElementById("orsKey").value.trim();
   if(k)localStorage.setItem("familienapp.orsKey",k); else localStorage.removeItem("familienapp.orsKey");
   closeModal(); };
+// ============================================================
+//  Kartenansicht (Leaflet + OpenStreetMap, Routenlinie via OSRM)
+// ============================================================
+// Leaflet erst laden, wenn die Karte gebraucht wird (spart Start-Zeit und Daten).
+let _leafletPromise = null;
+function ladeLeaflet(){
+  if(window.L) return Promise.resolve(true);
+  if(_leafletPromise) return _leafletPromise;
+  _leafletPromise = new Promise((resolve,reject)=>{
+    const css=document.createElement("link");
+    css.rel="stylesheet";
+    css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    css.onerror=()=>{ css.onerror=null; css.href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"; };
+    document.head.appendChild(css);
+    const laden=(src,fallback)=>{
+      const s=document.createElement("script");
+      s.src=src;
+      s.onload=()=>resolve(true);
+      s.onerror=()=>{ if(fallback) laden(fallback,null); else { _leafletPromise=null; reject(new Error("Leaflet konnte nicht geladen werden")); } };
+      document.head.appendChild(s);
+    };
+    laden("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js","https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js");
+  });
+  return _leafletPromise;
+}
+let _karte=null;                 // aktive Leaflet-Instanz
+const _karteGeoCache={};         // Routen-Geometrien (nur im Speicher, nicht im Sync)
+window.openReiseKarte = async id => {
+  const r=DB.urlaub.find(x=>x.id===id); if(!r) return;
+  // Alle Punkte mit Koordinaten einsammeln
+  const punkte=[];
+  aktiv(r.staedte).forEach((c,i)=>{
+    if(c.lat!=null) punkte.push({lat:c.lat,lon:c.lon,art:"stadt",nr:i+1,name:c.name});
+    aktiv(c.stellplaetze).forEach(p=>{ if(p.lat!=null) punkte.push({lat:p.lat,lon:p.lon,art:"unterkunft",name:p.name,stadt:c.name}); });
+    aktiv(c.stopps).forEach(s=>{ if(s.lat!=null) punkte.push({lat:s.lat,lon:s.lon,art:"stopp",name:s.name}); });
+    tagesEintraege(c).forEach(e=>{ if(e.lat!=null) punkte.push({lat:e.lat,lon:e.lon,art:"tag",typ:e.typ,name:e.name,datum:e._datum}); });
+  });
+  if(!punkte.length){
+    alert("Für diese Reise sind noch keine Koordinaten hinterlegt. Bei Orten und Einträgen unter „Bearbeiten\" eine Adresse eintragen – die Koordinaten werden dann gesucht.");
+    return;
+  }
+  const panel=document.getElementById("kartePanel");
+  document.getElementById("karteTitel").textContent="Karte — "+(r.titel||"Reise");
+  document.getElementById("karteHint").textContent="Karte: © OpenStreetMap";
+  panel.style.display="flex";
+  pushNav();   // Zurück-Taste schließt die Karte
+  try{ await ladeLeaflet(); }
+  catch(e){ panel.style.display="none"; alert("Die Kartenbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen."); return; }
+  if(_karte){ _karte.remove(); _karte=null; }
+  _karte=L.map("karteMap",{zoomControl:true});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(_karte);
+  const TAG_ICONS={sehen:"🏛️",restaurant:"🍽️",wanderung:"🥾",aktivitaet:"🎯"};
+  const bounds=[];
+  punkte.forEach(p=>{
+    let icon;
+    if(p.art==="stadt") icon=L.divIcon({className:"",html:`<div class="kmark">${p.nr}</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+    else if(p.art==="unterkunft") icon=L.divIcon({className:"",html:`<div class="kemoji">${r.unterkunft==="wohnmobil"?"🚐":"🛏️"}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
+    else if(p.art==="stopp") icon=L.divIcon({className:"",html:`<div class="kemoji">📍</div>`,iconSize:[22,22],iconAnchor:[11,20]});
+    else icon=L.divIcon({className:"",html:`<div class="kemoji">${TAG_ICONS[p.typ]||"🎯"}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
+    const sub = p.art==="stadt"?"Station "+p.nr
+      : p.art==="unterkunft"?(r.unterkunft==="wohnmobil"?"Stellplatz":"Hotel")+(p.stadt?" · "+p.stadt:"")
+      : p.art==="stopp"?"Zwischenstopp"
+      : (tagTypInfo(p.typ).label+(p.datum?" · "+fmtDate(p.datum):""));
+    L.marker([p.lat,p.lon],{icon}).addTo(_karte)
+      .bindPopup(`<b>${esc(p.name||"")}</b><br><span style="color:#647089">${esc(sub)}</span><br><a href="${esc(mapsLink(p.lat+","+p.lon))}" target="_blank" rel="noopener">In Google Maps öffnen</a>`);
+    bounds.push([p.lat,p.lon]);
+  });
+  _karte.fitBounds(bounds,{padding:[36,36],maxZoom:14});
+  // Routenlinie zwischen den Stationen (inkl. Zwischenstopps), Straßenverlauf via OSRM (PKW)
+  const staedteMitKoord=aktiv(r.staedte).filter(c=>c.lat!=null);
+  if(staedteMitKoord.length>=2){
+    const seq=[];
+    aktiv(r.staedte).forEach(c=>{
+      if(c.lat==null) return;
+      seq.push([c.lon,c.lat]);
+      aktiv(c.stopps).forEach(s=>{ if(s.lat!=null) seq.push([s.lon,s.lat]); });
+    });
+    // letzter Eintrag darf kein Stopp hinter der letzten Stadt sein
+    const letzteStadt=staedteMitKoord[staedteMitKoord.length-1];
+    while(seq.length && (seq[seq.length-1][0]!==letzteStadt.lon || seq[seq.length-1][1]!==letzteStadt.lat)) seq.pop();
+    if(seq.length>=2){
+      const key=seq.map(p=>p.join(",")).join(";");
+      try{
+        let geo=_karteGeoCache[key];
+        if(!geo){
+          const url=`https://router.project-osrm.org/route/v1/driving/${key}?overview=full&geometries=geojson`;
+          const resp=await fetch(url);
+          if(!resp.ok) throw new Error("Route "+resp.status);
+          const j=await resp.json();
+          if(!j.routes||!j.routes.length) throw new Error("keine Route");
+          geo=j.routes[0].geometry.coordinates.map(p=>[p[1],p[0]]);
+          _karteGeoCache[key]=geo;
+        }
+        if(_karte){
+          L.polyline(geo,{color:"#1d4ed8",weight:4,opacity:.75}).addTo(_karte);
+          document.getElementById("karteHint").textContent="Route: PKW-Straßenverlauf (OSRM) · Karte: © OpenStreetMap";
+        }
+      }catch(e){
+        // Fallback: gestrichelte Luftlinie zwischen den Stationen
+        if(_karte){
+          L.polyline(seq.map(p=>[p[1],p[0]]),{color:"#1d4ed8",weight:3,opacity:.6,dashArray:"8 8"}).addTo(_karte);
+          document.getElementById("karteHint").textContent="Straßenroute nicht abrufbar – gestrichelte Linie zeigt die Reihenfolge · Karte: © OpenStreetMap";
+        }
+      }
+    }
+  }
+};
+window.karteSchliessen = (vonZurueckTaste) => {
+  const panel=document.getElementById("kartePanel");
+  if(panel.style.display!=="flex") return;
+  panel.style.display="none";
+  if(_karte){ _karte.remove(); _karte=null; }
+  // Beim Schließen per ×-Button den zugehörigen Verlaufseintrag konsumieren
+  if(!vonZurueckTaste && !_backBusy){ _backBusy=true; try{ history.back(); }catch(e){} setTimeout(()=>{ _backBusy=false; },60); }
+};
+
 // Menü in der Reise-Detailansicht: Bearbeiten oder Löschen
 window.reiseMenu = id => {
   const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
@@ -2985,7 +3287,7 @@ window.delReise = id => {
 // ---- Packliste pro Reise ----
 window.reiseZuKalender = id => {
   const r=DB.urlaub.find(x=>x.id===id); if(!r||!r.von)return;
-  const orte=(r.staedte||[]).map(s=>s.name).join(", ");
+  const orte=aktiv(r.staedte).map(s=>s.name).join(", ");
   const details="Reise"+(orte?": "+orte:"");
   const gl=gcalLink(r.titel||"Reise", r.von, r.bis||r.von, details);
   openSheet(`<h3>In Kalender eintragen</h3>
@@ -2997,8 +3299,9 @@ window.reiseZuKalender = id => {
 window.openPackliste = id => {
   const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
   r.packliste = r.packliste || [];
-  const off = r.packliste.filter(p=>!p.d).length;
-  openSheet(`<h3>Packliste — ${esc(r.titel)}</h3><div class="ml">${off} von ${r.packliste.length} noch offen</div>
+  const sichtbar = r.packliste.filter(p=>!p.deleted);
+  const off = sichtbar.filter(p=>!p.d).length;
+  openSheet(`<h3>Packliste — ${esc(r.titel)}</h3><div class="ml">${off} von ${sichtbar.length} noch offen</div>
     <div id="packlist">${packRows(r)}</div>
     <div style="display:flex;gap:8px;margin:12px 0">
       <input id="packnew" placeholder="Hinzufügen…" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px 14px;font-size:14px">
@@ -3006,14 +3309,16 @@ window.openPackliste = id => {
     <button class="btn ghost" onclick="closeModal()">Fertig</button>`);
 };
 function packRows(r){
-  return r.packliste.map(p=>`<div class="row ${p.d?'done':''}" style="margin-bottom:8px">
+  return r.packliste.filter(p=>!p.deleted).map(p=>`<div class="row ${p.d?'done':''}" style="margin-bottom:8px">
     <div class="cb ${p.d?'on':''}" onclick="togglePack('${r.id}','${p.id}')">${p.d?'✓':''}</div>
     <div class="tx">${esc(p.t)}</div><div class="del" onclick="delPack('${r.id}','${p.id}')">×</div></div>`).join("");
 }
 window.addPack = id => { const r=DB.urlaub.find(x=>x.id===id); const inp=document.getElementById("packnew");
-  if(inp.value.trim()){ r.packliste.push({id:uid(),t:inp.value.trim(),d:false}); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); inp.value=""; } };
-window.togglePack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); const p=r.packliste.find(x=>x.id===pid); p.d=!p.d; r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
-window.delPack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); r.packliste=r.packliste.filter(x=>x.id!==pid); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
+  if(inp.value.trim()){ r.packliste.push({id:uid(),t:inp.value.trim(),d:false,updatedAt:now()}); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); inp.value=""; } };
+window.togglePack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); const p=r.packliste.find(x=>x.id===pid); p.d=!p.d; p.updatedAt=now(); r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
+// Tombstone statt hart löschen, sonst kehrt der Eintrag beim Sync von anderen Geräten zurück
+window.delPack = (id,pid) => { const r=DB.urlaub.find(x=>x.id===id); const p=r.packliste.find(x=>x.id===pid);
+  if(p){ p.deleted=true; p.deletedAt=now(); p.updatedAt=now(); } r.updatedAt=now(); save(); document.getElementById("packlist").innerHTML=packRows(r); };
 
 // ============================================================
 //  Kellerinventar
@@ -3400,6 +3705,171 @@ window.commitZutaten = id => {
 };
 
 // ============================================================
+//  Essensplan (Wochenplaner: Rezepte oder Freitext auf Tage legen)
+// ============================================================
+let ESSEN_WOCHE = 0;   // 0 = aktuelle Woche, -1 = letzte, +1 = nächste …
+function wochenStart(offset){
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-((d.getDay()+6)%7)+offset*7);   // Montag der Zielwoche
+  return d;
+}
+function essenWochenTage(offset){
+  const s=wochenStart(offset); const out=[];
+  for(let i=0;i<7;i++){ const d=new Date(s); d.setDate(s.getDate()+i); out.push(isoLokal(d)); }
+  return out;
+}
+function essenAm(datum){ return (DB.essensplan||[]).filter(e=>!e.deleted && e.datum===datum); }
+RENDER.essensplan = () => {
+  const tage=essenWochenTage(ESSEN_WOCHE);
+  const start=wochenStart(ESSEN_WOCHE); const ende=new Date(start); ende.setDate(start.getDate()+6);
+  setHead("Essensplan", fmtDate(isoLokal(start))+" – "+fmtDate(isoLokal(ende)));
+  const heute=isoLokal(new Date());
+  const wochenLabel = ESSEN_WOCHE===0?"Diese Woche" : ESSEN_WOCHE===1?"Nächste Woche" : ESSEN_WOCHE===-1?"Letzte Woche"
+    : (ESSEN_WOCHE>0?"In "+ESSEN_WOCHE+" Wochen":"Vor "+(-ESSEN_WOCHE)+" Wochen");
+  let html = `<div class="kal-nav" style="padding-top:0">
+    <button onclick="essenWoche(-1)">‹</button>
+    <div>${wochenLabel}</div>
+    <button onclick="essenWoche(1)">›</button></div>`;
+  // Wochen-Einkauf anbieten, sobald Rezepte mit Zutaten geplant sind
+  const rezepteDerWoche = tage.flatMap(d=>essenAm(d)).filter(e=>e.rezeptId)
+    .map(e=>DB.rezepte.find(x=>x.id===e.rezeptId)).filter(x=>x&&!x.deleted&&(x.zutaten||[]).length);
+  if(rezepteDerWoche.length)
+    html += `<div style="padding:0 16px 12px"><button class="cbtn" style="width:100%" onclick="wochenEinkauf()">${ICON.cart} Zutaten der Woche zur Einkaufsliste</button></div>`;
+  html += `<div class="list">`;
+  tage.forEach(d=>{
+    const wt=new Date(d+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long"});
+    const eintraege=essenAm(d);
+    html += `<div class="essen-tag ${d===heute?'heute':''}">
+      <div class="tag-titel">${d===heute?"📍":"📅"} ${wt}, ${fmtDate(d)}</div>`;
+    if(eintraege.length){
+      eintraege.forEach(e=>{
+        const rez = e.rezeptId ? DB.rezepte.find(x=>x.id===e.rezeptId && !x.deleted) : null;
+        html += `<div class="tag-zeile">
+          <span class="tz-ic">${rez?"🍳":"✏️"}</span>
+          <span class="tz-tx">${esc(e.titel)}
+            <span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px">
+              ${rez?`<a class="maplink" onclick="closeModal();open_('rezepte');openRezept('${rez.id}')" style="cursor:pointer">Rezept öffnen</a>`:""}
+              ${rez&&(rez.zutaten||[]).length?`<a class="maplink" onclick="zutatenZuEinkauf('${rez.id}')" style="cursor:pointer">${ICON.cart} Zutaten</a>`:""}
+            </span>
+            ${e.autor?`<small class="poi-autor">von ${e.autor===ME?"dir":esc(e.autor)}</small>`:""}
+          </span>
+          <span class="tz-del" onclick="essenLoeschen('${e.id}')">×</span>
+        </div>`;
+      });
+    } else {
+      html += `<div style="color:var(--ink2);font-size:12px;padding:2px 0">Noch nichts geplant.</div>`;
+    }
+    html += `<div class="tag-add">
+      <button onclick="essenHinzu('${d}','rezept')">+ 🍳 Rezept</button>
+      <button onclick="essenHinzu('${d}','frei')">+ ✏️ Eigener Eintrag</button>
+    </div></div>`;
+  });
+  html += `</div>`;
+  vBody().innerHTML = html;
+  document.getElementById("addbar").style.display="none";
+  document.getElementById("fab").style.display="none";
+};
+window.essenWoche = delta => { ESSEN_WOCHE+=delta; RENDER.essensplan(); };
+// Eintrag hinzufügen: Rezept auswählen oder Freitext
+window.essenHinzu = (datum, modus) => {
+  window._essenDatum = datum;
+  if(modus==="frei"){
+    openSheet(`<h3>Essen am ${fmtDate(datum)}</h3>
+      <div class="ml">Freier Eintrag ohne Rezept – z.B. „Reste", „Essen gehen", „Pizza bestellen".</div>
+      <div class="fld"><label>Was gibt es?</label><input id="es_titel" placeholder="z.B. Essen gehen" enterkeyhint="done"></div>
+      <button class="btn" onclick="essenSpeichernFrei()">Hinzufügen</button>`);
+    setTimeout(()=>{ const f=document.getElementById("es_titel"); if(f){ f.focus();
+      f.addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); essenSpeichernFrei(); } }); } },60);
+  } else {
+    essenRezeptAuswahl("");
+  }
+};
+function essenRezeptAuswahl(q){
+  const datum=window._essenDatum;
+  const alle=DB.rezepte.filter(r=>!r.deleted);
+  const ql=(q||"").trim().toLowerCase();
+  const treffer = ql ? alle.filter(r=>r.titel.toLowerCase().includes(ql)||(r.zutaten||[]).some(z=>z.toLowerCase().includes(ql))) : alle;
+  openSheet(`<h3>Rezept für ${fmtDate(datum)}</h3>
+    <div class="fld"><input id="es_suche" placeholder="Rezept suchen…" value="${esc(q||"")}" oninput="essenRezeptFilter(this.value)" autocomplete="off"></div>
+    <div id="es_liste">${essenRezeptListe(treffer)}</div>
+    ${alle.length?"":`<div class="ml">Noch keine Rezepte vorhanden – zuerst im Modul „Rezepte" anlegen.</div>`}`);
+  setTimeout(()=>{ const f=document.getElementById("es_suche"); if(f){ f.focus(); f.setSelectionRange(f.value.length,f.value.length); } },60);
+}
+function essenRezeptListe(treffer){
+  if(!treffer.length) return `<div class="ml">Keine Treffer.</div>`;
+  return treffer.slice(0,30).map(r=>`
+    <div class="itemrow" style="cursor:pointer" onclick="essenSpeichernRezept('${r.id}')">
+      <div class="it">${esc(r.titel)}<small>${r.kategorie?esc(r.kategorie)+" · ":""}${(r.zutaten||[]).length} Zutaten</small></div>
+      <div style="color:var(--ink2)">›</div></div>`).join("");
+}
+window.essenRezeptFilter = q => {
+  const alle=DB.rezepte.filter(r=>!r.deleted);
+  const ql=(q||"").trim().toLowerCase();
+  const treffer = ql ? alle.filter(r=>r.titel.toLowerCase().includes(ql)||(r.zutaten||[]).some(z=>z.toLowerCase().includes(ql))) : alle;
+  const el=document.getElementById("es_liste"); if(el) el.innerHTML=essenRezeptListe(treffer);
+};
+window.essenSpeichernRezept = rid => {
+  const r=DB.rezepte.find(x=>x.id===rid); if(!r) return;
+  DB.essensplan.push({ id:uid(), datum:window._essenDatum, rezeptId:r.id, titel:r.titel,
+    autor:ME, createdAt:now(), updatedAt:now() });
+  save(); closeModal(); if(CURRENT==="essensplan") RENDER.essensplan();
+};
+window.essenSpeichernFrei = () => {
+  const t=document.getElementById("es_titel").value.trim(); if(!t) return;
+  DB.essensplan.push({ id:uid(), datum:window._essenDatum, rezeptId:null, titel:t,
+    autor:ME, createdAt:now(), updatedAt:now() });
+  save(); closeModal(); if(CURRENT==="essensplan") RENDER.essensplan();
+};
+window.essenLoeschen = id => {
+  const e=DB.essensplan.find(x=>x.id===id); if(!e) return;
+  e.deleted=true; e.deletedAt=now(); e.updatedAt=now();
+  save(); RENDER.essensplan();
+};
+// Alle Zutaten der geplanten Rezepte dieser Woche einsammeln -> Auswahl -> Einkaufs-Entwurf
+window.wochenEinkauf = () => {
+  const tage=essenWochenTage(ESSEN_WOCHE);
+  const zutaten=[];   // {tx, rezept}
+  const gesehen=new Set();
+  tage.forEach(d=>essenAm(d).forEach(e=>{
+    if(!e.rezeptId) return;
+    const r=DB.rezepte.find(x=>x.id===e.rezeptId && !x.deleted); if(!r) return;
+    (r.zutaten||[]).forEach(z=>{
+      const k=z.trim().toLowerCase(); if(!k || gesehen.has(k)) return;
+      gesehen.add(k); zutaten.push({tx:z, rezept:r.titel});
+    });
+  }));
+  if(!zutaten.length){ alert("Für diese Woche sind keine Rezepte mit Zutaten geplant."); return; }
+  window._wZutaten=zutaten;
+  window._wSel=new Set(zutaten.map((_,i)=>i));
+  openSheet(`<h3>Zutaten der Woche</h3>
+    <div class="ml">Doppelte Zutaten sind bereits zusammengefasst. Abwählen, was ihr schon habt – der Rest kommt in deine Einkaufsliste (Entwurf).</div>
+    <div>${zutaten.map((z,i)=>`
+      <div class="row" style="margin-bottom:6px" onclick="toggleWZ(${i})">
+        <div class="cb on" id="wzcb_${i}">✓</div>
+        <div class="tx">${esc(z.tx)}<div class="meta">${esc(z.rezept)}</div></div></div>`).join("")}</div>
+    <button class="btn" onclick="commitWochenZutaten()">Zur Einkaufsliste hinzufügen</button>`);
+};
+window.toggleWZ = i => {
+  const cb=document.getElementById("wzcb_"+i);
+  if(window._wSel.has(i)){ window._wSel.delete(i); cb.classList.remove("on"); cb.textContent=""; }
+  else { window._wSel.add(i); cb.classList.add("on"); cb.textContent="✓"; }
+};
+window.commitWochenZutaten = () => {
+  let liste = DB.listen.find(l=>l.status==="entwurf" && l.ersteller===ME && !l.deleted);
+  if(!liste){ liste={id:uid(),status:"entwurf",ersteller:ME,empfaenger:[],artikel:[],createdAt:now(),updatedAt:now()}; DB.listen.push(liste); }
+  let n=0;
+  (window._wZutaten||[]).forEach((z,i)=>{
+    if(!window._wSel.has(i)) return;
+    // Bereits vorhandene, noch offene Artikel nicht doppelt aufnehmen
+    if(aktiv(liste.artikel).some(a=>!a.d && a.tx.toLowerCase()===z.tx.trim().toLowerCase())) return;
+    liste.artikel.push({id:uid(),tx:z.tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()});
+    n++; zaehleArtikel(z.tx); });
+  liste.updatedAt=now(); AKT_LISTE=liste.id; save(); closeModal();
+  alert(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
+  open_("einkauf");
+};
+
+// ============================================================
 //  OneDrive-Synchronisation (Microsoft Graph, PKCE)
 // ============================================================
 window.Sync = (() => {
@@ -3407,8 +3877,8 @@ window.Sync = (() => {
   const SCOPES = ["Files.ReadWrite", "User.Read"];
   const FOLDER = "FamilienApp";
   const GRAPH = "https://graph.microsoft.com/v1.0";
-  const LISTEN = ["todos","todoListen","wiederkehrend","reparaturen","urlaub","ideen","keller","listen","rezepte","nachrichten"];
-  const OBJEKTE = ["nutzer","nutzerRollen","einkaufStamm","ideenKategorien","wohnmobil","wohnmobilCheck"];
+  const LISTEN = ["todos","todoListen","wiederkehrend","reparaturen","urlaub","ideen","keller","listen","rezepte","nachrichten","essensplan","termine"];
+  const OBJEKTE = ["nutzer","nutzerRollen","einkaufStamm","ideenKategorien","wohnmobil","wohnmobilCheck","empfaengerStandard"];
   let app=null, account=null, saveTimer=null, busy=false, online=false, pollTimer=null, _lastSync=null;
 
   function setStatus(t,ok){ const e=document.getElementById("syncTxt"); if(e)e.textContent=t;
@@ -3456,18 +3926,45 @@ window.Sync = (() => {
   async function token(){ if(!app||!account)throw new Error("nicht angemeldet");
     try{ return (await app.acquireTokenSilent({scopes:SCOPES,account})).accessToken; }
     catch(e){ const r=await app.acquireTokenPopup({scopes:SCOPES}); account=r.account; return r.accessToken; } }
+  // ETag der zuletzt gelesenen/geschriebenen Fassung. Grundlage fuer den
+  // Konfliktschutz (If-Match) und fuer die Pruefung, ob sich fern etwas geaendert hat.
+  let _etag = null;
   async function readFile(name){ const t=await token();
     const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/${name}:/content`,{headers:{Authorization:"Bearer "+t}});
-    if(r.status===404)return null; if(!r.ok)throw new Error("Lesen "+r.status);
+    if(r.status===404){ _etag=null; return null; }
+    if(!r.ok)throw new Error("Lesen "+r.status);
+    _etag = r.headers.get("ETag") || null;
     try{ return JSON.parse(await r.text()); }catch{ return null; } }
   async function writeFile(name,data){ const t=await token();
-    const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/${name}:/content`,{method:"PUT",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify(data)});
-    if(!r.ok)throw new Error("Schreiben "+r.status); return true; }
+    const h={Authorization:"Bearer "+t,"Content-Type":"application/json"};
+    // Nur schreiben, wenn die Datei seit dem Lesen unveraendert ist -> verhindert
+    // verlorene Aenderungen (Lost Update) bei gleichzeitigem Zugriff mehrerer Geraete.
+    if(_etag) h["If-Match"]=_etag;
+    const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/${name}:/content`,{method:"PUT",headers:h,body:JSON.stringify(data)});
+    if(r.status===412 || r.status===409){ _etag=null; throw new Error("KONFLIKT"); }
+    if(!r.ok)throw new Error("Schreiben "+r.status);
+    _etag = r.headers.get("ETag") || null;
+    return true; }
+  // Metadaten statt Inhalt lesen (wenige hundert Byte statt der kompletten Datei).
+  // Liefert true, wenn sich der Fernstand seit dem letzten Abgleich geaendert hat.
+  async function fernGeaendert(){
+    if(!_etag) return true;
+    try{
+      const t=await token();
+      const r=await fetch(`${GRAPH}/me/drive/root:/${FOLDER}/daten.json`,{headers:{Authorization:"Bearer "+t}});
+      if(!r.ok) return true;
+      const meta=await r.json();
+      return (meta.eTag||meta.cTag||"") !== _etag;
+    }catch(e){ return true; }
+  }
   function mergeListe(lokal=[],fern=[]){ const m=new Map();
     for(const e of lokal)if(e&&e.id)m.set(e.id,e);
     for(const e of fern){ if(!e||!e.id)continue; const d=m.get(e.id);
       if(!d||new Date(e.updatedAt||0)>new Date(d.updatedAt||0))m.set(e.id,e); }
-    return [...m.values()].filter(e=>!e.deleted); }
+    // Tombstones (deleted) BEHALTEN, sonst kehren gelöschte Einträge beim Sync von anderen
+    // Geräten zurück und der Papierkorb wäre nach jedem Abgleich leer.
+    // Nur sehr alte Tombstones (>30 Tage) werden endgültig entfernt.
+    return [...m.values()].filter(e=>!(e.deleted && (e.deletedAt||e.updatedAt) && (Date.now()-new Date(e.deletedAt||e.updatedAt).getTime())>30*86400000)); }
   // POI-Listen einer Stadt eintragsweise zusammenführen (id-basiert, sonst nach Name).
   // Bei gleicher id gewinnt der zuletzt geänderte Eintrag (Last-Write-Wins über updatedAt).
   function mergePois(lokal=[],fern=[]){
@@ -3514,15 +4011,29 @@ window.Sync = (() => {
           }
         }
       });
-      base.staedte=[...cityMap.values()];
+      // Gelöschte Städte bleiben als Tombstone erhalten, damit die Löschung propagiert.
+      base.staedte=[...cityMap.values()].filter(c=>
+        !(c.deleted && c.deletedAt && (Date.now()-new Date(c.deletedAt).getTime())>30*86400000));
       // Packliste eintragsweise
       base.packliste = mergePois(lr.packliste||[], fr.packliste||[]);
       m.set(fr.id, base);
     }
-    return [...m.values()].filter(r=>!r.deleted);
+    // Reise-Tombstones behalten (Löschung propagiert, Papierkorb funktioniert), >30 Tage endgültig weg
+    return [...m.values()].filter(r=>!(r.deleted && (r.deletedAt||r.updatedAt) && (Date.now()-new Date(r.deletedAt||r.updatedAt).getTime())>30*86400000));
   }
-  async function fullSync(){ if(!online||busy)return; busy=true; setStatus("Synchronisiere…",true);
+  // Serialisierter Stand des letzten Schreibvorgangs – verhindert unnoetige Uploads.
+  let _letzterUpload = null;
+  // Lokale Aenderung seit dem letzten Abgleich? Wird von scheduleSave() gesetzt.
+  let _lokalGeaendert = false;
+
+  async function fullSync(wiederholung){ if(!online||busy)return; busy=true;
     try{
+      // Ruhezustand: weder lokal noch fern etwas geaendert -> nichts zu tun.
+      // Spart im Regelfall die vollstaendige Uebertragung der Datei.
+      if(!_lokalGeaendert && !wiederholung && !(await fernGeaendert())){
+        setStatus("Verbunden",true); busy=false; return;
+      }
+      setStatus("Synchronisiere…",true);
       // Vor dem Abgleich merken, welche Nachrichten ich schon kenne
       const bekannteNachrichten = new Set((DB.nachrichten||[]).map(n=>n.id));
       const fern=(await readFile("daten.json"))||{};
@@ -3532,6 +4043,14 @@ window.Sync = (() => {
       }
       if(fern._sync && new Date(fern._sync)>new Date(DB._sync||0))
         for(const k of OBJEKTE) if(fern[k]!==undefined) DB[k]=fern[k];
+      // Artikelzaehler: Last-Write-Wins waere falsch – Zaehler muessen zusammengefuehrt
+      // werden, sonst erreicht kein Artikel je die Schwelle fuer die Schnellauswahl.
+      if(fern.artikelZaehler){
+        DB.artikelZaehler = DB.artikelZaehler || {};
+        Object.entries(fern.artikelZaehler).forEach(([k,v])=>{
+          DB.artikelZaehler[k] = Math.max(DB.artikelZaehler[k]||0, v||0);
+        });
+      }
       // Neu eingegangene, für mich bestimmte ungelesene Nachrichten -> Handy-Benachrichtigung
       try{
         const neue = (DB.nachrichten||[]).filter(n=>
@@ -3543,13 +4062,37 @@ window.Sync = (() => {
         neue.forEach(n=> handyBenachrichtigung("Familie Nadig", n.text));
       }catch(e){}
       localStorage.setItem(KEY,JSON.stringify(DB));
-      await writeFile("daten.json", DB);
+      // Unbekannte Schluessel des Fernstands erhalten. Ohne das wuerde ein Geraet
+      // mit aelterer App-Version Module, die es nicht kennt (z.B. Essensplan),
+      // beim Zurueckschreiben aus der gemeinsamen Datei entfernen.
+      const bekannt = new Set([...LISTEN, ...OBJEKTE, "_sync", "artikelZaehler", "_minVersion"]);
+      const zuSchreiben = { ...DB };
+      Object.keys(fern).forEach(k=>{
+        if(!bekannt.has(k) && zuSchreiben[k]===undefined) zuSchreiben[k]=fern[k];
+      });
+      // Mindestversion mitfuehren: aeltere Geraete erkennen daran, dass sie nicht
+      // schreiben duerfen, bis sie aktualisiert sind.
+      zuSchreiben._minVersion = APP_VERSION;
+      const serialisiert = JSON.stringify(zuSchreiben);
+      if(serialisiert !== _letzterUpload){
+        await writeFile("daten.json", zuSchreiben);
+        _letzterUpload = serialisiert;
+      }
+      _lokalGeaendert = false;
       _lastSync = new Date();
       setStatus("Verbunden",true);
       if(CURRENT&&RENDER[CURRENT]&&!DETAIL_OPEN)RENDER[CURRENT](); else if(ME&&!CURRENT)renderHome();
-    }catch(e){ console.warn("Sync:",e); setStatus("Sync-Fehler",false); }
+    }catch(e){
+      if(e && e.message==="KONFLIKT" && !wiederholung){
+        // Ein anderes Geraet war schneller: neu lesen, erneut zusammenfuehren, dann schreiben.
+        console.info("Sync-Konflikt – erneuter Versuch");
+        busy=false; return fullSync(true);
+      }
+      console.warn("Sync:",e); setStatus("Sync-Fehler",false);
+    }
     finally{ busy=false; } }
-  function scheduleSave(){ if(!online)return; clearTimeout(saveTimer); setStatus("Speichere…",true); saveTimer=setTimeout(()=>fullSync(),1200); }
+  function scheduleSave(){ _lokalGeaendert=true; if(!online)return;
+    clearTimeout(saveTimer); setStatus("Speichere…",true); saveTimer=setTimeout(()=>fullSync(),1200); }
   function startPolling(){ clearInterval(pollTimer); pollTimer=setInterval(()=>{if(!busy)fullSync();},20000);
     document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&online&&!busy)fullSync(); }); }
   return { start, login, logout, scheduleSave, fullSync, isOnline:()=>online,
