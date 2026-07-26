@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Familie Nadig">
@@ -15,22 +15,57 @@
 /* QRCode.js v1.0.0 (MIT, Sangmin Shim) – eingebettet für Offline-Betrieb */
 var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
 </script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script>
-// Fallback: Falls der Microsoft-Server die MSAL-Bibliothek nicht geliefert hat,
-// von einem zweiten CDN (jsdelivr) nachladen. Synchron per document.write, damit
-// sie vor dem App-Start bereitsteht.
-if (typeof msal === "undefined") {
-  document.write('<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"><\/script>');
-}
+// MSAL wird NICHT mehr blockierend geladen. Die App startet sofort aus dem lokalen
+// Bestand; die Anmeldebibliothek kommt asynchron nach (mit CDN-Fallback).
+// Frueher: <script src=...> + document.write-Fallback -> blockierte den Seitenaufbau
+// und wurde von Chrome bei langsamer Verbindung ausgerechnet dann unterdrueckt,
+// wenn der Fallback gebraucht wurde.
+window.ladeSkript = function(src){
+  return new Promise(function(res, rej){
+    var s = document.createElement("script");
+    s.src = src; s.async = true;
+    s.onload = function(){ res(true); };
+    s.onerror = function(){ rej(new Error("Laden fehlgeschlagen: " + src)); };
+    document.head.appendChild(s);
+  });
+};
+window.ladeMsal = (function(){
+  var laeuft = null;
+  return function(){
+    if (window.msal) return Promise.resolve(true);
+    return laeuft || (laeuft = (async function(){
+      var quellen = [
+        "https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js",
+        "https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"
+      ];
+      for (var i = 0; i < quellen.length; i++) {
+        try { await window.ladeSkript(quellen[i]); if (window.msal) return true; }
+        catch (e) { /* naechste Quelle versuchen */ }
+      }
+      laeuft = null;   // erneuter Versuch bei spaeterem Anmeldeklick moeglich
+      return false;
+    })());
+  };
+})();
 </script>
 <style>
 :root{
-  --bg:#eef3fb; --surface:#ffffff; --ink:#172033; --ink2:#647089;
+  /* --ink2 und --warm wurden abgedunkelt: die alten Werte (#647089 / #d97706)
+     erreichten auf weissem Grund nur ~4,3:1 bzw. ~3,1:1 und verfehlten damit
+     die von WCAG 1.4.3 (AA) geforderten 4,5:1 fuer kleine Schrift. */
+  --bg:#eef3fb; --surface:#ffffff; --ink:#172033; --ink2:#5a6478;
   --line:#dde5f2; --accent:#1d4ed8; --accent-2:#2563eb; --accent-soft:#dfe9fd;
-  --warm:#d97706; --warm-soft:#fef0dc; --ok:#1d8a52; --ok-soft:#dcf2e6;
-  --danger:#dc2626; --r:16px;
+  --warm:#b45309; --warm-soft:#fef0dc; --ok:#15803d; --ok-soft:#dcf2e6;
+  --danger:#b91c1c; --r:16px;
   --shadow:0 1px 3px rgba(23,32,51,.06),0 8px 22px rgba(29,78,216,.07);
+}
+/* Nutzer, die im Betriebssystem reduzierte Bewegung eingestellt haben,
+   bekommen keine Animationen (WCAG 2.3.3). */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
 @media(prefers-color-scheme:dark){
   :root{--bg:#0e1626;--surface:#16203400;--surface:#172034;--ink:#e8edf7;--ink2:#8b97b0;
@@ -388,6 +423,106 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 /* ---- Essensplan ---- */
 .essen-tag{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px;box-shadow:var(--shadow)}
 .essen-tag.heute{border-color:var(--accent);border-width:2px}
+
+/* ============================================================
+   Barrierefreiheit
+   ============================================================ */
+/* Elemente, die von <div>/<span> auf <button> umgestellt wurden, brauchen
+   ein Zuruecksetzen der Browser-Standardstile. */
+.sync,.me,.gsuche-x{font:inherit;color:inherit;background:none;border:0;
+  padding:0;text-align:inherit;cursor:pointer}
+.sync{margin-top:2px}
+.sync.offline .dot{background:var(--warm);animation:none}
+
+/* ============================================================
+   Tagesübersicht auf dem Startbildschirm
+   ============================================================ */
+.heute{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 14px 12px;margin:0 16px 12px;box-shadow:var(--shadow)}
+.heute-kopf{display:flex;align-items:baseline;justify-content:space-between;
+  gap:10px;margin-bottom:10px}
+.heute-kopf h2{font-size:17px;font-weight:700;margin:0;color:var(--ink)}
+.heute-datum{font-size:12.5px;color:var(--ink2)}
+.heute-zeile{display:flex;align-items:center;gap:9px;width:100%;
+  background:none;border:0;font:inherit;color:inherit;text-align:left;
+  padding:9px 4px;min-height:44px;cursor:pointer;border-radius:9px}
+.heute-zeile+.heute-zeile{border-top:1px solid var(--line)}
+.heute-zeile:hover{background:var(--accent-soft)}
+.hz-punkt{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hz-zeit{font-size:12.5px;color:var(--ink2);min-width:38px;font-variant-numeric:tabular-nums}
+.hz-titel{flex:1;min-width:0;font-size:14.5px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.hz-typ{font-size:11.5px;color:var(--ink2);flex-shrink:0}
+.heute-leer{font-size:14px;color:var(--ink2);padding:6px 4px 10px}
+.heute-mehr,.heute-offen{display:block;width:100%;background:none;border:0;
+  font:inherit;font-size:13.5px;color:var(--accent);font-weight:600;
+  text-align:left;padding:10px 4px;min-height:44px;cursor:pointer}
+.heute-offen{border-top:1px solid var(--line)}
+.qa-reihe{display:flex;gap:8px;margin-top:10px;padding-top:11px;
+  border-top:1px solid var(--line)}
+.qa{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;
+  background:var(--accent-soft);border:0;border-radius:12px;padding:11px 6px;
+  min-height:64px;font:inherit;font-size:12.5px;font-weight:600;
+  color:var(--accent);cursor:pointer}
+.qa .i{width:20px;height:20px}
+.qa:hover{background:#cfe0fc}
+
+/* Modulliste: aufklappbar statt dauerhaft sichtbar */
+.bereiche{margin:4px 16px 0}
+.bereiche>summary{display:flex;align-items:center;justify-content:space-between;
+  list-style:none;cursor:pointer;padding:13px 2px;min-height:44px;
+  font-size:14.5px;font-weight:650;color:var(--ink2)}
+.bereiche>summary::-webkit-details-marker{display:none}
+.bereiche>summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+.bereiche .chev{transition:transform var(--zeit-normal,200ms) ease;font-size:13px}
+.bereiche[open] .chev{transform:rotate(180deg)}
+.bereiche .grid{margin:0 0 8px}
+@media(prefers-color-scheme:dark){.qa:hover{background:#25406e}}
+.sync.offline{color:var(--warm)}
+/* Sichtbarer Fokusring fuer Tastatur- und Screenreader-Bedienung (WCAG 2.4.7).
+   :focus-visible zeigt ihn nur bei Tastaturnutzung, nicht bei Mausklick. */
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:5px}
+.gate .person:focus-visible,.tile:focus-visible{outline-offset:3px}
+
+/* Mindestgroesse fuer Beruehrungsziele: 44x44 px (WCAG 2.5.8).
+   Negativer Aussenabstand vergroessert die Trefferflaeche, ohne das Layout
+   zu veraendern. Betrifft vor allem Loeschkreuze - dort sind Fehlklicks teuer. */
+.row .del,.card .cdel,.idea .cdel,.stop .sdel,.poi .pdel,.tag-zeile .tz-del,
+.gsuche-x,.city .cdel,.subitem .rm,.itemrow .rm{
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;
+  justify-content:center;margin:-10px;padding:10px;box-sizing:border-box}
+.res-toggle button,.tag-add button{min-height:32px;padding-inline:12px}
+
+/* Nur fuer Screenreader sichtbarer Text */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Feldbezogene Fehlermeldung in Formularen */
+.feld-fehler{color:var(--danger);font-size:12.5px;margin-top:5px;font-weight:600}
+.fld input[aria-invalid="true"],.fld textarea[aria-invalid="true"],
+.fld select[aria-invalid="true"]{border-color:var(--danger)}
+
+/* ============================================================
+   Toast: nicht blockierende Rueckmeldung mit Rueckgaengig-Funktion
+   (ersetzt blockierende alert()/confirm()-Dialoge)
+   ============================================================ */
+.toast-halter{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;
+  display:flex;flex-direction:column;gap:8px;align-items:center;
+  width:max-content;max-width:92vw;pointer-events:none}
+.toast{background:var(--ink);color:#fff;border-radius:13px;
+  padding:12px 16px;display:flex;gap:16px;align-items:center;
+  font-size:14px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.28);
+  pointer-events:auto;animation:toast-auf .18s ease-out}
+@media(prefers-color-scheme:dark){.toast{background:#2b3852}}
+.toast.weg{opacity:0;transition:opacity .35s}
+.toast-tx{flex:1;min-width:0}
+.toast-btn{background:none;border:none;color:#8ab4ff;font-weight:700;
+  font-size:14px;cursor:pointer;padding:8px;margin:-8px;flex-shrink:0;
+  font-family:inherit;white-space:nowrap}
+.toast-btn:focus-visible{outline:2px solid #8ab4ff;outline-offset:1px}
+@keyframes toast-auf{from{opacity:0;transform:translateY(14px)}
+                     to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -405,28 +540,33 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
     <div class="topbar">
       <div class="ti-wrap">
         <h1>Familie Nadig</h1>
-        <div class="sync" onclick="syncTap()"><span class="dot"></span><span id="syncTxt">Verbinde…</span> <span id="verTxt" style="opacity:.6;margin-left:4px"></span></div>
+        <button type="button" class="sync" onclick="syncTap()" aria-label="Synchronisierung"><span class="dot" aria-hidden="true"></span><span id="syncTxt" role="status" aria-live="polite">Verbinde…</span> <span id="verTxt" style="opacity:.6;margin-left:4px"></span></button>
       </div>
-      <div class="me" onclick="meMenu()">
-        <div class="av" id="meAv">?</div>
-      </div>
+      <button type="button" class="me" onclick="meMenu()" aria-label="Angemeldeter Nutzer, Menü öffnen">
+        <div class="av" id="meAv" aria-hidden="true">?</div>
+      </button>
     </div>
     <div class="gsuche-wrap"><div class="gsuche">
       <span class="gsuche-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
-      <input id="gsuche" placeholder="Alles durchsuchen…" oninput="globalSuche(this.value)" autocomplete="off">
-      <span id="gsuche-x" class="gsuche-x" style="display:none" onclick="globalSucheClear()">×</span>
+      <label for="gsuche" class="sr-only">Alle Bereiche durchsuchen</label>
+      <input id="gsuche" type="search" placeholder="Alles durchsuchen…" oninput="globalSuche(this.value)" autocomplete="off">
+      <button type="button" id="gsuche-x" class="gsuche-x" style="display:none" onclick="globalSucheClear()" aria-label="Suche zurücksetzen">×</button>
     </div></div>
     <div id="gsuche-ergebnis"></div>
     <div id="countdownSlot"></div>
-    <div class="grid" id="tiles"></div>
+    <div id="heuteSlot"></div>
     <div id="fuerDichSlot"></div>
     <div id="nachrichtenSlot"></div>
+    <details class="bereiche" id="bereiche">
+      <summary><span>Alle Bereiche</span><span class="chev" aria-hidden="true">&#8964;</span></summary>
+      <div class="grid" id="tiles"></div>
+    </details>
   </div>
 
   <!-- DETAIL -->
   <div class="view" id="view">
     <div class="vhead">
-      <button class="back" onclick="goBack()">‹</button>
+      <button class="back" onclick="goBack()" aria-label="Zurück">‹</button>
       <div style="flex:1">
         <h2 id="vtitle"></h2>
         <div class="sub" id="vsub"></div>
@@ -439,23 +579,27 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 
 <!-- ADD BAR (einfache Listen) -->
 <div class="addbar" id="addbar" style="display:none">
-  <input id="addinput" placeholder="Hinzufügen…" enterkeyhint="done">
-  <button class="addbtn" onclick="addCurrent()">+</button>
+  <label for="addinput" class="sr-only">Neuer Eintrag</label>
+  <input id="addinput" placeholder="Hinzufügen…" enterkeyhint="done" autocomplete="off">
+  <button class="addbtn" onclick="addCurrent()" aria-label="Hinzufügen">+</button>
 </div>
 
 <!-- FAB (Karten-Module mit Formular) -->
-<button class="fab" id="fab" style="display:none" onclick="fabAction()">+</button>
+<button class="fab" id="fab" style="display:none" onclick="fabAction()" aria-label="Neu anlegen">+</button>
 
 <!-- MODAL -->
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="sheet" id="sheet"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Eingabe"></div>
 </div>
+
+<!-- TOAST: nicht blockierende Hinweise mit Rückgängig-Funktion -->
+<div class="toast-halter" id="toastHalter" aria-live="polite" aria-atomic="false"></div>
 
 <!-- KARTE (Reise-Kartenansicht, Vollbild) -->
 <div id="kartePanel">
   <div class="karte-top">
     <div class="karte-titel" id="karteTitel">Karte</div>
-    <button class="back" onclick="karteSchliessen()">×</button>
+    <button class="back" onclick="karteSchliessen()" aria-label="Karte schließen">×</button>
   </div>
   <div id="karteMap"></div>
   <div class="karte-hint" id="karteHint">Karte: © OpenStreetMap</div>
@@ -468,7 +612,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.5.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -711,6 +855,79 @@ function downscale(dataUrl, cb){
 }
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ============================================================
+//  Sichere Links
+// ============================================================
+// esc() verhindert das Ausbrechen aus dem href-Attribut, filtert aber keine
+// gefaehrlichen Schemata. Ein ueber den Sync eingespielter Link "javascript:…"
+// wuerde sonst beim Antippen Code im App-Kontext ausfuehren – mit Zugriff auf
+// die OneDrive-Anmeldedaten. Deshalb: Positivliste erlaubter Schemata.
+function sichereUrl(u){
+  const roh = String(u==null?"":u).trim();
+  if(!roh) return "";
+  try{
+    const url = new URL(roh, location.href);
+    return ["http:","https:","mailto:","tel:"].includes(url.protocol) ? url.href : "";
+  }catch(e){ return ""; }
+}
+
+// Zeitpunkt der letzten Nutzeraktion – steuert das adaptive Abgleichsintervall.
+let _letzteAktion = Date.now();
+["pointerdown","keydown"].forEach(ev =>
+  document.addEventListener(ev, () => { _letzteAktion = Date.now(); },
+    { passive:true, capture:true }));
+
+// ============================================================
+//  Fehlerprotokoll – Fehler verschwinden nicht mehr spurlos
+// ============================================================
+const Fehlerlog = {
+  puffer: [],
+  erfasse(kontext, fehler){
+    const e = { zeit: now(), kontext,
+      nachricht: String((fehler && fehler.message) || fehler || "unbekannt"),
+      nutzer: (typeof ME!=="undefined" ? ME : null), version: APP_VERSION };
+    this.puffer.push(e);
+    if(this.puffer.length > 50) this.puffer.shift();
+    try{ localStorage.setItem("familienapp.fehler", JSON.stringify(this.puffer)); }catch(x){}
+    console.warn("[" + kontext + "]", fehler);
+  },
+  laden(){
+    try{ this.puffer = JSON.parse(localStorage.getItem("familienapp.fehler")) || []; }
+    catch(e){ this.puffer = []; }
+    return this.puffer;
+  },
+  leeren(){ this.puffer = []; try{ localStorage.removeItem("familienapp.fehler"); }catch(e){} }
+};
+Fehlerlog.laden();
+window.addEventListener("error", e => Fehlerlog.erfasse("window", e.message||e.error));
+window.addEventListener("unhandledrejection", e => Fehlerlog.erfasse("promise", e.reason));
+
+// ============================================================
+//  Toast – nicht blockierende Rueckmeldung statt alert()/confirm()
+// ============================================================
+// Loeschvorgaenge fragen nicht mehr nach, sondern lassen sich rueckgaengig machen.
+// Das ist einen Klick kuerzer UND sicherer, weil umkehrbar.
+window.toast = (text, aktion) => {
+  const halter = document.getElementById("toastHalter");
+  if(!halter){ console.info(text); return; }
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span class="toast-tx">${esc(text)}</span>` +
+    (aktion ? `<button type="button" class="toast-btn">${esc(aktion.label)}</button>` : "");
+  if(aktion){
+    el.querySelector(".toast-btn").addEventListener("click", () => {
+      try{ aktion.fn(); }catch(e){ Fehlerlog.erfasse("toast-aktion", e); }
+      el.remove();
+    });
+  }
+  halter.appendChild(el);
+  const dauer = aktion ? 6000 : 3600;
+  setTimeout(()=>{ el.classList.add("weg"); }, dauer);
+  setTimeout(()=>{ el.remove(); }, dauer + 400);
+  // Nie mehr als drei Meldungen gleichzeitig
+  while(halter.children.length > 3) halter.firstElementChild.remove();
+};
 function empty(ic,txt){ return `<div class="empty"><div class="ei">${ICON[ic]||""}</div>${txt}</div>`; }
 function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr); }
 // Liefert ein Maps-Routen-Ziel ("lat,lon" bevorzugt, sonst Name) für einen Ort.
@@ -732,7 +949,9 @@ function mapsRouteLink(a, b, stops){
 function cleanLink(text){
   if(!text) return "";
   const m = String(text).match(/https?:\/\/\S+/);
-  return m ? m[0] : "";
+  // sichereUrl() prueft zusaetzlich das Schema, damit kein "javascript:"-Link
+  // ueber den Sync in die Oberflaeche gelangen kann.
+  return m ? sichereUrl(m[0]) : "";
 }
 // Liefert das beste Ziel zum Öffnen: echter Link bevorzugt, sonst Maps-Suche aus Adresse/Koordinaten/Name.
 function openTarget(obj){
@@ -845,27 +1064,136 @@ window.meMenu = () => {
     <div class="ml">Beiträge wie Ideen oder Reisen werden mit deinem Namen markiert. Der Nutzerwechsel ist mit einem PIN geschützt.</div>
     <button class="btn ghost" onclick="switchUser()">Nutzer wechseln</button>`);
 };
-const MASTER_PIN = "220482";
+// ============================================================
+//  PIN-Schutz fuer den Nutzerwechsel
+// ============================================================
+// Frueher stand der PIN im Klartext im Quelltext – und der ist ueber GitHub
+// Pages oeffentlich abrufbar. Jetzt liegt nur noch ein PBKDF2-Hash im Code.
+// PBKDF2 mit 250.000 Runden macht das Durchprobieren aller sechsstelligen
+// Zahlen zwar nicht unmoeglich, aber teuer genug, um es unattraktiv zu machen.
+// Ein geaenderter PIN wird als eigener Hash in DB.sicherheit abgelegt und
+// ueber den Sync auf alle Geraete verteilt.
+const PIN_SALT       = "familie-nadig-2026";
+const PIN_RUNDEN     = 250000;
+const PIN_HASH_START = "bc47450a2dc029cd90df67522b893a1da85c8de5bbeea893663323c536d3cf7d";
+
+async function pinHash(pin, salt, runden){
+  // crypto.subtle gibt es nur in sicheren Kontexten (HTTPS, App). Beim Oeffnen
+  // der Datei ueber file:// fehlt es – dann waere der Nutzerwechsel blockiert,
+  // ohne dass der Grund erkennbar ist.
+  if(!(window.crypto && window.crypto.subtle))
+    throw new Error("Die PIN-Prüfung benötigt eine sichere Verbindung (https). Bitte die App über ihre Web-Adresse öffnen.");
+  const enc = new TextEncoder();
+  const material = await crypto.subtle.importKey(
+    "raw", enc.encode(String(pin)), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name:"PBKDF2", salt: enc.encode(salt), iterations: runden, hash:"SHA-256" },
+    material, 256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+// Vergleich ohne fruehzeitigen Abbruch (kein Rueckschluss ueber die Laufzeit)
+function gleichKonstant(a, b){
+  if(a.length !== b.length) return false;
+  let d = 0;
+  for(let i=0; i<a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function pinStimmt(eingabe){
+  const s = DB.sicherheit;
+  if(s && s.pinHash && s.salt && s.runden){
+    return gleichKonstant(await pinHash(eingabe, s.salt, s.runden), s.pinHash);
+  }
+  return gleichKonstant(await pinHash(eingabe, PIN_SALT, PIN_RUNDEN), PIN_HASH_START);
+}
+// Bremse gegen Durchprobieren: ab dem dritten Fehlversuch wird gewartet.
+let _pinFehlversuche = 0;
+
 window.switchUser = () => {
   openSheet(`<h3>Nutzer wechseln</h3>
     <div class="ml">Bitte PIN eingeben, um den Nutzer zu wechseln.</div>
-    <div class="fld"><input id="pinInput" type="password" inputmode="numeric" placeholder="PIN" enterkeyhint="done"
+    <div class="fld"><label for="pinInput" class="sr-only">PIN</label>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="current-password"
+      placeholder="PIN" enterkeyhint="done" aria-describedby="pinFehler"
       style="text-align:center;letter-spacing:4px;font-size:18px"></div>
-    <div id="pinFehler" style="color:var(--danger);font-size:13px;text-align:center;min-height:18px;margin-bottom:8px"></div>
-    <button class="btn" onclick="pruefePin()">Bestätigen</button>`);
+    <div id="pinFehler" role="alert" style="color:var(--danger);font-size:13px;text-align:center;min-height:18px;margin-bottom:8px"></div>
+    <button class="btn" id="pinBtn" onclick="pruefePin()">Bestätigen</button>
+    <button class="btn ghost" onclick="pinAendernDialog()">PIN ändern</button>`);
   setTimeout(()=>{ const f=document.getElementById("pinInput"); if(f){ f.focus();
     f.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); pruefePin(); } }); } },60);
 };
-window.pruefePin = () => {
-  const v = document.getElementById("pinInput").value.trim();
-  if(v===MASTER_PIN){
+
+window.pinAendernDialog = () => {
+  openSheet(`<h3>PIN ändern</h3>
+    <div class="ml">Der neue PIN gilt sofort auf allen Geräten der Familie.</div>
+    <div class="fld"><label for="pinAlt">Bisheriger PIN</label>
+      <input id="pinAlt" type="password" inputmode="numeric" autocomplete="current-password"></div>
+    <div class="fld"><label for="pinNeu">Neuer PIN (mindestens 4 Ziffern)</label>
+      <input id="pinNeu" type="password" inputmode="numeric" autocomplete="new-password"></div>
+    <div class="fld"><label for="pinNeu2">Neuer PIN wiederholen</label>
+      <input id="pinNeu2" type="password" inputmode="numeric" autocomplete="new-password"></div>
+    <div id="pinAendernFehler" role="alert" style="color:var(--danger);font-size:13px;min-height:18px;margin-bottom:8px"></div>
+    <button class="btn" id="pinAendernBtn" onclick="pinAendernSpeichern()">Neuen PIN speichern</button>`);
+};
+
+window.pinAendernSpeichern = async () => {
+  const meld = document.getElementById("pinAendernFehler");
+  const btn  = document.getElementById("pinAendernBtn");
+  const alt  = document.getElementById("pinAlt").value.trim();
+  const neu  = document.getElementById("pinNeu").value.trim();
+  const neu2 = document.getElementById("pinNeu2").value.trim();
+  if(!/^\d{4,}$/.test(neu)){ meld.textContent = "Der neue PIN muss aus mindestens vier Ziffern bestehen."; return; }
+  if(neu !== neu2){ meld.textContent = "Die beiden Eingaben stimmen nicht überein."; return; }
+  btn.disabled = true; btn.textContent = "Prüfe…";
+  try{
+    if(!(await pinStimmt(alt))){
+      meld.textContent = "Der bisherige PIN ist falsch.";
+      btn.disabled = false; btn.textContent = "Neuen PIN speichern";
+      return;
+    }
+    const salt = [...crypto.getRandomValues(new Uint8Array(16))]
+                   .map(b=>b.toString(16).padStart(2,"0")).join("");
+    DB.sicherheit = { salt, runden: PIN_RUNDEN,
+                      pinHash: await pinHash(neu, salt, PIN_RUNDEN),
+                      geaendertAm: now(), geaendertVon: ME };
+    save();
     closeModal();
-    localStorage.removeItem("familienapp.me"); ME = null;
-    document.getElementById("gate").style.display = "flex";
-    renderGate();
-  } else {
-    document.getElementById("pinFehler").textContent = "Falscher PIN.";
-    const f=document.getElementById("pinInput"); if(f){ f.value=""; f.focus(); }
+    toast("PIN geändert – gilt auf allen Geräten.");
+  }catch(e){
+    Fehlerlog.erfasse("pinAendern", e);
+    meld.textContent = "Ändern fehlgeschlagen. Bitte erneut versuchen.";
+    btn.disabled = false; btn.textContent = "Neuen PIN speichern";
+  }
+};
+window.pruefePin = async () => {
+  const feld = document.getElementById("pinInput");
+  const meld = document.getElementById("pinFehler");
+  const btn  = document.getElementById("pinBtn");
+  const v = feld.value.trim();
+  if(btn){ btn.disabled = true; btn.textContent = "Prüfe…"; }
+  try{
+    // Ab dem dritten Fehlversuch wachsende Wartezeit (max. 8 s)
+    if(_pinFehlversuche >= 3){
+      const warte = Math.min(8000, 500 * Math.pow(2, _pinFehlversuche - 3));
+      meld.textContent = "Zu viele Fehlversuche – bitte kurz warten.";
+      await new Promise(r => setTimeout(r, warte));
+    }
+    if(await pinStimmt(v)){
+      _pinFehlversuche = 0;
+      closeModal();
+      localStorage.removeItem("familienapp.me"); ME = null;
+      document.getElementById("gate").style.display = "flex";
+      renderGate();
+      return;
+    }
+    _pinFehlversuche++;
+    meld.textContent = "Falscher PIN.";
+    if(feld){ feld.value = ""; feld.focus(); }
+  }catch(e){
+    Fehlerlog.erfasse("pruefePin", e);
+    meld.textContent = (e && e.message && /sichere Verbindung/.test(e.message))
+      ? e.message : "Prüfung fehlgeschlagen. Bitte erneut versuchen.";
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "Bestätigen"; }
   }
 };
 
@@ -886,7 +1214,8 @@ const MODULES = [
   {id:"papierkorb",  nm:"Papierkorb",     ic:ICON.trash,    count:()=>{ const n=papierkorbEintraege().filter(o=>!o.purged).length; return n? n+" Einträge":"leer"; }},
 ];
 function wmTotal(){ return DB.wohnmobil.reduce((s,k)=>s+k.pkte.length,0); }
-function kalenderCount(){ const n=kalenderEintraege().filter(e=>!e.zwischentag).filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=14;}).length; return n? n+" in 14 Tagen":"frei"; }
+function kalenderCount(){ const _b=new Date(); _b.setDate(_b.getDate()+30);
+  const n=kalenderEintraege(heuteISO(), isoLokal(_b)).filter(e=>!e.zwischentag).filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=14;}).length; return n? n+" in 14 Tagen":"frei"; }
 
 // ---- Globale Suche über alle Module ----
 window.globalSucheClear = () => { document.getElementById("gsuche").value=""; globalSuche(""); };
@@ -894,11 +1223,14 @@ window.globalSuche = q => {
   q=(q||"").trim().toLowerCase();
   const xBtn=document.getElementById("gsuche-x"); if(xBtn) xBtn.style.display=q?"block":"none";
   const slot=document.getElementById("gsuche-ergebnis");
-  const tiles=document.getElementById("tiles"), cd=document.getElementById("countdownSlot");
+  // "tiles" liegt jetzt im aufklappbaren Bereich – daher diesen ausblenden,
+  // zusaetzlich die Tagesuebersicht.
+  const tiles=document.getElementById("bereiche"), cd=document.getElementById("countdownSlot");
+  const hu=document.getElementById("heuteSlot");
   const fd=document.getElementById("fuerDichSlot"), nm=document.getElementById("nachrichtenSlot");
-  if(!q){ slot.innerHTML=""; if(tiles)tiles.style.display=""; if(cd)cd.style.display=""; if(fd)fd.style.display=""; if(nm)nm.style.display=""; return; }
+  if(!q){ slot.innerHTML=""; if(tiles)tiles.style.display=""; if(cd)cd.style.display=""; if(fd)fd.style.display=""; if(nm)nm.style.display=""; if(hu)hu.style.display=""; return; }
   // andere Bereiche ausblenden, während gesucht wird
-  if(tiles)tiles.style.display="none"; if(cd)cd.style.display="none"; if(fd)fd.style.display="none"; if(nm)nm.style.display="none";
+  if(tiles)tiles.style.display="none"; if(cd)cd.style.display="none"; if(fd)fd.style.display="none"; if(nm)nm.style.display="none"; if(hu)hu.style.display="none";
   const treffer=[];
   const add=(modul,titel,sub,ic)=>treffer.push({modul,titel,sub,ic});
   DB.todos.filter(t=>!t.deleted&&t.titel.toLowerCase().includes(q)).forEach(t=>add("todos",t.titel,"Aufgabe"+(t.done?" · erledigt":""),ICON.checkbox));
@@ -944,9 +1276,19 @@ function renderHome(){
       <div><div class="ct-tx">${d===0?"Es geht los:":"Tage bis"}</div>
       <div class="ct-nm">${esc(trip.titel||trip.ziel||"nächste Reise")}</div></div></div>`;
   } else slot.innerHTML = "";
+  // Tagesuebersicht: beantwortet "Was ist heute?" ohne Navigation und ohne Scrollen
+  renderHeute();
   // "Für dich": dringende/bald fällige offene Aufgaben der angemeldeten Person
   renderFuerDich();
   renderNachrichten();
+  // Aufklapp-Zustand der Modulliste merken
+  const bereiche = document.getElementById("bereiche");
+  if(bereiche){
+    bereiche.open = localStorage.getItem("familienapp.bereicheOffen") === "1";
+    bereiche.ontoggle = () => {
+      try{ localStorage.setItem("familienapp.bereicheOffen", bereiche.open ? "1" : "0"); }catch(e){}
+    };
+  }
   // Kacheln – auf erlaubte Module beschränken (z.B. Mama nur Einkauf)
   const erlaubt = erlaubteModule();
   const sichtbar = MODULES.filter(m=>erlaubt===null || erlaubt.includes(m.id));
@@ -961,6 +1303,97 @@ function erlaubteModule(){
   const r = DB.nutzerRollen && DB.nutzerRollen[ME];
   return (r && r.length) ? r : null;
 }
+// ============================================================
+//  Tagesübersicht – der Startbildschirm beantwortet "Was ist heute?"
+// ============================================================
+// Bis v2.3.0 zeigte der Startbildschirm zwölf gleichrangige Kacheln; die
+// eigentliche Information stand darunter und war nur nach Scrollen sichtbar.
+// Jetzt steht sie oben, die Modulliste klappt darunter auf.
+function renderHeute(){
+  const slot = document.getElementById("heuteSlot");
+  if(!slot) return;
+  const erlaubt = erlaubteModule();
+  const darf = id => erlaubt === null || erlaubt.includes(id);
+
+  const heute = heuteISO();
+  // Eine Quelle für alles: kalenderEintraege() führt Termine, Aufgaben,
+  // Reparaturen, Essensplan und Reisen bereits zusammen.
+  // Enges Fenster: nur der heutige Tag – Serien werden nur dafür berechnet.
+  const eintraege = kalenderEintraege(heute, heute)
+    .filter(e => e.datum === heute && !e.zwischentag)
+    .filter(e => darf(e.modul || "kalender"))
+    .sort((a,b) => String(a.zeit||"~").localeCompare(String(b.zeit||"~")));
+
+  const offeneHeute = DB.todos.filter(t =>
+    !t.done && !t.deleted && t.faellig && t.faellig <= heute).length;
+
+  const zeilen = eintraege.slice(0, 6).map(e => `
+    <button type="button" class="heute-zeile" onclick="open_('${esc(e.modul||"kalender")}')">
+      <span class="hz-punkt" style="background:${esc(e.farbe||"var(--accent)")}" aria-hidden="true"></span>
+      <span class="hz-zeit">${esc(e.zeit || "")}</span>
+      <span class="hz-titel">${esc(e.titel)}</span>
+      <span class="hz-typ">${esc(e.typ||"")}</span>
+    </button>`).join("");
+
+  const mehr = eintraege.length > 6
+    ? `<button type="button" class="heute-mehr" onclick="open_('kalender')">
+         ${eintraege.length - 6} weitere anzeigen</button>` : "";
+
+  const leer = `<div class="heute-leer">Für heute ist nichts eingetragen.</div>`;
+
+  // Schnellzugriff: die drei häufigsten Vorgänge, jeweils ein Tipp entfernt
+  const schnell = [
+    darf("einkauf") ? `<button type="button" class="qa" onclick="schnellEinkauf()">
+        ${ICON.cart}<span>Einkauf</span></button>` : "",
+    darf("todos") ? `<button type="button" class="qa" onclick="schnellAufgabe()">
+        ${ICON.checkbox}<span>Aufgabe</span></button>` : "",
+    darf("kalender") ? `<button type="button" class="qa" onclick="schnellTermin()">
+        ${ICON.cal}<span>Termin</span></button>` : "",
+  ].filter(Boolean).join("");
+
+  slot.innerHTML = `
+    <section class="heute" aria-labelledby="heuteTitel">
+      <div class="heute-kopf">
+        <h2 id="heuteTitel">Heute</h2>
+        <span class="heute-datum">${esc(heuteLang())}</span>
+      </div>
+      ${eintraege.length ? zeilen + mehr : leer}
+      ${offeneHeute ? `<button type="button" class="heute-offen" onclick="open_('todos')">
+          ${offeneHeute} ${offeneHeute===1?"Aufgabe ist":"Aufgaben sind"} fällig</button>` : ""}
+      ${schnell ? `<div class="qa-reihe">${schnell}</div>` : ""}
+    </section>`;
+}
+
+// Datum ausgeschrieben, z. B. "Sonntag, 26. Juli"
+function heuteLang(){
+  const d = new Date();
+  const tage = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  const monate = ["Januar","Februar","März","April","Mai","Juni","Juli",
+                  "August","September","Oktober","November","Dezember"];
+  return `${tage[d.getDay()]}, ${d.getDate()}. ${monate[d.getMonth()]}`;
+}
+
+// ---- Schnellzugriff ----
+// Springt direkt in das jeweilige Eingabefeld, statt nur das Modul zu öffnen.
+window.schnellEinkauf = () => {
+  open_("einkauf");
+  setTimeout(()=>{
+    const f = document.getElementById("addinput");
+    if(f && f.offsetParent !== null) f.focus();
+    else toast("Bitte zuerst eine Liste beginnen");
+  }, 120);
+};
+window.schnellAufgabe = () => {
+  open_("todos");
+  setTimeout(()=>{ openSheet(aufgabeEditor("todo", null));
+    setTimeout(()=>{ const f=document.getElementById("f_titel"); if(f) f.focus(); }, 60);
+  }, 100);
+};
+window.schnellTermin = () => {
+  open_("kalender");
+  setTimeout(()=>{ openTermin(heuteISO()); }, 100);
+};
+
 function renderFuerDich(){
   let slot = document.getElementById("fuerDichSlot");
   if(!slot){
@@ -1020,8 +1453,8 @@ function handyBenachrichtigung(titel, text){
 }
 // Berechtigung anfragen (über eine Nutzeraktion, z.B. im Sync-Dialog)
 window.benachrichtigungenAktivieren = (still) => {
-  if(!("Notification" in window)){ if(!still) alert("Dieses Gerät unterstützt keine Benachrichtigungen."); return; }
-  if(Notification.permission==="granted"){ if(!still) alert("Benachrichtigungen sind bereits aktiv."); return; }
+  if(!("Notification" in window)){ if(!still) toast("Dieses Gerät unterstützt keine Benachrichtigungen."); return; }
+  if(Notification.permission==="granted"){ if(!still) toast("Benachrichtigungen sind bereits aktiv."); return; }
   if(Notification.permission==="denied"){ if(!still) alert("Benachrichtigungen wurden im Browser/Gerät blockiert. Bitte in den Einstellungen für diese Seite erlauben."); return; }
   Notification.requestPermission().then(p=>{
     if(p==="granted" && !still) handyBenachrichtigung("Benachrichtigungen aktiv", "Du wirst informiert, sobald eine neue Liste da ist.");
@@ -1171,7 +1604,14 @@ function showFab(fn){ const f=document.getElementById("fab"); f.style.display="f
 window.fabAction = () => { if(window._fabFn) window._fabFn(); };
 window.addCurrent = () => {
   const inp=document.getElementById("addinput");
-  if(inp.value.trim() && window._addFn){ window._addFn(inp.value.trim()); inp.value=""; }
+  if(inp.value.trim() && window._addFn){
+    window._addFn(inp.value.trim());
+    inp.value="";
+    // Fokus behalten: mehrere Eintraege hintereinander erfassen, ohne dass
+    // sich die Bildschirmtastatur nach jedem Eintrag schliesst.
+    setTimeout(()=>{ const f=document.getElementById("addinput");
+      if(f && f.offsetParent!==null) f.focus({ preventScroll:true }); }, 0);
+  }
 };
 document.getElementById("addinput").addEventListener("keydown",e=>{if(e.key==="Enter")addCurrent();});
 
@@ -1180,11 +1620,97 @@ const modal=document.getElementById("modal"), sheet=document.getElementById("she
 window.closeModal=()=>{
   const warOffen = modal.classList.contains("active");
   modal.classList.remove("active");
+  document.removeEventListener("keydown", fokusFalle);
+  document.removeEventListener("keydown", escSchliesst);
+  // Fokus dorthin zurueckgeben, wo er vor dem Oeffnen war
+  if(warOffen && _fokusVorSheet && document.contains(_fokusVorSheet)){
+    try{ _fokusVorSheet.focus({ preventScroll:true }); }catch(e){}
+  }
+  _fokusVorSheet = null;
   // Wenn das Modal per Button/Tap geschlossen wurde (nicht über die Zurück-Taste),
   // den zugehörigen Verlaufseintrag konsumieren, damit die Zurück-Taste konsistent bleibt.
   if(warOffen && !_backBusy){ _backBusy=true; try{ history.back(); }catch(e){} setTimeout(()=>{ _backBusy=false; }, 60); }
 };
-function openSheet(html){ sheet.innerHTML='<div class="handle"></div>'+html; modal.classList.add("active"); sheet.scrollTop=0; pushNav(); }
+// ============================================================
+//  Formular-Blatt (Sheet): Beschriftungen, Fokusverwaltung, Validierung
+// ============================================================
+// Verknuepft jede <label> im Blatt automatisch mit dem zugehoerigen Feld.
+// Dadurch lesen Screenreader die Beschriftung vor und ein Tipp auf die
+// Beschriftung setzt den Fokus ins Feld – ohne dass jedes einzelne Formular
+// angefasst werden muss (WCAG 1.3.1 / 3.3.2).
+let _labelZaehler = 0;
+function verknuepfeBeschriftungen(wurzel){
+  wurzel.querySelectorAll(".fld").forEach(fld => {
+    const label = fld.querySelector("label");
+    if(!label || label.getAttribute("for")) return;
+    const feld = fld.querySelector("input,select,textarea");
+    if(!feld) return;
+    if(!feld.id) feld.id = "fld_auto_" + (++_labelZaehler);
+    label.setAttribute("for", feld.id);
+  });
+}
+// Fokus bleibt im geoeffneten Blatt (WCAG 2.4.3)
+function fokusFalle(e){
+  if(e.key !== "Tab") return;
+  const felder = sheet.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
+  if(!felder.length) return;
+  const erstes = felder[0], letztes = felder[felder.length-1];
+  if(e.shiftKey && document.activeElement === erstes){ e.preventDefault(); letztes.focus(); }
+  else if(!e.shiftKey && document.activeElement === letztes){ e.preventDefault(); erstes.focus(); }
+}
+let _fokusVorSheet = null;
+
+function openSheet(html){
+  _fokusVorSheet = document.activeElement;
+  sheet.innerHTML='<div class="handle"></div>'+html;
+  modal.classList.add("active");
+  sheet.scrollTop=0;
+  verknuepfeBeschriftungen(sheet);
+  const titel = sheet.querySelector("h3");
+  if(titel){
+    if(!titel.id) titel.id = "sheetTitel";
+    sheet.setAttribute("aria-labelledby", titel.id);
+    sheet.removeAttribute("aria-label");
+  }
+  // Fokus ins Blatt holen, ohne ein Eingabefeld zu aktivieren (sonst springt
+  // auf dem Handy sofort die Tastatur auf). Tab beginnt dadurch im Blatt.
+  sheet.setAttribute("tabindex","-1");
+  try{ sheet.focus({ preventScroll:true }); }catch(e){}
+  document.addEventListener("keydown", fokusFalle);
+  document.addEventListener("keydown", escSchliesst);
+  pushNav();
+}
+function escSchliesst(e){ if(e.key === "Escape") closeModal(); }
+
+// ============================================================
+//  Formularpruefung mit sichtbarer Rueckmeldung
+// ============================================================
+// Frueher brach das Speichern bei fehlendem Pflichtfeld kommentarlos ab –
+// fuer den Nutzer sieht das aus, als sei der Knopf kaputt.
+function pruefeFormular(regeln){
+  let ok = true, erstesFehlerFeld = null;
+  Object.keys(regeln).forEach(feldId => {
+    const el = document.getElementById(feldId);
+    if(!el) return;
+    const fehler = regeln[feldId](el.value);
+    const box = el.closest(".fld") || el.parentNode;
+    const alt = box.querySelector(".feld-fehler");
+    if(alt) alt.remove();
+    if(fehler){
+      ok = false;
+      el.setAttribute("aria-invalid","true");
+      box.insertAdjacentHTML("beforeend",
+        `<div class="feld-fehler" role="alert">${esc(fehler)}</div>`);
+      if(!erstesFehlerFeld) erstesFehlerFeld = el;
+    } else {
+      el.removeAttribute("aria-invalid");
+    }
+  });
+  if(erstesFehlerFeld) erstesFehlerFeld.focus();
+  return ok;
+}
+const pflicht = text => v => String(v||"").trim() ? null : text;
 
 // gemeinsames Formular-Builder für To-do & Reparatur
 function aufgabeEditor(typ, eintrag){
@@ -1221,7 +1747,8 @@ function renderFotoSlot(){
   }
 }
 window.saveAufgabe = (typ, id) => {
-  const titel = document.getElementById("f_titel").value.trim(); if(!titel) return;
+  if(!pruefeFormular({ f_titel: pflicht("Bitte eine Bezeichnung eingeben.") })) return;
+  const titel = document.getElementById("f_titel").value.trim();
   const prioEl = document.querySelector("#f_prio .opt.on");
   const werListe = [...document.querySelectorAll("#f_wer .w.on")].map(el=>el.dataset.v);
   const obj = {
@@ -1335,7 +1862,8 @@ function newTodoListe(){
     <button class="btn" onclick="createTodoListe()">Anlegen</button>`);
 }
 window.createTodoListe = () => {
-  const n=document.getElementById("tl_name").value.trim(); if(!n)return;
+  if(!pruefeFormular({ tl_name: pflicht("Bitte einen Listennamen eingeben.") })) return;
+  const n=document.getElementById("tl_name").value.trim();
   const l={id:uid(),name:n,punkte:[],autor:ME,createdAt:now(),updatedAt:now()};
   DB.todoListen.push(l); save(); closeModal(); openTodoListe(l.id);
 };
@@ -1378,8 +1906,12 @@ window.todoListeMenu = id => {
 };
 window.renameTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); l.name=document.getElementById("tl_rename").value.trim()||l.name; l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
 window.resetTodoListe = id => { const l=DB.todoListen.find(x=>x.id===id); aktiv(l.punkte).forEach(p=>p.d=false); l.updatedAt=now(); save(); closeModal(); openTodoListe(id); };
-window.delTodoListe = id => { if(!confirm("Liste in den Papierkorb verschieben?")) return;
-  inDenPapierkorb("todoListen", id); closeModal(); TODO_TAB="listen"; open_("todos"); };
+window.delTodoListe = id => {
+  const l = DB.todoListen.find(x=>x.id===id);
+  inDenPapierkorb("todoListen", id); closeModal(); TODO_TAB="listen"; open_("todos");
+  toast(`„${l?l.name:"Liste"}" in den Papierkorb verschoben`,
+    { label:"Rückgängig", fn:()=>{ wiederherstellen("todoListen", id); open_("todos"); } });
+};
 
 // ============================================================
 //  Wiederkehrende Aufgaben (To-do-Kalender)
@@ -1561,7 +2093,8 @@ window.wIntervallChange = () => {
   document.getElementById("w_freiWrap").style.display = v==="frei"?"block":"none";
 };
 window.saveWieder = () => {
-  const titel=document.getElementById("w_titel").value.trim(); if(!titel)return;
+  if(!pruefeFormular({ w_titel: pflicht("Bitte eine Bezeichnung eingeben.") })) return;
+  const titel=document.getElementById("w_titel").value.trim();
   const werListe=[...document.querySelectorAll("#w_wer .w.on")].map(el=>el.dataset.v);
   const letzte = document.getElementById("w_letzte").value || "";
   const obj = {
@@ -1581,8 +2114,12 @@ window.saveWieder = () => {
   else { DB.wiederkehrend.push({id:uid(), autor:ME, createdAt:now(), ...obj}); }
   save(); closeModal(); RENDER.todos();
 };
-window.delWieder = id => { if(!confirm("Wiederkehrende Aufgabe in den Papierkorb verschieben?")) return;
-  inDenPapierkorb("wiederkehrend", id); closeModal(); RENDER.todos(); };
+window.delWieder = id => {
+  const w = DB.wiederkehrend.find(x=>x.id===id);
+  inDenPapierkorb("wiederkehrend", id); closeModal(); RENDER.todos();
+  toast(`„${w?w.titel:"Aufgabe"}" in den Papierkorb verschoben`,
+    { label:"Rückgängig", fn:()=>{ wiederherstellen("wiederkehrend", id); RENDER.todos(); } });
+};
 
 // Erzeugt aus wiederkehrenden Aufgaben ein echtes To-do, sobald die Dringlichkeit "Hoch" erreicht
 function erzeugeFaelligeWiederkehrend(){
@@ -1628,7 +2165,96 @@ function erzeugeFaelligeWiederkehrend(){
 //  Kalender (Monatsansicht: To-dos, Reparaturen, Reisen, Wiederkehrendes)
 // ============================================================
 // Sammelt alle datierten Einträge als {datum, titel, typ, farbe, ref}
-function kalenderEintraege(){
+// ============================================================
+//  Serientermine
+// ============================================================
+// Serien werden NICHT als Einzeldatensätze gespeichert, sondern als Regel am
+// Termin abgelegt und zur Anzeige berechnet. Ein Geburtstag ist damit ein
+// Datensatz für alle Jahre statt einer pro Jahr – das hält die Sync-Datei klein
+// und macht Änderungen an der Serie sofort auf allen Geräten wirksam.
+//   t.serie     = { frequenz:"woechentlich"|"zweiwoechentlich"|"monatlich"|"jaehrlich", bis:"" }
+//   t.ausnahmen = ["2026-08-15", …]   einzeln entfernte Vorkommen
+//   t.geburtsjahr = 1982              nur bei Geburtstagen, für die Altersanzeige
+const SERIE_LABEL = {
+  woechentlich:      "wöchentlich",
+  zweiwoechentlich:  "alle 2 Wochen",
+  monatlich:         "monatlich",
+  jaehrlich:         "jährlich"
+};
+
+// Addiert Monate und begrenzt den Tag auf das Monatsende
+// (31.01. + 1 Monat = 28.02., nicht 03.03.).
+function monatePlus(datum, anzahl){
+  const tag = datum.getDate();
+  const d = new Date(datum.getFullYear(), datum.getMonth() + anzahl, 1);
+  const letzter = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(tag, letzter));
+  return d;
+}
+
+// Liefert alle Vorkommen einer Terminserie innerhalb des Fensters [von, bis].
+function serieVorkommen(t, vonISO, bisISO){
+  const start = new Date(t.datum + "T00:00:00");
+  const fensterVon = new Date(vonISO + "T00:00:00");
+  const fensterBis = new Date(bisISO + "T00:00:00");
+  const serienEnde = t.serie.bis ? new Date(t.serie.bis + "T00:00:00") : null;
+  const ausnahmen = new Set(t.ausnahmen || []);
+  const frequenz = t.serie.frequenz;
+
+  // Jedes Vorkommen wird aus dem STARTDATUM abgeleitet, nicht aus dem jeweils
+  // vorherigen. Sonst wandert der Tag bei Monatsenden: 31.01. -> 28.02. -> 28.03.
+  // statt 31.03. Der Ankertag bleibt so über die ganze Reihe erhalten.
+  const schrittTage   = frequenz === "woechentlich" ? 7
+                      : frequenz === "zweiwoechentlich" ? 14 : 0;
+  const schrittMonate = frequenz === "monatlich" ? 1
+                      : frequenz === "jaehrlich" ? 12 : 0;
+  const datumFuer = n => {
+    if(schrittTage){
+      const d = new Date(start);
+      d.setDate(start.getDate() + n * schrittTage);
+      return d;
+    }
+    return monatePlus(start, n * schrittMonate);
+  };
+
+  // Einstiegspunkt abschätzen, damit lange zurückliegende Reihen
+  // (z. B. ein Geburtstag seit 1982) nicht Hunderte Schritte kosten.
+  let n = 0;
+  if(start < fensterVon){
+    if(schrittTage){
+      n = Math.max(0, Math.floor((fensterVon - start) / 86400000 / schrittTage) - 1);
+    } else {
+      const monate = (fensterVon.getFullYear() - start.getFullYear()) * 12
+                   + (fensterVon.getMonth() - start.getMonth());
+      n = Math.max(0, Math.floor(monate / schrittMonate) - 1);
+    }
+  }
+
+  const treffer = [];
+  let schutz = 0;
+  while(schutz++ < 800){
+    const d = datumFuer(n);
+    if(d > fensterBis) break;
+    if(serienEnde && d > serienEnde) break;
+    if(d >= fensterVon && d >= start){
+      const iso = isoLokal(d);
+      if(!ausnahmen.has(iso)) treffer.push(iso);
+    }
+    n++;
+  }
+  return treffer;
+}
+
+// Sammelt alle datierten Einträge als {datum, titel, typ, farbe, ref}.
+// von/bis begrenzen das Fenster – nötig, weil Serien sonst unbegrenzt wären.
+// Ohne Angabe gilt ein Standardfenster von 45 Tagen zurück bis 400 Tage voraus.
+function kalenderEintraege(von, bis){
+  if(!von || !bis){
+    const a = new Date(); a.setDate(a.getDate() - 45);
+    const b = new Date(); b.setDate(b.getDate() + 400);
+    von = von || isoLokal(a);
+    bis = bis || isoLokal(b);
+  }
   const out=[];
   DB.todos.filter(t=>!t.deleted && t.faellig).forEach(t=>out.push({datum:t.faellig,titel:t.titel,typ:"Aufgabe",farbe:"#1d4ed8",modul:"todos"}));
   DB.reparaturen.filter(r=>!r.deleted && r.faellig).forEach(r=>out.push({datum:r.faellig,titel:r.titel,typ:"Reparatur",farbe:"#ea580c",modul:"reparaturen"}));
@@ -1680,6 +2306,21 @@ function kalenderEintraege(){
   });
   // Eigene Kalendertermine (direkt im Kalender angelegt)
   (DB.termine||[]).filter(t=>!t.deleted && t.datum).forEach(t=>{
+    // Serientermin: alle Vorkommen im Fenster erzeugen
+    if(t.serie && t.serie.frequenz){
+      serieVorkommen(t, von, bis).forEach(iso => {
+        let titel = (t.zeit ? t.zeit+"  " : "") + t.titel;
+        let typ = "Termin";
+        if(t.geburtsjahr){
+          const alter = Number(iso.slice(0,4)) - Number(t.geburtsjahr);
+          if(alter > 0 && alter < 130) titel += " (" + alter + ")";
+          typ = "Geburtstag";
+        }
+        out.push({ datum:iso, titel, typ, farbe:t.geburtsjahr?"#c026d3":"#0891b2",
+                   modul:"kalender", terminId:t.id, zeit:t.zeit||"", serie:true });
+      });
+      return;
+    }
     out.push({datum:t.datum, titel:(t.zeit?t.zeit+" · ":"")+t.titel, typ:"Termin", farbe:"#0891b2", modul:"kalender", terminId:t.id});
   });
   return out;
@@ -1693,7 +2334,9 @@ RENDER.kalender = () => {
   const monatsName = new Date(jahr,monat,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
   document.getElementById("vsub").textContent = monatsName;
 
-  const eintraege = kalenderEintraege();
+  // Nur den dargestellten Monat berechnen
+  const eintraege = kalenderEintraege(isoLokal(new Date(jahr,monat,1)),
+                                      isoLokal(new Date(jahr,monat+1,0)));
   // nach Tag gruppieren (nur dieser Monat)
   const proTag = {};
   eintraege.forEach(e=>{ const d=new Date(e.datum); if(d.getFullYear()===jahr&&d.getMonth()===monat){ const t=d.getDate(); (proTag[t]=proTag[t]||[]).push(e); } });
@@ -1743,7 +2386,7 @@ RENDER.kalender = () => {
       const loeschbar = e.typ==="Termin" && e.terminId;
       const klick = loeschbar ? "" : (e.modul==="urlaub" ? "kalZuReise('"+(e.reiseId||"")+"')" : "open_('"+e.modul+"')");
       return `<div class="card" onclick="${klick}">
-        ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
+        ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}','${e.datum}')">×</div>`:""}
         <div style="display:flex;align-items:center;gap:10px">
           <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
           <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
@@ -1768,14 +2411,14 @@ window.kalMonat = delta => {
 window.kalTag = t => {
   const {jahr,monat}=KAL_MONAT;
   const datum=isoLokal(new Date(jahr,monat,t));
-  const evs=kalenderEintraege().filter(e=>e.datum===datum);
+  const evs=kalenderEintraege(datum, datum).filter(e=>e.datum===datum);
   window._kalTagDatum = datum;
   const kopf=new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
   const liste = evs.length
     ? `<div class="list">${evs.map((e,i)=>{
         const loeschbar = e.typ==="Termin" && e.terminId;
         return `<div class="card">
-          ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}')">×</div>`:""}
+          ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}','${e.datum}')">×</div>`:""}
           <div style="display:flex;align-items:center;gap:10px">
             <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
             <div style="flex:1" onclick="${loeschbar?'':(e.modul==="urlaub"?"kalZuReise('"+(e.reiseId||"")+"')":"closeModal();open_('"+e.modul+"')")}">
@@ -1792,7 +2435,7 @@ window.kalTag = t => {
 // Einzelnen Kalendereintrag exportieren (Google Kalender oder .ics)
 window.kalExport = idx => {
   const datum = window._kalTagDatum;
-  const evs = kalenderEintraege().filter(e=>e.datum===datum);
+  const evs = kalenderEintraege(datum, datum).filter(e=>e.datum===datum);
   const e = evs[idx]; if(!e) return;
   const titel = e.titel; const det = e.typ;
   const gl = gcalLink(titel, e.datum, e.datum, det);
@@ -1808,11 +2451,11 @@ window.kalExport = idx => {
 window.kalAlleExport = () => {
   const heute = new Date(); heute.setHours(0,0,0,0);
   const grenze = new Date(heute); grenze.setDate(grenze.getDate()+90);
-  const evs = kalenderEintraege()
+  const evs = kalenderEintraege(isoLokal(heute), isoLokal(grenze))
     .filter(e=>!e.zwischentag)
     .filter(e=>{ const d=new Date(e.datum); return d>=heute && d<=grenze; })
     .sort((a,b)=>new Date(a.datum)-new Date(b.datum));
-  if(!evs.length){ alert("Keine Termine in den nächsten 90 Tagen."); return; }
+  if(!evs.length){ toast("Keine Termine in den nächsten 90 Tagen."); return; }
   openSheet(`<h3>Termine exportieren</h3>
     <div class="ml">${evs.length} Termine der nächsten 90 Tage als Kalenderdatei. Die .ics-Datei lässt sich in Google Kalender (Einstellungen → Importieren), Apple Kalender oder Outlook einlesen.</div>
     <button class="btn" onclick="kalAlleExportTun()">Als Kalenderdatei (.ics) speichern</button>
@@ -1821,7 +2464,7 @@ window.kalAlleExport = () => {
 window.kalAlleExportTun = () => {
   const heute = new Date(); heute.setHours(0,0,0,0);
   const grenze = new Date(heute); grenze.setDate(grenze.getDate()+90);
-  const evs = kalenderEintraege()
+  const evs = kalenderEintraege(isoLokal(heute), isoLokal(grenze))
     .filter(e=>!e.zwischentag)
     .filter(e=>{ const d=new Date(e.datum); return d>=heute && d<=grenze; })
     .sort((a,b)=>new Date(a.datum)-new Date(b.datum))
@@ -1835,33 +2478,118 @@ window.openTermin = (datum) => {
   window._terminEdit = null;
   const heute = heuteISO();
   openSheet(`<h3>Neuer Termin</h3>
-    <div class="fld"><label>Titel</label><input id="t_titel" placeholder="z.B. Zahnarzt"></div>
+    <div class="fld"><label for="t_titel">Titel</label><input id="t_titel" placeholder="z.B. Zahnarzt"></div>
     <div class="fld" style="display:flex;gap:10px">
-      <div style="flex:1"><label>Datum</label><input id="t_datum" type="date" value="${datum||heute}"></div>
-      <div style="flex:1"><label>Uhrzeit (optional)</label><input id="t_zeit" type="time"></div></div>
-    <div class="fld"><label>Notiz (optional)</label><textarea id="t_notiz" rows="2" placeholder=""></textarea></div>
+      <div style="flex:1"><label for="t_datum">Datum</label><input id="t_datum" type="date" value="${datum||heute}"></div>
+      <div style="flex:1"><label for="t_zeit">Uhrzeit (optional)</label><input id="t_zeit" type="time"></div></div>
+    <div class="fld">
+      <label for="t_serie">Wiederholung</label>
+      <select id="t_serie" onchange="terminSerieUmschalten()">
+        <option value="">Einmalig</option>
+        <option value="woechentlich">Jede Woche</option>
+        <option value="zweiwoechentlich">Alle 2 Wochen</option>
+        <option value="monatlich">Jeden Monat</option>
+        <option value="jaehrlich">Jedes Jahr</option>
+      </select>
+    </div>
+    <div class="fld" id="t_serieEnde" hidden>
+      <label for="t_bis">Wiederholen bis (optional)</label>
+      <input id="t_bis" type="date">
+      <div class="fld-hilfe" style="font-size:12.5px;color:var(--ink2);margin-top:5px">
+        Leer lassen, wenn der Termin unbefristet wiederkehrt.</div>
+    </div>
+    <div class="fld" id="t_gebFeld" hidden>
+      <label for="t_gebjahr">Geburtsjahr (optional)</label>
+      <input id="t_gebjahr" type="number" inputmode="numeric" placeholder="z.B. 1982" min="1900" max="2100">
+      <div class="fld-hilfe" style="font-size:12.5px;color:var(--ink2);margin-top:5px">
+        Mit Geburtsjahr zeigt der Kalender das Alter an.</div>
+    </div>
+    <div class="fld"><label for="t_notiz">Notiz (optional)</label><textarea id="t_notiz" rows="2" placeholder=""></textarea></div>
     <button class="btn" onclick="saveTermin()">Speichern</button>`);
   setTimeout(()=>{const el=document.getElementById("t_titel"); if(el)el.focus();},50);
+};
+
+// Blendet die serienabhängigen Felder ein und aus
+window.terminSerieUmschalten = () => {
+  const wert = document.getElementById("t_serie").value;
+  const ende = document.getElementById("t_serieEnde");
+  const geb  = document.getElementById("t_gebFeld");
+  if(ende) ende.hidden = !wert;
+  if(geb)  geb.hidden  = wert !== "jaehrlich";   // Alter ergibt nur jährlich Sinn
 };
 window.saveTermin = () => {
   const titel=document.getElementById("t_titel").value.trim();
   const datum=document.getElementById("t_datum").value;
-  if(!titel||!datum){ alert("Bitte Titel und Datum angeben."); return; }
+  if(!titel||!datum){ toast("Bitte Titel und Datum angeben."); return; }
   DB.termine = DB.termine || [];
-  DB.termine.push({
+  const frequenz = (document.getElementById("t_serie")||{}).value || "";
+  const eintrag = {
     id:uid(), titel, datum,
     zeit:document.getElementById("t_zeit").value||"",
     notiz:document.getElementById("t_notiz").value.trim(),
     autor:ME, createdAt:now(), updatedAt:now()
-  });
+  };
+  if(frequenz){
+    eintrag.serie = { frequenz, bis:(document.getElementById("t_bis")||{}).value || "" };
+    eintrag.ausnahmen = [];
+    const jahr = parseInt((document.getElementById("t_gebjahr")||{}).value, 10);
+    if(frequenz === "jaehrlich" && jahr >= 1900 && jahr <= 2100) eintrag.geburtsjahr = jahr;
+  }
+  DB.termine.push(eintrag);
   save(); closeModal(); RENDER.kalender();
+  toast(frequenz ? `Termin angelegt – wiederholt sich ${SERIE_LABEL[frequenz]}` : "Termin angelegt");
 };
-window.delTermin = id => {
-  if(!confirm("Diesen Termin löschen?")) return;
+window.delTermin = (id, datum) => {
   const t=(DB.termine||[]).find(x=>x.id===id);
-  if(t){ t.deleted=true; t.deletedAt=now(); t.updatedAt=now(); }
+  if(!t) return;
+
+  // Serientermin: Nachfrage, ob nur dieses Vorkommen oder die ganze Reihe entfällt
+  if(t.serie && t.serie.frequenz && datum){
+    openSheet(`<h3>Serientermin löschen</h3>
+      <div class="ml">„${esc(t.titel)}" wiederholt sich ${esc(SERIE_LABEL[t.serie.frequenz]||"regelmäßig")}.
+        Was soll gelöscht werden?</div>
+      <button class="btn" onclick="delTerminVorkommen('${esc(id)}','${esc(datum)}')">
+        Nur den Termin am ${esc(fmtDate(datum))}</button>
+      <button class="btn danger" onclick="delTerminSerie('${esc(id)}')">
+        Die gesamte Reihe</button>
+      <button class="btn ghost" onclick="closeModal()">Abbrechen</button>`);
+    return;
+  }
+
+  t.deleted=true; t.deletedAt=now(); t.updatedAt=now();
   save(); closeModal(); RENDER.kalender();
+  toast(`Termin „${t.titel}" gelöscht`, { label:"Rückgängig", fn:()=>{
+    const z=(DB.termine||[]).find(x=>x.id===id);
+    if(z){ delete z.deleted; delete z.deletedAt; z.updatedAt=now(); save(); RENDER.kalender(); }
+  }});
 };
+
+// Einzelnes Vorkommen einer Serie ausnehmen (die Reihe bleibt bestehen)
+window.delTerminVorkommen = (id, datum) => {
+  const t=(DB.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  t.ausnahmen = t.ausnahmen || [];
+  if(!t.ausnahmen.includes(datum)) t.ausnahmen.push(datum);
+  t.updatedAt=now(); save(); closeModal(); RENDER.kalender();
+  toast(`Termin am ${fmtDate(datum)} entfällt`, { label:"Rückgängig", fn:()=>{
+    const z=(DB.termine||[]).find(x=>x.id===id);
+    if(z){ z.ausnahmen=(z.ausnahmen||[]).filter(a=>a!==datum); z.updatedAt=now();
+           save(); RENDER.kalender(); }
+  }});
+};
+
+// Ganze Reihe löschen
+window.delTerminSerie = id => {
+  const t=(DB.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  t.deleted=true; t.deletedAt=now(); t.updatedAt=now();
+  save(); closeModal(); RENDER.kalender();
+  toast(`Reihe „${t.titel}" gelöscht`, { label:"Rückgängig", fn:()=>{
+    const z=(DB.termine||[]).find(x=>x.id===id);
+    if(z){ delete z.deleted; delete z.deletedAt; z.updatedAt=now(); save(); RENDER.kalender(); }
+  }});
+};
+
 
 // ---- Reparaturen ----
 RENDER.reparaturen = () => {
@@ -2101,7 +2829,7 @@ function entwurfHtml(l){
 }
 // Liste behalten (nicht abschicken) -> als eigene "abgeschickte" Liste an mich selbst
 window.behalteListe = id => {
-  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ alert("Die Liste ist leer."); return; }
+  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ toast("Die Liste ist leer."); return; }
   l.status="abgeschickt"; l.empfaenger=[ME]; l.abgeschicktAm=now(); l.nurFuerMich=true; l.updatedAt=now();
   save(); RENDER.einkauf();
 };
@@ -2184,7 +2912,7 @@ function zaehleArtikel(tx){
 
 // Liste abschicken – mit Empfängerwahl (Vorschlag voreingestellt)
 window.abschickenDialog = id => {
-  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ alert("Die Liste ist leer."); return; }
+  const l=DB.listen.find(x=>x.id===id); if(!l||!aktiv(l.artikel).length){ toast("Die Liste ist leer."); return; }
   const vorschlag = (DB.empfaengerStandard && DB.empfaengerStandard[ME]) || [];
   window._sendSel = new Set(vorschlag);
   const andere = DB.nutzer.filter(n=>n!==ME);
@@ -2199,7 +2927,7 @@ window.toggleSend = el => { const v=el.dataset.v;
 window.abschicken = id => {
   const l=DB.listen.find(x=>x.id===id); if(!l)return;
   const empf = [...window._sendSel];
-  if(!empf.length){ alert("Bitte mindestens eine Person wählen."); return; }
+  if(!empf.length){ toast("Bitte mindestens eine Person wählen."); return; }
   l.status="abgeschickt"; l.empfaenger=empf; l.abgeschicktAm=now(); l.updatedAt=now();
   empf.forEach(person=>{
     notify(`Neue Einkaufsliste von ${ME} (${aktiv(l.artikel).filter(a=>!a.d).length} Artikel)`, {ziel:person, listeId:l.id});
@@ -2223,7 +2951,7 @@ window.toggleMerge = (id,row) => {
   else { window._mergeSel.add(id); cb.classList.add("on"); cb.textContent="✓"; }
 };
 window.doMerge = () => {
-  const ids=[...window._mergeSel]; if(ids.length<2){ alert("Bitte mindestens zwei Listen wählen."); return; }
+  const ids=[...window._mergeSel]; if(ids.length<2){ toast("Bitte mindestens zwei Listen wählen."); return; }
   const quellen = ids.map(id=>DB.listen.find(l=>l.id===id)).filter(Boolean);
   const artikel = [];
   quellen.forEach(l=> aktiv(l.artikel).forEach(a=> artikel.push({...a, id:uid(), von:a.von||l.ersteller})) );
@@ -2239,7 +2967,17 @@ window.doMerge = () => {
   save(); closeModal(); RENDER.einkauf();
 };
 
-window.clearListe = id => { if(confirm("Liste leeren?")){ const l=DB.listen.find(x=>x.id===id); l.artikel=[]; l.updatedAt=now(); save(); RENDER.einkauf(); } };
+window.clearListe = id => {
+  const l=DB.listen.find(x=>x.id===id); if(!l) return;
+  const gemerkt = JSON.parse(JSON.stringify(l.artikel||[]));
+  // Tombstones statt hartem Leeren, sonst kehren die Artikel beim naechsten
+  // Abgleich von einem anderen Geraet zurueck.
+  (l.artikel||[]).forEach(a=>{ if(!a.deleted){ a.deleted=true; a.deletedAt=now(); a.updatedAt=now(); } });
+  l.updatedAt=now(); save(); RENDER.einkauf();
+  toast(`Liste geleert (${aktiv(gemerkt).length} Artikel)`, { label:"Rückgängig", fn:()=>{
+    l.artikel = gemerkt; l.updatedAt=now(); save(); RENDER.einkauf();
+  }});
+};
 window.delListe = id => {
   const l=DB.listen.find(x=>x.id===id); if(!l)return;
   const frage = l.status==="entwurf" ? "Diesen Entwurf verwerfen?" : "Diese Liste wirklich löschen?";
@@ -2301,38 +3039,85 @@ function parseGeo(input){
   if(m) return { lat:parseFloat(m[1]), lon:parseFloat(m[2]), label:null, raw:s };
   return { lat:null, lon:null, label:s, raw:s };
 }
+// ============================================================
+//  Externe Dienste: Zeitlimit, Zwischenspeicher, Drosselung
+// ============================================================
+// Nominatim und OSRM sind kostenlose Gemeinschaftsdienste. Ohne Zeitlimit haengt
+// die Oberflaeche bei ausbleibender Antwort; ohne Drosselung verletzt eine Reise
+// mit acht Etappen die Nutzungsregeln (max. 1 Anfrage/Sekunde bei Nominatim).
+async function holeMitZeitlimit(url, optionen, ms){
+  ms = ms || 9000;
+  const ac = new AbortController();
+  const t  = setTimeout(()=>ac.abort(), ms);
+  try{
+    return await fetch(url, Object.assign({}, optionen||{}, { signal: ac.signal }));
+  }catch(e){
+    if(e && e.name === "AbortError") throw new Error("Zeitüberschreitung – der Dienst antwortet nicht.");
+    throw e;
+  }finally{ clearTimeout(t); }
+}
+// Dauerhafter Zwischenspeicher: Koordinaten einer Adresse aendern sich nicht.
+const _geoCache = (()=>{
+  try{ return new Map(Object.entries(JSON.parse(localStorage.getItem("familienapp.geoCache")||"{}"))); }
+  catch(e){ return new Map(); }
+})();
+function geoCacheSchreiben(){
+  try{
+    // auf die 300 juengsten Eintraege begrenzen
+    const eintraege = [..._geoCache.entries()].slice(-300);
+    localStorage.setItem("familienapp.geoCache", JSON.stringify(Object.fromEntries(eintraege)));
+  }catch(e){}
+}
+let _letzteGeoAnfrage = 0;
+
 async function geocode(text){
   // bereits Koordinaten?
   const g = parseGeo(text);
   if(g.lat!=null) return { lat:g.lat, lon:g.lon, name:text };
+  const schluessel = String(g.label||"").trim().toLowerCase();
+  if(_geoCache.has(schluessel)) return _geoCache.get(schluessel);
+  // Drosselung: mindestens 1,1 s Abstand zwischen zwei Nominatim-Anfragen
+  const wartezeit = Math.max(0, 1100 - (Date.now() - _letzteGeoAnfrage));
+  if(wartezeit) await new Promise(r=>setTimeout(r, wartezeit));
+  _letzteGeoAnfrage = Date.now();
   // Nominatim (OpenStreetMap) – kostenlos. Sprache als URL-Parameter,
   // KEIN Custom-Header (würde CORS-Preflight auslösen und scheitern).
   const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q="+encodeURIComponent(g.label);
-  const r = await fetch(url);
+  const r = await holeMitZeitlimit(url);
   if(!r.ok) throw new Error("Geocoding fehlgeschlagen");
   const j = await r.json();
   if(!j.length) throw new Error("Adresse nicht gefunden");
-  return { lat:parseFloat(j[0].lat), lon:parseFloat(j[0].lon), name:j[0].display_name.split(",")[0] };
+  const treffer = { lat:parseFloat(j[0].lat), lon:parseFloat(j[0].lon), name:j[0].display_name.split(",")[0] };
+  _geoCache.set(schluessel, treffer); geoCacheSchreiben();
+  return treffer;
 }
 // Routing zwischen zwei Punkten. Standard: OSRM (kostenlos, PKW).
 // Optional: OpenRouteService mit Schlüssel -> Wohnmobil-Profil (hgv).
+const _routeCache = new Map();
 async function routeBetween(a, b){
+  const rk = [a.lat,a.lon,b.lat,b.lon].map(v=>Number(v).toFixed(4)).join("|");
+  if(_routeCache.has(rk)) return _routeCache.get(rk);
   const orsKey = localStorage.getItem("familienapp.orsKey");
   if(orsKey){
-    const url = "https://api.openrouteservice.org/v2/directions/driving-hgv";
-    const r = await fetch(url, { method:"POST",
-      headers:{ "Authorization":orsKey, "Content-Type":"application/json" },
-      body: JSON.stringify({ coordinates:[[a.lon,a.lat],[b.lon,b.lat]] }) });
-    if(r.ok){ const j=await r.json(); const sum=j.routes[0].summary;
-      return { km: sum.distance/1000, min: sum.duration/60, profil:"Wohnmobil" }; }
+    try{
+      const url = "https://api.openrouteservice.org/v2/directions/driving-hgv";
+      const r = await holeMitZeitlimit(url, { method:"POST",
+        headers:{ "Authorization":orsKey, "Content-Type":"application/json" },
+        body: JSON.stringify({ coordinates:[[a.lon,a.lat],[b.lon,b.lat]] }) });
+      if(r.ok){ const j=await r.json(); const sum=j.routes[0].summary;
+        const erg = { km: sum.distance/1000, min: sum.duration/60, profil:"Wohnmobil" };
+        _routeCache.set(rk, erg); return erg; }
+    }catch(e){ Fehlerlog.erfasse("routeBetween/ORS", e); /* auf OSRM zurueckfallen */ }
   }
   // OSRM-Demo (PKW)
   const url = `https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`;
-  const r = await fetch(url);
+  const r = await holeMitZeitlimit(url);
   if(!r.ok) throw new Error("Route fehlgeschlagen");
   const j = await r.json();
   if(!j.routes || !j.routes.length) throw new Error("keine Route");
-  return { km: j.routes[0].distance/1000, min: j.routes[0].duration/60, profil:"PKW" };
+  const erg = { km: j.routes[0].distance/1000, min: j.routes[0].duration/60, profil:"PKW" };
+  _routeCache.set(rk, erg);
+  return erg;
 }
 function fmtDauer(min){ const h=Math.floor(min/60), m=Math.round(min%60); return h?`${h} h ${m} min`:`${m} min`; }
 
@@ -2770,7 +3555,8 @@ window.saveTagEintrag = async () => {
   const {rid,ci,datum,ei}=window._tagCtx;
   const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
   const c=r.staedte[ci];
-  const name=document.getElementById("tg_name").value.trim(); if(!name)return;
+  if(!pruefeFormular({ tg_name: pflicht("Bitte eine Bezeichnung eingeben.") })) return;
+  const name=document.getElementById("tg_name").value.trim();
   const addr=document.getElementById("tg_addr").value.trim();
   const link=cleanLink(document.getElementById("tg_link").value);
   const hinweis=document.getElementById("tg_hint").value.trim();
@@ -2925,7 +3711,8 @@ window.addStop = (rid,i) => {
 window.saveStop = async () => {
   const { rid, i } = window._stopCtx;
   const r = DB.urlaub.find(x=>x.id===rid); if(!r) return;
-  const name = document.getElementById("st_name").value.trim(); if(!name) return;
+  if(!pruefeFormular({ st_name: pflicht("Bitte einen Namen eingeben.") })) return;
+  const name = document.getElementById("st_name").value.trim();
   const linkRaw = document.getElementById("st_link").value.trim();
   const hinweis = document.getElementById("st_hint").value.trim();
   const link = cleanLink(linkRaw);
@@ -2959,9 +3746,12 @@ window.delStop = (rid,i,si) => {
 
 window.toggleCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[i]._open=!r.staedte[i]._open; renderReiseDetail(r); };
 window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
-  if(!confirm("Stadt entfernen?")) return;
   const c=r.staedte[i]; if(c){ c.deleted=true; c.deletedAt=now(); c.updatedAt=now(); }
-  r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); };
+  r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r);
+  toast(`„${c?c.name:"Ort"}" entfernt`, { label:"Rückgängig", fn:()=>{
+    if(c){ delete c.deleted; delete c.deletedAt; c.updatedAt=now();
+           r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); }
+  }}); };
 
 // Stadt hinzufügen – kombiniertes Formular
 window.addCity = rid => { editCityForm(rid, null); };
@@ -3081,7 +3871,8 @@ function renderPoiFoto(){
 }
 window.doSavePoi = () => {
   const {rid,ci,key,pi}=window._poiCtx;
-  const name=document.getElementById("poi_name").value.trim(); if(!name)return;
+  if(!pruefeFormular({ poi_name: pflicht("Bitte einen Namen eingeben.") })) return;
+  const name=document.getElementById("poi_name").value.trim();
   const addr=document.getElementById("poi_addr").value.trim();
   const link=cleanLink(document.getElementById("poi_link").value);
   const hinweis=document.getElementById("poi_hint").value.trim();
@@ -3275,8 +4066,10 @@ window.reiseMenu = id => {
 };
 // Reise in den Papierkorb verschieben – funktioniert aus Detailansicht UND Archiv
 window.delReise = id => {
-  if(!confirm("Reise in den Papierkorb verschieben?")) return;
+  const _reise = DB.urlaub.find(x=>x.id===id);
   inDenPapierkorb("urlaub", id);
+  toast(`„${_reise?_reise.titel||_reise.name||"Reise":"Reise"}" in den Papierkorb verschoben`,
+    { label:"Rückgängig", fn:()=>{ wiederherstellen("urlaub", id); open_("urlaub"); } });
   closeModal();
   DETAIL_OPEN = null;
   goHome();
@@ -3401,7 +4194,7 @@ window.printLabel = id => {
     const img=tmp.querySelector("img")||tmp.querySelector("canvas");
     const src=img.tagName==="IMG"?img.src:img.toDataURL();
     const w=window.open("","_blank");
-    if(!w){ alert("Bitte Pop-ups erlauben, um das Etikett zu drucken."); return; }
+    if(!w){ toast("Bitte Pop-ups erlauben, um das Etikett zu drucken."); return; }
     w.document.write(`<!DOCTYPE html><html><head><title>${esc(b.name)}</title>
       <style>@page{size:50mm 20mm;margin:0}body{margin:0;width:50mm;height:20mm;display:flex;align-items:center;gap:1.5mm;padding:1.5mm;font-family:-apple-system,sans-serif;box-sizing:border-box}
       img{width:17mm;height:17mm}.t .h{font-weight:700;font-size:3.4mm;line-height:1.1}.t .s{font-size:2.3mm;color:#444;margin-top:.8mm;line-height:1.15}</style></head>
@@ -3447,7 +4240,7 @@ function ideaKarte(i){
     ${i.kategorie?`<span class="pill cat">${esc(i.kategorie)}</span>`:""}
     <div class="ih" style="margin-top:6px">${esc(i.titel)}</div>
     ${i.text?`<div class="id">${esc(i.text)}</div>`:""}
-    ${i.url?`<a class="lnk" href="${esc(i.url)}" target="_blank">${ICON.link} Öffnen</a>`:""}
+    ${sichereUrl(i.url)?`<a class="lnk" href="${esc(sichereUrl(i.url))}" target="_blank" rel="noopener noreferrer">${ICON.link} Öffnen</a>`:""}
     ${i.tags&&i.tags.length?`<div class="tags">${i.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`:""}
     ${i.autor?`<div class="byline">von ${esc(i.autor)}</div>`:""}</div>`;
 }
@@ -3464,7 +4257,8 @@ function ideaEditor(){
     <button class="btn" onclick="saveIdea()">Speichern</button>`;
 }
 window.saveIdea = () => {
-  const titel=document.getElementById("id_titel").value.trim(); if(!titel)return;
+  if(!pruefeFormular({ id_titel: pflicht("Bitte einen Titel eingeben.") })) return;
+  const titel=document.getElementById("id_titel").value.trim();
   let url=document.getElementById("id_url").value.trim();
   if(url && !/^https?:\/\//.test(url)) url="https://"+url;
   DB.ideen.push({ id:uid(), kategorie:document.getElementById("id_kat").value,
@@ -3596,7 +4390,7 @@ window.toggleRezImport = () => {
 // Heuristische Aufteilung eines eingefügten Rezepts in Zutaten + Zubereitung
 window.rezImportSplit = () => {
   const ta = document.getElementById("rz_import"); if(!ta) return;
-  const raw = ta.value; if(!raw.trim()){ alert("Bitte zuerst ein Rezept einfügen."); return; }
+  const raw = ta.value; if(!raw.trim()){ toast("Bitte zuerst ein Rezept einfügen."); return; }
 
   const EINHEITEN = ["g","kg","mg","l","ml","el","tl","msp","prise","prisen","stück","stk","stange","stangen","zehe","zehen","bund","dose","dosen","packung","pck","pkg","tasse","tassen","becher","scheibe","scheiben","blatt","blätter","kopf","köpfe","zweig","zweige","cl","dl","tropfen","handvoll","portion","portionen"];
   const reMenge = /^\s*(?:[½¼¾⅓⅔⅛]|\d+[.,/]?\d*)\s*(?:[½¼¾⅓⅔⅛])?/;
@@ -3644,7 +4438,7 @@ window.rezImportSplit = () => {
     // sonst (kurze Kopfzeile vor jeglichem Inhalt, z.B. Titel) verwerfen
   }
 
-  if(!zutaten.length && !zubLines.length){ alert("Konnte nichts erkennen. Bitte Text prüfen."); return; }
+  if(!zutaten.length && !zubLines.length){ toast("Konnte nichts erkennen. Bitte Text prüfen."); return; }
 
   // Ergebnis übernehmen (anhängen, nicht überschreiben)
   REZEPT.zutaten = REZEPT.zutaten.concat(zutaten);
@@ -3656,7 +4450,7 @@ window.rezImportSplit = () => {
   renderZutaten();
   ta.value = "";
   toggleRezImport();
-  alert(zutaten.length+" Zutat(en) und "+(neueZub?zubLines.length:0)+" Zeile(n) Zubereitung übernommen. Bitte prüfen.");
+  toast(zutaten.length+" Zutat(en) und "+(neueZub?zubLines.length:0)+" Zeile(n) Zubereitung übernommen.");
 };
 window.saveRezept = () => {
   REZEPT.titel = document.getElementById("rz_titel").value.trim() || "Rezept";
@@ -3669,11 +4463,16 @@ window.saveRezept = () => {
   else { const ex=DB.rezepte.find(x=>x.id===REZEPT.id); Object.assign(ex,REZEPT); }
   save(); closeModal(); RENDER.rezepte();
 };
-window.delRezept = id => { if(confirm("Rezept in den Papierkorb verschieben?")){ inDenPapierkorb("rezepte", id); closeModal(); RENDER.rezepte(); } };
+window.delRezept = id => {
+  const r = DB.rezepte.find(x=>x.id===id);
+  inDenPapierkorb("rezepte", id); closeModal(); RENDER.rezepte();
+  toast(`„${r?r.titel:"Rezept"}" in den Papierkorb verschoben`,
+    { label:"Rückgängig", fn:()=>{ wiederherstellen("rezepte", id); RENDER.rezepte(); } });
+};
 
 // Zutaten auswählen und in den eigenen Einkaufs-Entwurf übernehmen
 window.zutatenZuEinkauf = id => {
-  const r = DB.rezepte.find(x=>x.id===id); if(!r || !r.zutaten.length){ alert("Keine Zutaten vorhanden."); return; }
+  const r = DB.rezepte.find(x=>x.id===id); if(!r || !r.zutaten.length){ toast("Keine Zutaten vorhanden."); return; }
   window._zSel = new Set(r.zutaten.map((_,i)=>i));  // alle vorausgewählt
   openSheet(zutatenAuswahlHtml(r));
 };
@@ -3700,7 +4499,7 @@ window.commitZutaten = id => {
   r.zutaten.forEach((z,i)=>{ if(window._zSel.has(i)){
     liste.artikel.push({id:uid(),tx:z,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); n++; zaehleArtikel(z); }});
   liste.updatedAt=now(); AKT_LISTE=liste.id; save(); closeModal();
-  alert(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
+  toast(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
   open_("einkauf");
 };
 
@@ -3815,7 +4614,8 @@ window.essenSpeichernRezept = rid => {
   save(); closeModal(); if(CURRENT==="essensplan") RENDER.essensplan();
 };
 window.essenSpeichernFrei = () => {
-  const t=document.getElementById("es_titel").value.trim(); if(!t) return;
+  if(!pruefeFormular({ es_titel: pflicht("Bitte eine Bezeichnung eingeben.") })) return;
+  const t=document.getElementById("es_titel").value.trim();
   DB.essensplan.push({ id:uid(), datum:window._essenDatum, rezeptId:null, titel:t,
     autor:ME, createdAt:now(), updatedAt:now() });
   save(); closeModal(); if(CURRENT==="essensplan") RENDER.essensplan();
@@ -3838,7 +4638,7 @@ window.wochenEinkauf = () => {
       gesehen.add(k); zutaten.push({tx:z, rezept:r.titel});
     });
   }));
-  if(!zutaten.length){ alert("Für diese Woche sind keine Rezepte mit Zutaten geplant."); return; }
+  if(!zutaten.length){ toast("Für diese Woche sind keine Rezepte mit Zutaten geplant."); return; }
   window._wZutaten=zutaten;
   window._wSel=new Set(zutaten.map((_,i)=>i));
   openSheet(`<h3>Zutaten der Woche</h3>
@@ -3865,7 +4665,7 @@ window.commitWochenZutaten = () => {
     liste.artikel.push({id:uid(),tx:z.tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()});
     n++; zaehleArtikel(z.tx); });
   liste.updatedAt=now(); AKT_LISTE=liste.id; save(); closeModal();
-  alert(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
+  toast(n+" Zutat(en) zu deiner Einkaufsliste hinzugefügt.");
   open_("einkauf");
 };
 
@@ -3884,17 +4684,11 @@ window.Sync = (() => {
   function setStatus(t,ok){ const e=document.getElementById("syncTxt"); if(e)e.textContent=t;
     const d=document.querySelector(".sync .dot"); if(d)d.style.background=ok?"var(--ok)":"var(--ink2)"; }
 
-  // Wartet bis zu ~3s darauf, dass die MSAL-Bibliothek geladen ist
+  // Laedt die MSAL-Bibliothek bei Bedarf nach (asynchron, mit CDN-Fallback).
+  // Frueher wurde sie blockierend im <head> geladen und die App startete erst danach.
   function warteAufMsal(){
-    return new Promise(resolve=>{
-      if(window.msal){ resolve(true); return; }
-      let versuche=0;
-      const iv=setInterval(()=>{
-        versuche++;
-        if(window.msal){ clearInterval(iv); resolve(true); }
-        else if(versuche>=30){ clearInterval(iv); resolve(false); }
-      }, 100);
-    });
+    return (window.ladeMsal ? window.ladeMsal() : Promise.resolve(!!window.msal))
+      .catch(e=>{ Fehlerlog.erfasse("ladeMsal", e); return false; });
   }
   // Initialisiert die MSAL-App (einmalig). Gibt true bei Erfolg.
   async function ensureApp(){
@@ -3957,10 +4751,47 @@ window.Sync = (() => {
       return (meta.eTag||meta.cTag||"") !== _etag;
     }catch(e){ return true; }
   }
-  function mergeListe(lokal=[],fern=[]){ const m=new Map();
+  // Verschachtelte Arrays, die eintragsweise zusammengefuehrt werden muessen.
+  // Ohne das ersetzt der juengere Datensatz den aelteren komplett: Hakt Ellen
+  // zwei Artikel ab, waehrend Alexander einen hinzufuegt, geht eine der beiden
+  // Aenderungen still verloren. Beide Arrays haben id, updatedAt und Tombstones,
+  // erfuellen also alle Voraussetzungen fuer einen sauberen Merge.
+  // Nicht aufgenommen: keller[].items und rezepte[].zutaten – das sind reine
+  // Zeichenketten ohne id; ein eintragsweiser Merge waere dort nicht eindeutig.
+  const KIND_ARRAYS = { listen:["artikel"], todoListen:["punkte"] };
+
+  // Eintragsweiser Merge fuer Kind-Arrays (Artikel, Punkte).
+  // Schluessel ist die id; fuer Altbestaende ohne id dient der Text als Ersatz.
+  function mergeKinder(lokal=[],fern=[]){
+    const m=new Map();
+    const keyOf = p => p && (p.id || ("t:"+String(p.tx||p.t||p.name||"").toLowerCase()));
+    for(const p of lokal){ if(p) m.set(keyOf(p),p); }
+    for(const p of fern){
+      if(!p) continue;
+      const k=keyOf(p), ex=m.get(k);
+      if(!ex || new Date(p.updatedAt||0)>new Date(ex.updatedAt||0)) m.set(k,p);
+    }
+    return [...m.values()].filter(p=>!(p.deleted && (p.deletedAt||p.updatedAt) &&
+      (Date.now()-new Date(p.deletedAt||p.updatedAt).getTime())>30*86400000));
+  }
+
+  function mergeListe(schluessel,lokal=[],fern=[]){
+    const kinder = KIND_ARRAYS[schluessel] || [];
+    const m=new Map();
     for(const e of lokal)if(e&&e.id)m.set(e.id,e);
-    for(const e of fern){ if(!e||!e.id)continue; const d=m.get(e.id);
-      if(!d||new Date(e.updatedAt||0)>new Date(d.updatedAt||0))m.set(e.id,e); }
+    for(const e of fern){
+      if(!e||!e.id)continue;
+      const d=m.get(e.id);
+      if(!d){ m.set(e.id,e); continue; }
+      if(!kinder.length){
+        if(new Date(e.updatedAt||0)>new Date(d.updatedAt||0)) m.set(e.id,e);
+        continue;
+      }
+      // Grunddaten: juengerer Stand gewinnt. Kind-Arrays: eintragsweise mergen.
+      const basis = new Date(e.updatedAt||0)>new Date(d.updatedAt||0) ? {...e} : {...d};
+      for(const feld of kinder) basis[feld] = mergeKinder(d[feld]||[], e[feld]||[]);
+      m.set(e.id, basis);
+    }
     // Tombstones (deleted) BEHALTEN, sonst kehren gelöschte Einträge beim Sync von anderen
     // Geräten zurück und der Papierkorb wäre nach jedem Abgleich leer.
     // Nur sehr alte Tombstones (>30 Tage) werden endgültig entfernt.
@@ -4039,7 +4870,7 @@ window.Sync = (() => {
       const fern=(await readFile("daten.json"))||{};
       for(const k of LISTEN){
         if(k==="urlaub") DB.urlaub = mergeReisen(DB.urlaub||[], fern.urlaub||[]);
-        else DB[k]=mergeListe(DB[k]||[], fern[k]||[]);
+        else DB[k]=mergeListe(k, DB[k]||[], fern[k]||[]);
       }
       if(fern._sync && new Date(fern._sync)>new Date(DB._sync||0))
         for(const k of OBJEKTE) if(fern[k]!==undefined) DB[k]=fern[k];
@@ -4093,8 +4924,35 @@ window.Sync = (() => {
     finally{ busy=false; } }
   function scheduleSave(){ _lokalGeaendert=true; if(!online)return;
     clearTimeout(saveTimer); setStatus("Speichere…",true); saveTimer=setTimeout(()=>fullSync(),1200); }
-  function startPolling(){ clearInterval(pollTimer); pollTimer=setInterval(()=>{if(!busy)fullSync();},20000);
-    document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&online&&!busy)fullSync(); }); }
+  // Adaptives Abgleichsintervall: haeufig bei aktiver Nutzung, seltener im
+  // Leerlauf, Pause bei verborgenem Tab. Frueher fest alle 20 Sekunden – das
+  // kostete auch dann Akku und Datenvolumen, wenn niemand die App benutzte.
+  function syncIntervall(){
+    if(document.visibilityState !== "visible") return 0;
+    const untaetig = Date.now() - _letzteAktion;
+    if(untaetig <  60000) return 15000;
+    if(untaetig < 300000) return 60000;
+    return 300000;
+  }
+  function startPolling(){
+    clearInterval(pollTimer);
+    let aktuell = 0;
+    const takt = () => {
+      const ms = syncIntervall();
+      if(ms !== aktuell){
+        aktuell = ms;
+        clearInterval(pollTimer);
+        if(ms > 0) pollTimer = setInterval(()=>{ if(!busy) fullSync(); }, ms);
+      }
+    };
+    takt();
+    clearInterval(window._syncTaktTimer);
+    window._syncTaktTimer = setInterval(takt, 10000);
+    document.addEventListener("visibilitychange",()=>{
+      takt();
+      if(document.visibilityState==="visible"&&online&&!busy)fullSync();
+    });
+  }
   return { start, login, logout, scheduleSave, fullSync, isOnline:()=>online,
     lastSync:()=> _lastSync ? _lastSync.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}) : null };
 })();
@@ -4109,12 +4967,61 @@ window.syncTap = () => {
         <div style="font-weight:650">Verbunden${last?" · zuletzt "+last:""}</div></div>
       ${benachrichtigungStatusHtml()}
       <button class="btn" onclick="Sync.fullSync();closeModal()">Jetzt abgleichen</button>
+      <button class="btn ghost" onclick="datenExport()">Alle Daten sichern (Datei)</button>
+      <button class="btn ghost" onclick="fehlerprotokollZeigen()">Fehlerprotokoll</button>
       <button class="btn ghost" onclick="Sync.logout();closeModal()">Von OneDrive abmelden</button>`);
   } else {
     openSheet(`<h3>Synchronisierung einrichten</h3>
       <div class="ml">Melde dich mit dem gemeinsamen Microsoft-Konto an, damit alle Handys denselben Stand sehen. Die Daten liegen geschützt in eurem OneDrive.</div>
-      <button class="btn" onclick="closeModal();Sync.login()">Mit Microsoft anmelden</button>`);
+      <button class="btn" onclick="closeModal();Sync.login()">Mit Microsoft anmelden</button>
+      <button class="btn ghost" onclick="datenExport()">Alle Daten sichern (Datei)</button>`);
   }
+};
+
+// ============================================================
+//  Datensicherung: vollstaendiger Export als JSON-Datei
+// ============================================================
+// Absicherung gegen Kontoverlust und Voraussetzung fuer groessere Umbauten
+// (z. B. den Wechsel des OneDrive-Ordners). Laeuft rein lokal.
+window.datenExport = () => {
+  try{
+    const daten = JSON.stringify(DB, null, 2);
+    const blob = new Blob([daten], { type:"application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "familie-nadig-sicherung-" + heuteISO() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    const kb = Math.round(daten.length/1024);
+    toast(`Sicherung erstellt (${kb} KB)`);
+  }catch(e){
+    Fehlerlog.erfasse("datenExport", e);
+    toast("Sicherung fehlgeschlagen. Bitte erneut versuchen.");
+  }
+};
+
+// Fehlerprotokoll einsehen und teilen – macht Stoerungen nachvollziehbar,
+// statt sie stillschweigend verschwinden zu lassen.
+window.fehlerprotokollZeigen = () => {
+  const eintraege = Fehlerlog.laden().slice().reverse();
+  const liste = eintraege.length
+    ? eintraege.map(e=>`<div class="subitem"><div class="it">
+         <strong>${esc(e.kontext)}</strong><small>${esc(fmtDate(e.zeit))} · v${esc(e.version||"?")}</small>
+         <small>${esc(e.nachricht)}</small></div></div>`).join("")
+    : `<div class="ml">Keine Fehler protokolliert.</div>`;
+  openSheet(`<h3>Fehlerprotokoll</h3>
+    <div class="ml">Die letzten ${eintraege.length} Meldungen dieses Geräts. Hilft bei der Fehlersuche.</div>
+    <div style="max-height:46vh;overflow-y:auto">${liste}</div>
+    ${eintraege.length?`<button class="btn ghost" onclick="fehlerprotokollKopieren()">Protokoll kopieren</button>
+    <button class="btn danger" onclick="Fehlerlog.leeren();closeModal();toast('Protokoll geleert')">Protokoll leeren</button>`:""}`);
+};
+window.fehlerprotokollKopieren = () => {
+  const txt = Fehlerlog.laden().map(e=>`${e.zeit} [${e.kontext}] ${e.nachricht}`).join("\n");
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast("Protokoll kopiert"))
+      .catch(()=>toast("Kopieren nicht möglich"));
+  } else toast("Kopieren wird auf diesem Gerät nicht unterstützt");
 };
 
 // ============================================================
@@ -4131,25 +5038,98 @@ if(ME){
 }
 // Basis-Verlaufseintrag, damit die Zurück-Taste etwas zum Abfangen hat
 try{ history.replaceState({app:true, base:true}, ""); }catch(e){}
-Sync.start();
+// Die Oberflaeche ist bereits gezeichnet. Der Sync (und damit das Nachladen der
+// Anmeldebibliothek) laeuft erst im Leerlauf an – die App ist dadurch spuerbar
+// frueher bedienbar.
+// typeof-Pruefung statt "in": manche Umgebungen legen die Eigenschaft an,
+// ohne eine Funktion bereitzustellen – dann schlug der Aufruf fehl und der
+// Sync startete nie.
+if(typeof window.requestIdleCallback === "function")
+  window.requestIdleCallback(()=>Sync.start(), { timeout:2500 });
+else setTimeout(()=>Sync.start(), 300);
 </script>
 
 <script>
-// ── PWA: Versions-Check + saubere Service-Worker-Bereinigung ──
+// ============================================================
+//  PWA: Service Worker mit ausdruecklichem Aktualisierungshinweis
+// ============================================================
+// Frueher wurden Service Worker und Caches beim Start geloescht und die Seite
+// bei neuer Version hart neu geladen. Das loeste zwar das Problem veralteter
+// Staende, nahm der App aber jede Offline-Faehigkeit: Ohne Netz startete sie
+// gar nicht - ausgerechnet im Wohnmobil und auf Reisen.
+//
+// Der Service Worker holt das Dokument jetzt bevorzugt aus dem Netz
+// (immer aktuell) und faellt nur bei fehlender Verbindung auf den
+// Zwischenspeicher zurueck (offline bedienbar). Eine neue Version wird nie
+// heimlich uebernommen, sondern angeboten.
 (function(){
-  // Alte Service Worker und Caches entfernen (vermeidet veraltete Stände)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister().catch(()=>{}))).catch(()=>{});
+  if(!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").then(reg => {
+
+      // Bereits wartende Version sofort anbieten
+      if(reg.waiting && navigator.serviceWorker.controller) neueVersionAnbieten(reg.waiting);
+
+      reg.addEventListener("updatefound", () => {
+        const neuer = reg.installing;
+        if(!neuer) return;
+        neuer.addEventListener("statechange", () => {
+          // "installed" + vorhandener Controller = echte Aktualisierung.
+          // Beim allerersten Besuch gibt es keinen Controller - dann nichts melden.
+          if(neuer.state === "installed" && navigator.serviceWorker.controller){
+            neueVersionAnbieten(neuer);
+          }
+        });
+      });
+
+      // Stuendlich und bei Rueckkehr in den Vordergrund nach Neuem sehen
+      setInterval(() => reg.update().catch(()=>{}), 3600000);
+      document.addEventListener("visibilitychange", () => {
+        if(document.visibilityState === "visible") reg.update().catch(()=>{});
+      });
+    }).catch(e => {
+      // Fehlgeschlagene Registrierung ist kein Beinbruch: Die App laeuft weiter,
+      // nur ohne Offline-Faehigkeit.
+      if(window.Fehlerlog) Fehlerlog.erfasse("sw-register", e);
+    });
+  });
+
+  let _neuladenLaeuft = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(_neuladenLaeuft) return;
+    _neuladenLaeuft = true;
+    location.reload();
+  });
+
+  function neueVersionAnbieten(worker){
+    const laden = () => { worker.postMessage({ typ:"jetztUebernehmen" }); };
+    if(window.toast) toast("Neue Version verfügbar", { label:"Jetzt laden", fn: laden });
+    else laden();
   }
-  if ('caches' in window) {
-    caches.keys().then(ks=>ks.forEach(k=>caches.delete(k).catch(()=>{}))).catch(()=>{});
+})();
+
+// ============================================================
+//  Verbindungsstatus sichtbar machen
+// ============================================================
+// Ohne Rueckmeldung wirkt eine offline nicht abgleichende App defekt.
+(function(){
+  function status(){
+    const el = document.getElementById("syncTxt");
+    const knopf = document.querySelector(".sync");
+    if(!el) return;
+    if(!navigator.onLine){
+      if(!el.dataset.vorher) el.dataset.vorher = el.textContent;
+      el.textContent = "Offline – Änderungen werden gespeichert";
+      if(knopf) knopf.classList.add("offline");
+    } else if(el.dataset.vorher){
+      el.textContent = el.dataset.vorher;
+      delete el.dataset.vorher;
+      if(knopf) knopf.classList.remove("offline");
+    }
   }
-  // Bei neuer App-Version einmalig hart neu laden
-  try {
-    const v = localStorage.getItem("familienapp.version");
-    if (v && v !== APP_VERSION) { localStorage.setItem("familienapp.version", APP_VERSION); location.reload(); }
-    else localStorage.setItem("familienapp.version", APP_VERSION);
-  } catch(e){}
+  window.addEventListener("online",  () => { status(); if(window.Sync) Sync.fullSync(); });
+  window.addEventListener("offline", status);
+  if(!navigator.onLine) status();
 })();
 </script>
 </body>
