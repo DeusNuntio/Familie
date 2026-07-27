@@ -18,7 +18,7 @@
    Nutzer über den Hinweis "Neue Version verfügbar".
    ============================================================ */
 
-const VERSION    = "2.5.0";
+const VERSION    = "2.9.0";
 const CACHE_NAME = "familie-nadig-" + VERSION;
 const NETZ_TIMEOUT_MS = 4000;
 

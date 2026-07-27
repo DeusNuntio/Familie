@@ -429,10 +429,50 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
    ============================================================ */
 /* Elemente, die von <div>/<span> auf <button> umgestellt wurden, brauchen
    ein Zuruecksetzen der Browser-Standardstile. */
+.kopf-rechts{display:flex;align-items:center;gap:8px}
+.flaggen{display:flex;gap:3px;background:rgba(255,255,255,.16);
+  border-radius:999px;padding:3px}
+.flagge{background:none;border:0;font-size:17px;line-height:1;cursor:pointer;
+  padding:7px 8px;min-width:38px;min-height:38px;border-radius:999px;
+  opacity:.45;transition:opacity .15s,background .15s}
+.flagge.on{opacity:1;background:rgba(255,255,255,.28)}
+.flagge:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.sprach-hinweis{font-size:12px;color:var(--ink2);margin-top:4px}
+.zutat-uebersetzt{color:var(--ink2);font-size:12.5px}
 .sync,.me,.gsuche-x{font:inherit;color:inherit;background:none;border:0;
   padding:0;text-align:inherit;cursor:pointer}
 .sync{margin-top:2px}
 .sync.offline .dot{background:var(--warm);animation:none}
+
+/* ============================================================
+   Kalender: Umschalter Monat/Woche + Wochenliste
+   ============================================================ */
+.kal-modus{display:flex;gap:6px;margin:0 16px 10px;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;padding:4px}
+.kal-modus .km{flex:1;background:none;border:0;font:inherit;font-size:13.5px;
+  font-weight:650;color:var(--ink2);padding:9px 6px;min-height:40px;
+  border-radius:8px;cursor:pointer}
+.kal-modus .km.on{background:var(--accent);color:#fff}
+.kal-modus .km:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.kal-heute-btn{display:block;margin:0 16px 10px;background:none;border:0;
+  font:inherit;font-size:13.5px;font-weight:600;color:var(--accent);
+  padding:9px 2px;min-height:44px;cursor:pointer;text-align:left}
+
+.wochenliste{display:flex;flex-direction:column;gap:8px;margin:0 16px 14px}
+.wtag{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:11px 13px;min-height:60px;font:inherit;color:inherit;cursor:pointer}
+.wtag.heute{border-color:var(--accent);border-width:2px;padding:10px 12px}
+.wtag:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wt-kopf{display:flex;align-items:baseline;gap:8px}
+.wt-name{font-size:14px;font-weight:700;color:var(--ink)}
+.wtag.heute .wt-name{color:var(--accent)}
+.wt-num{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.wt-body{display:flex;flex-direction:column;gap:4px}
+.wt-eintrag{display:flex;align-items:center;gap:7px;min-width:0}
+.wt-tx{font-size:13.5px;color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.wt-leer{font-size:13px;color:var(--ink2)}
 
 /* ============================================================
    Tagesübersicht auf dem Startbildschirm
@@ -542,9 +582,17 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
         <h1>Familie Nadig</h1>
         <button type="button" class="sync" onclick="syncTap()" aria-label="Synchronisierung"><span class="dot" aria-hidden="true"></span><span id="syncTxt" role="status" aria-live="polite">Verbinde…</span> <span id="verTxt" style="opacity:.6;margin-left:4px"></span></button>
       </div>
-      <button type="button" class="me" onclick="meMenu()" aria-label="Angemeldeter Nutzer, Menü öffnen">
-        <div class="av" id="meAv" aria-hidden="true">?</div>
-      </button>
+      <div class="kopf-rechts">
+        <div class="flaggen" role="group" aria-label="Sprache wählen / Taal kiezen">
+          <button type="button" class="flagge" data-lang="de" onclick="spracheSetzen('de')"
+            aria-label="Deutsch" title="Deutsch">🇩🇪</button>
+          <button type="button" class="flagge" data-lang="nl" onclick="spracheSetzen('nl')"
+            aria-label="Nederlands" title="Nederlands">🇳🇱</button>
+        </div>
+        <button type="button" class="me" onclick="meMenu()" aria-label="Angemeldeter Nutzer, Menü öffnen">
+          <div class="av" id="meAv" aria-hidden="true">?</div>
+        </button>
+      </div>
     </div>
     <div class="gsuche-wrap"><div class="gsuche">
       <span class="gsuche-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -558,7 +606,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
     <div id="fuerDichSlot"></div>
     <div id="nachrichtenSlot"></div>
     <details class="bereiche" id="bereiche">
-      <summary><span>Alle Bereiche</span><span class="chev" aria-hidden="true">&#8964;</span></summary>
+      <summary><span id="bereicheLabel">Alle Bereiche</span><span class="chev" aria-hidden="true">&#8964;</span></summary>
       <div class="grid" id="tiles"></div>
     </details>
   </div>
@@ -612,7 +660,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "2.5.0";
+const APP_VERSION = "2.9.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -1057,11 +1105,563 @@ window.chooseMe = n => {
   ME = n; localStorage.setItem("familienapp.me", n);
   document.getElementById("gate").style.display = "none";
   document.getElementById("meAv").textContent = initials(n);
+  // Jede Person hat ihre eigene Anzeigesprache
+  spracheLaden();
+  document.documentElement.lang = SPRACHE;
+  flaggenAktualisieren();
   renderHome();
+  uebersetzeDom(document.body);
 };
+// ============================================================
+//  Zweisprachigkeit Deutsch / Niederländisch
+// ============================================================
+// Die Sprache wird PRO NUTZER gespeichert und mitsynchronisiert: Ellen sieht
+// die App auf Deutsch, während dieselbe Einkaufsliste bei Mama auf
+// Niederländisch erscheint. Übersetzt wird ausschließlich die ANZEIGE –
+// gespeichert bleibt immer der eingegebene Originaltext. So geht beim
+// Abgleich zwischen den Geräten nichts verloren und niemand überschreibt
+// die Eingabe eines anderen.
+let SPRACHE = "de";
+
+function spracheLaden(){
+  const proNutzer = (DB.nutzerSprache || {})[ME];
+  SPRACHE = proNutzer || localStorage.getItem("familienapp.sprache") || "de";
+  return SPRACHE;
+}
+window.spracheSetzen = code => {
+  SPRACHE = (code === "nl") ? "nl" : "de";
+  try{ localStorage.setItem("familienapp.sprache", SPRACHE); }catch(e){}
+  if(ME){
+    DB.nutzerSprache = DB.nutzerSprache || {};
+    DB.nutzerSprache[ME] = SPRACHE;
+    save();
+  }
+  flaggenAktualisieren();
+  document.documentElement.lang = SPRACHE;
+  // BEIDES neu zeichnen: Der Startbildschirm bleibt sonst in der alten Sprache
+  // stehen, weil er beim Wechsel aus einer Modulansicht nicht neu gerendert
+  // wird – der Nutzer sieht die Umstellung dann erst nach dem Zurückgehen.
+  renderHome();
+  if(document.getElementById("view").classList.contains("active")) reRenderAktuell();
+  // Bereits vorhandene Bereiche (Kopfzeile, offenes Blatt) nachziehen
+  uebersetzeDom(document.body);
+};
+function flaggenAktualisieren(){
+  document.querySelectorAll(".flagge").forEach(b => {
+    const an = b.dataset.lang === SPRACHE;
+    b.classList.toggle("on", an);
+    b.setAttribute("aria-pressed", an ? "true" : "false");
+  });
+}
+// Zeichnet die gerade offene Modulansicht neu
+function reRenderAktuell(){
+  if(CURRENT && RENDER[CURRENT]) RENDER[CURRENT]();
+  else renderHome();
+}
+
+// ---- Vollständige Oberflächenübersetzung ----
+// Statt jeden der rund 240 Texte einzeln durch t() zu führen (fehleranfällig
+// und bei jeder Änderung erneut nötig), übersetzt ein Filter die fertig
+// gezeichnete Oberfläche. Ein MutationObserver löst ihn nach jeder
+// Neuzeichnung aus – damit sind auch später ergänzte Texte abgedeckt.
+// Ersetzt werden ausschließlich EXAKTE Treffer aus dieser Tabelle;
+// eingegebene Inhalte der Familie stehen dort nicht und bleiben unberührt.
+const UI_NL = {
+  "+ Idee": "+ Idee",
+  "+ Kiste": "+ Doos",
+  "+ Neue Einkaufsliste beginnen": "+ Nieuwe boodschappenlijst",
+  "+ Termin an diesem Tag": "+ Afspraak op deze dag",
+  "+ Zwischenstopp": "+ Tussenstop",
+  "+ ✏️ Eigener Eintrag": "+ ✏️ Eigen invoer",
+  "+ 🍳 Rezept": "+ 🍳 Recept",
+  "Abbrechen": "Annuleren",
+  "Abschicken": "Versturen",
+  "Aktiv – du wirst über neue Listen informiert": "Actief – je krijgt bericht bij nieuwe lijsten",
+  "Aktivität, Ausflugsziel, Ort oder etwas zum Kaufen": "Activiteit, uitje, plaats of iets om te kopen",
+  "Aktuell": "Actueel",
+  "Alle 2 Wochen": "Elke 2 weken",
+  "Alle Bereiche": "Alle onderdelen",
+  "Alle Bereiche durchsuchen": "Alle onderdelen doorzoeken",
+  "Alle Haken zurücksetzen": "Alle vinkjes wissen",
+  "Alle wie viele Tage?": "Om de hoeveel dagen?",
+  "Alles durchsuchen…": "Alles doorzoeken…",
+  "Angemeldeter Nutzer, Menü öffnen": "Aangemelde gebruiker, menu openen",
+  "Anlegen": "Aanmaken",
+  "Ansicht wählen": "Weergave kiezen",
+  "Art": "Soort",
+  "Artikel ergänzen…": "Artikel toevoegen…",
+  "Aufgabe": "Taak",
+  "Aufgaben": "Taken",
+  "Aufteilen": "Splitsen",
+  "Bearbeiten": "Bewerken",
+  "Berechnung fehlgeschlagen – erneut ›": "Berekening mislukt – opnieuw ›",
+  "Beschreibung": "Omschrijving",
+  "Beschreibung / Notizen": "Omschrijving / notities",
+  "Bestätigen": "Bevestigen",
+  "Bis": "Tot",
+  "Bis wann fällig": "Uiterlijk op",
+  "Bisheriger PIN": "Huidige pincode",
+  "Bitte PIN eingeben, um den Nutzer zu wechseln.": "Voer de pincode in om van gebruiker te wisselen.",
+  "Datum": "Datum",
+  "Dein Entwurf": "Jouw concept",
+  "Der neue PIN gilt sofort auf allen Geräten der Familie.": "De nieuwe pincode geldt meteen op alle apparaten.",
+  "Deutsch": "Duits",
+  "Deutschland": "Duitsland",
+  "Die gesamte Reihe": "De hele reeks",
+  "Dieses Gerät unterstützt keine Handy-Benachrichtigungen.": "Dit apparaat ondersteunt geen meldingen.",
+  "Dringlichkeit": "Prioriteit",
+  "Eingabe": "Invoer",
+  "Einmalig": "Eenmalig",
+  "Endgültig": "Definitief",
+  "Endgültig löschen": "Definitief verwijderen",
+  "Erledigt": "Klaar",
+  "Essen": "Eten",
+  "Etappe nicht berechenbar – Koordinaten fehlen": "Etappe niet te berekenen – coördinaten ontbreken",
+  "Fehlerprotokoll": "Foutenlogboek",
+  "Fertig": "Klaar",
+  "Foto": "Foto",
+  "Für dich abgeschickt": "Voor jou verstuurd",
+  "Gegenstand suchen…": "Voorwerp zoeken…",
+  "Gegenstand…": "Voorwerp…",
+  "Gesamt": "Totaal",
+  "Gilt nur für dich. Eingegebene Texte bleiben unverändert gespeichert.": "Geldt alleen voor jou. Ingevoerde teksten blijven ongewijzigd bewaard.",
+  "Halbjährlich": "Halfjaarlijks",
+  "Handy-Benachrichtigungen": "Meldingen op je telefoon",
+  "Hinzufügen": "Toevoegen",
+  "Hinzufügen…": "Toevoegen…",
+  "Hoch": "Hoog",
+  "Hotel": "Hotel",
+  "In Google Kalender öffnen": "In Google Agenda openen",
+  "In Google Maps öffnen": "In Google Maps openen",
+  "In Kalender": "In agenda",
+  "In Kalender eintragen": "In agenda zetten",
+  "Inhalt": "Inhoud",
+  "Ins Archiv": "Naar archief",
+  "Intervall": "Interval",
+  "Jede Woche": "Elke week",
+  "Jeden Monat": "Elke maand",
+  "Jedes Jahr": "Elk jaar",
+  "Jetzt abgleichen": "Nu synchroniseren",
+  "Jetzt laden": "Nu laden",
+  "Jährlich": "Jaarlijks",
+  "Karte": "Kaart",
+  "Karte schließen": "Kaart sluiten",
+  "Karte öffnen": "Kaart openen",
+  "Kategorie": "Categorie",
+  "Keine Einträge an diesem Tag.": "Geen items op deze dag.",
+  "Keine Fehler protokolliert.": "Geen fouten geregistreerd.",
+  "Keine Treffer.": "Geen resultaten.",
+  "Kistenname": "Naam van de doos",
+  "Leer": "Leeg",
+  "Leer lassen, wenn der Termin unbefristet wiederkehrt.": "Leeg laten als de afspraak onbeperkt terugkeert.",
+  "Link": "Link",
+  "Liste abschicken": "Lijst versturen",
+  "Liste löschen": "Lijst verwijderen",
+  "Liste umbenennen": "Lijst hernoemen",
+  "Listen": "Lijsten",
+  "Listen zusammenfügen": "Lijsten samenvoegen",
+  "Listenname": "Naam van de lijst",
+  "Löschen": "Verwijderen",
+  "Menge entfernen": "Hoeveelheid wissen",
+  "Mit Geburtsjahr zeigt der Kalender das Alter an.": "Met geboortejaar toont de agenda de leeftijd.",
+  "Mit Microsoft anmelden": "Aanmelden met Microsoft",
+  "Mittel": "Gemiddeld",
+  "Monatlich": "Maandelijks",
+  "Name": "Naam",
+  "Name / Ort": "Naam / plaats",
+  "Name der Liste": "Naam van de lijst",
+  "Neu anlegen": "Nieuw aanmaken",
+  "Neue Idee": "Nieuw idee",
+  "Neue Liste": "Nieuwe lijst",
+  "Neuen PIN speichern": "Nieuwe pincode opslaan",
+  "Neuer Artikel…": "Nieuw artikel…",
+  "Neuer Eintrag": "Nieuw item",
+  "Neuer PIN wiederholen": "Nieuwe pincode herhalen",
+  "Neuer Termin": "Nieuwe afspraak",
+  "Niedrig": "Laag",
+  "Noch keine Rezepte vorhanden – zuerst im Modul „Rezepte“ anlegen.": "Nog geen recepten – maak ze eerst aan bij „Recepten“.",
+  "Noch keine Zutaten": "Nog geen ingrediënten",
+  "Noch leer": "Nog leeg",
+  "Noch nichts geplant.": "Nog niets gepland.",
+  "Nur für mich": "Alleen voor mij",
+  "Nutzer wechseln": "Gebruiker wisselen",
+  "Nächste Woche": "Volgende week",
+  "Nächster Monat": "Volgende maand",
+  "Oder direkt von einer Adresse laden": "Of rechtstreeks van een adres laden",
+  "Optional": "Optioneel",
+  "Ort": "Plaats",
+  "PIN": "Pincode",
+  "PIN ändern": "Pincode wijzigen",
+  "Papierkorb leeren": "Prullenbak legen",
+  "Protokoll kopieren": "Logboek kopiëren",
+  "Protokoll leeren": "Logboek wissen",
+  "QR-Etikett wird automatisch erzeugt": "QR-label wordt automatisch aangemaakt",
+  "Reise": "Reis",
+  "Reise bearbeiten": "Reis bewerken",
+  "Reise löschen": "Reis verwijderen",
+  "Reparatur": "Reparatie",
+  "Reservierung": "Reservering",
+  "Reservierung entfernen": "Reservering verwijderen",
+  "Restaurant": "Restaurant",
+  "Rezept löschen": "Recept verwijderen",
+  "Rezept suchen…": "Recept zoeken…",
+  "Rezept von dieser Adresse holen": "Recept van dit adres halen",
+  "Rezept öffnen": "Recept openen",
+  "Routing-Einstellungen": "Route-instellingen",
+  "Rückgängig": "Ongedaan maken",
+  "Schließen": "Sluiten",
+  "Schnellauswahl bearbeiten": "Snelkeuze bewerken",
+  "Schritt für Schritt…": "Stap voor stap…",
+  "Sehenswürdigkeit": "Bezienswaardigheid",
+  "Serientermin löschen": "Terugkerende afspraak verwijderen",
+  "Speichern": "Opslaan",
+  "Sprache / Taal": "Sprache / Taal",
+  "Sprache wählen / Taal kiezen": "Sprache wählen / Taal kiezen",
+  "Stadt / Ort": "Stad / plaats",
+  "Standort": "Locatie",
+  "Status": "Status",
+  "Straße, Ort": "Straat, plaats",
+  "Stückzahl, Gewicht oder Volumen": "Aantal, gewicht of volume",
+  "Suche zurücksetzen": "Zoekopdracht wissen",
+  "Synchronisierung": "Synchronisatie",
+  "Synchronisierung einrichten": "Synchronisatie instellen",
+  "Tagesplanung": "Dagplanning",
+  "Termin": "Afspraak",
+  "Termine exportieren": "Afspraken exporteren",
+  "Titel": "Titel",
+  "Titel oder Zutat suchen…": "Titel of ingrediënt zoeken…",
+  "Tour": "Tour",
+  "Trip": "Trip",
+  "Uhrzeit": "Tijd",
+  "Unterkunft": "Accommodatie",
+  "Unterkunftstyp": "Type accommodatie",
+  "Verbinde…": "Verbinden…",
+  "Verwerfen": "Verwerpen",
+  "Vierteljährlich": "Per kwartaal",
+  "Von": "Van",
+  "Von OneDrive abmelden": "Afmelden bij OneDrive",
+  "Von dir abgeschickt": "Door jou verstuurd",
+  "Vorherige Woche": "Vorige week",
+  "Vorheriger Monat": "Vorige maand",
+  "Wanderung": "Wandeling",
+  "Was gibt es?": "Wat is er?",
+  "Wer bist du?": "Wie ben je?",
+  "Wichtige Hinweise": "Belangrijke opmerkingen",
+  "Wiederherstellen": "Herstellen",
+  "Wiederholung": "Herhaling",
+  "Wiederkehrend": "Terugkerend",
+  "Wohnmobil": "Camper",
+  "Wöchentlich": "Wekelijks",
+  "Zubereitung": "Bereiding",
+  "Zur Einkaufsliste hinzufügen": "Aan boodschappenlijst toevoegen",
+  "Zurück": "Terug",
+  "Zurückziehen": "Terughalen",
+  "Zusammenfügen": "Samenvoegen",
+  "Zutat, z.B. 500 g Hackfleisch": "Ingrediënt, bijv. 500 g gehakt",
+  "Zutaten": "Ingrediënten",
+  "Zutaten der Woche": "Ingrediënten van de week",
+  "Zutaten übernehmen": "Ingrediënten overnemen",
+  "Zwischenstopp hinzufügen": "Tussenstop toevoegen",
+  "Zwischensumme": "Subtotaal",
+  "berechne…": "berekenen…",
+  "erneut ›": "opnieuw ›",
+  "herzhaft": "hartig",
+  "leer": "leeg",
+  "leicht": "licht",
+  "optional": "optioneel",
+  "z.B. 12,50": "bijv. 12,50",
+  "z.B. 1982": "bijv. 1982",
+  "z.B. 2 · 500 g · 1 l": "bijv. 2 · 500 g · 1 l",
+  "z.B. 89": "bijv. 89",
+  "z.B. Burg Eltz": "bijv. Burg Eltz",
+  "z.B. Bücher": "bijv. boeken",
+  "z.B. Essen gehen": "bijv. uit eten",
+  "z.B. Fenster putzen": "bijv. ramen wassen",
+  "z.B. Kolosseum": "bijv. Colosseum",
+  "z.B. Mautgebühr, mit Bus hinfahren …": "bijv. tolgeld, met de bus …",
+  "z.B. München": "bijv. München",
+  "z.B. Regal 2": "bijv. rek 2",
+  "z.B. Sommer Italien": "bijv. zomer Italië",
+  "z.B. Spaghetti Bolognese": "bijv. spaghetti bolognese",
+  "z.B. Tickets vorab buchen …": "bijv. tickets vooraf boeken …",
+  "z.B. Vignette, Reisepass": "bijv. vignet, paspoort",
+  "z.B. Zahnarzt": "bijv. tandarts",
+  "Übernehmen": "Overnemen",
+  "↺ Reset": "↺ Reset",
+  "✎ Bearbeiten": "✎ Bewerken",
+  "✓ Abschicken": "✓ Versturen",
+  "✓ Jetzt erledigt": "✓ Nu klaar",
+  "✓ Reserviert": "✓ Gereserveerd",
+  "✕ Nicht möglich": "✕ Niet mogelijk",
+  "📅 Export": "📅 Export",
+  "📅 Kalender": "📅 Agenda",
+  "🔔 Benachrichtigungen aufs Handy aktivieren": "🔔 Meldingen op je telefoon inschakelen",
+  "🗺️ Karte": "🗺️ Kaart",
+  "🗺️ Route in Google Maps": "🗺️ Route in Google Maps",
+};
+
+let _uebersetzungLaeuft = false;
+
+function uebersetzeDom(wurzel){
+  if(SPRACHE !== "nl" || !wurzel || _uebersetzungLaeuft) return;
+  _uebersetzungLaeuft = true;
+  try{
+    // 1) Textknoten
+    const lauf = document.createTreeWalker(wurzel, NodeFilter.SHOW_TEXT, {
+      acceptNode(k){
+        const eltern = k.parentNode;
+        if(!eltern) return NodeFilter.FILTER_REJECT;
+        const tag = eltern.nodeName;
+        if(tag === "SCRIPT" || tag === "STYLE" || tag === "TEXTAREA")
+          return NodeFilter.FILTER_REJECT;
+        return k.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const treffer = [];
+    let k;
+    while((k = lauf.nextNode())) treffer.push(k);
+    treffer.forEach(k => {
+      const roh = k.nodeValue;
+      const kern = roh.trim();
+      const neu = UI_NL[kern] || (TEXTE[kern] && TEXTE[kern].nl);
+      if(neu && neu !== kern){
+        // umgebende Leerzeichen erhalten
+        k.nodeValue = roh.replace(kern, neu);
+      }
+    });
+    // 2) Attribute, die als Text sichtbar werden
+    ["placeholder","title","aria-label","value"].forEach(attr => {
+      wurzel.querySelectorAll("[" + attr + "]").forEach(el => {
+        if(attr === "value" && el.tagName !== "BUTTON") return;
+        const alt = el.getAttribute(attr);
+        const neu = UI_NL[alt] || (TEXTE[alt] && TEXTE[alt].nl);
+        if(neu && neu !== alt) el.setAttribute(attr, neu);
+      });
+    });
+  }catch(e){
+    if(window.Fehlerlog) Fehlerlog.erfasse("uebersetzeDom", e);
+  }finally{
+    _uebersetzungLaeuft = false;
+  }
+}
+
+// Beobachtet die drei Container und übersetzt nach jeder Neuzeichnung.
+// Ohne den Beobachter müsste jede der über 40 Render-Funktionen den Filter
+// selbst aufrufen – und jede künftige ebenfalls.
+function uebersetzungBeobachten(){
+  if(!("MutationObserver" in window)) return;
+  const beob = new MutationObserver(aenderungen => {
+    if(SPRACHE !== "nl" || _uebersetzungLaeuft) return;
+    const wurzeln = new Set();
+    aenderungen.forEach(a => {
+      const ziel = a.target.nodeType === 1 ? a.target : a.target.parentNode;
+      if(ziel) wurzeln.add(ziel);
+    });
+    wurzeln.forEach(w => uebersetzeDom(w));
+  });
+  ["home","vbody","sheet","vhead","addbar"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) beob.observe(el, { childList:true, subtree:true, characterData:true });
+  });
+}
+
+// ---- Zutaten- und Lebensmittelwörterbuch ----
+// Offline und ohne Fremddienst. Deckt die gängigen Lebensmittel des
+// Familienalltags ab. Fehlt ein Wort, bleibt das Original stehen – die
+// Einkaufsliste ist dadurch nie unvollständig, höchstens einsprachig.
+// Ergänzungen der Familie landen in DB.woerter und werden mitsynchronisiert.
+const LEBENSMITTEL = {
+  // Grundnahrungsmittel
+  "mehl":"bloem","zucker":"suiker","salz":"zout","pfeffer":"peper","öl":"olie",
+  "olivenöl":"olijfolie","essig":"azijn","butter":"boter","margarine":"margarine",
+  "milch":"melk","sahne":"room","schlagsahne":"slagroom","joghurt":"yoghurt",
+  "quark":"kwark","käse":"kaas","reibekäse":"geraspte kaas","frischkäse":"roomkaas",
+  "ei":"ei","eier":"eieren","hefe":"gist","backpulver":"bakpoeder",
+  "stärke":"maizena","speisestärke":"maizena","honig":"honing","marmelade":"jam",
+  // Brot und Getreide
+  "brot":"brood","brötchen":"broodjes","toast":"toast","reis":"rijst",
+  "nudeln":"pasta","spaghetti":"spaghetti","lasagneplatten":"lasagnebladen",
+  "haferflocken":"havermout","müsli":"muesli","couscous":"couscous",
+  "kartoffeln":"aardappelen","kartoffel":"aardappel","pommes":"friet",
+  // Fleisch und Fisch
+  "hackfleisch":"gehakt","rinderhack":"rundergehakt","hähnchen":"kip",
+  "hähnchenbrust":"kipfilet","schweinefleisch":"varkensvlees",
+  "rindfleisch":"rundvlees","speck":"spek","schinken":"ham","wurst":"worst",
+  "salami":"salami","fisch":"vis","lachs":"zalm","thunfisch":"tonijn",
+  "garnelen":"garnalen","hackbällchen":"gehaktballen",
+  // Gemüse
+  "zwiebel":"ui","zwiebeln":"uien","knoblauch":"knoflook","möhren":"wortels",
+  "möhre":"wortel","karotten":"wortels","tomaten":"tomaten","tomate":"tomaat",
+  "paprika":"paprika","gurke":"komkommer","salat":"sla","kopfsalat":"kropsla",
+  "spinat":"spinazie","brokkoli":"broccoli","blumenkohl":"bloemkool",
+  "erbsen":"erwten","bohnen":"bonen","mais":"mais","lauch":"prei",
+  "porree":"prei","sellerie":"selderij","zucchini":"courgette",
+  "aubergine":"aubergine","champignons":"champignons","pilze":"paddenstoelen",
+  "kürbis":"pompoen","rotkohl":"rodekool","weißkohl":"witte kool",
+  "rosenkohl":"spruitjes","spargel":"asperges","radieschen":"radijs",
+  // Obst
+  "apfel":"appel","äpfel":"appels","banane":"banaan","bananen":"bananen",
+  "birne":"peer","orange":"sinaasappel","zitrone":"citroen","limette":"limoen",
+  "erdbeeren":"aardbeien","himbeeren":"frambozen","blaubeeren":"bosbessen",
+  "trauben":"druiven","kirschen":"kersen","pfirsich":"perzik",
+  "ananas":"ananas","melone":"meloen","rosinen":"rozijnen",
+  // Kräuter und Gewürze
+  "petersilie":"peterselie","basilikum":"basilicum","thymian":"tijm",
+  "rosmarin":"rozemarijn","oregano":"oregano","dill":"dille",
+  "schnittlauch":"bieslook","lorbeerblatt":"laurierblad","paprikapulver":"paprikapoeder",
+  "curry":"kerrie","zimt":"kaneel","muskatnuss":"nootmuskaat","ingwer":"gember",
+  "senf":"mosterd","ketchup":"ketchup","mayonnaise":"mayonaise",
+  "tomatenmark":"tomatenpuree","brühe":"bouillon","gemüsebrühe":"groentebouillon",
+  "sojasoße":"sojasaus","vanille":"vanille",
+  // Getränke und Sonstiges
+  "wasser":"water","mineralwasser":"mineraalwater","saft":"sap",
+  "orangensaft":"sinaasappelsap","kaffee":"koffie","tee":"thee",
+  "wein":"wijn","rotwein":"rode wijn","weißwein":"witte wijn","bier":"bier",
+  "schokolade":"chocolade","kekse":"koekjes","nüsse":"noten",
+  "mandeln":"amandelen","walnüsse":"walnoten","chips":"chips",
+  "klopapier":"wc-papier","spülmittel":"afwasmiddel","waschmittel":"wasmiddel",
+  "müllbeutel":"vuilniszakken","zahnpasta":"tandpasta","seife":"zeep",
+  // Mengeneinheiten
+  "prise":"snufje","prisen":"snufjes","bund":"bosje","zehe":"teentje",
+  "zehen":"teentjes","stück":"stuk","stücke":"stuks","packung":"pak",
+  "dose":"blik","glas":"pot","becher":"bakje","scheibe":"plak","scheiben":"plakken",
+  "esslöffel":"eetlepel","teelöffel":"theelepel","tasse":"kop","liter":"liter",
+  // Häufige Füllwörter in Zutatenzeilen
+  "und":"en","oder":"of","mit":"met","ohne":"zonder","frisch":"vers",
+  "getrocknet":"gedroogd","gehackt":"gehakt","gerieben":"geraspt",
+  "geschnitten":"gesneden","klein":"klein","groß":"groot","etwas":"wat",
+  "nach":"naar","geschmack":"smaak","gemahlen":"gemalen","gewürfelt":"in blokjes",
+  "rot":"rood","grün":"groen","gelb":"geel","weiß":"wit","braun":"bruin"
+};
+// Umkehrung für die Richtung Niederländisch -> Deutsch
+const LEBENSMITTEL_NL = (()=>{
+  const um = {};
+  for(const [de, nl] of Object.entries(LEBENSMITTEL)){
+    if(!(nl in um)) um[nl] = de;
+  }
+  return um;
+})();
+
+// Übersetzt einen Zutatentext wortweise. Mengen, Zahlen und unbekannte
+// Wörter bleiben unverändert stehen.
+function zutatUebersetzen(text, ziel){
+  const roh = String(text||"");
+  if(!roh.trim()) return roh;
+  // Von der Familie gepflegte Ergänzungen haben Vorrang
+  const eigene = (DB.woerter || {});
+  const schluessel = roh.trim().toLowerCase();
+  if(eigene[schluessel] && eigene[schluessel][ziel]) return eigene[schluessel][ziel];
+
+  const tabelle = ziel === "nl" ? LEBENSMITTEL : LEBENSMITTEL_NL;
+  let getroffen = false;
+  const uebersetzt = roh.replace(/[A-Za-zÄÖÜäöüßéèçñ-]{2,}/g, (wort, pos) => {
+    const treffer = tabelle[wort.toLowerCase()];
+    if(!treffer) return wort;
+    getroffen = true;
+    // Groß-/Kleinschreibung nach den Regeln der ZIELSPRACHE, nicht der Quelle.
+    // Deutsch schreibt Substantive groß, Niederländisch klein – die Schreibung
+    // des Originals zu übernehmen ergäbe "500 g Gehakt" bzw. "1 kg kartoffeln".
+    // Im Niederländischen wird nur großgeschrieben, was die Zeile eröffnet.
+    if(ziel === "de") return treffer.charAt(0).toUpperCase() + treffer.slice(1);
+    return pos === 0
+      ? treffer.charAt(0).toUpperCase() + treffer.slice(1)
+      : treffer.toLowerCase();
+  });
+  return getroffen ? uebersetzt : roh;
+}
+
+// Warengruppen-Überschriften der Schnellauswahl
+function warengruppeAnzeige(name){ return esc(t(name)); }
+
+// Zeigt das Original klein darunter, wenn tatsächlich übersetzt wurde.
+// Wichtig beim Einkaufen: Wer im niederländischen Supermarkt steht, will
+// "gehakt" lesen – wer die Liste geschrieben hat, erkennt "Hackfleisch" wieder.
+window.zutatZusatz = text => {
+  if(SPRACHE === "de") return "";
+  const uebersetzt = zutatUebersetzen(text, "nl");
+  if(uebersetzt === text) return "";
+  return `<div class="zutat-uebersetzt">${esc(text)}</div>`;
+};
+
+// Anzeigefassung einer Zutat: Original, wenn die Sprache passt oder nichts
+// übersetzt werden konnte – sonst die Übersetzung.
+window.zutatAnzeige = text => {
+  if(SPRACHE === "de") return text;
+  return zutatUebersetzen(text, "nl");
+};
+
+// Eigene Übersetzung hinterlegen oder korrigieren (wird mitsynchronisiert)
+window.wortMerken = (original, uebersetzung, ziel) => {
+  const k = String(original||"").trim().toLowerCase();
+  if(!k || !uebersetzung) return;
+  DB.woerter = DB.woerter || {};
+  DB.woerter[k] = DB.woerter[k] || {};
+  DB.woerter[k][ziel || "nl"] = String(uebersetzung).trim();
+  DB.woerter[k].updatedAt = now();
+  save();
+};
+
+// ---- Oberflächentexte ----
+// Bewusst nur die Texte, die in den Hauptansichten sichtbar sind. Formulare
+// und Detailblätter bleiben vorerst deutsch; vollständige Übersetzung ist
+// eine eigene Etappe (siehe PROJECT_MEMORY).
+const TEXTE = {
+  "Kalender":{nl:"Agenda"}, "To-do":{nl:"Taken"},
+  "Einkaufslisten":{nl:"Boodschappen"}, "Rezepte":{nl:"Recepten"},
+  "Essensplan":{nl:"Menuplan"}, "Reparaturen":{nl:"Reparaties"},
+  "Urlaubsplanung":{nl:"Vakantie"}, "Kellerinventar":{nl:"Kelderinventaris"},
+  "Wohnmobil":{nl:"Camper"}, "Ideen":{nl:"Ideeën"}, "Papierkorb":{nl:"Prullenbak"},
+  "Heute":{nl:"Vandaag"}, "Für dich":{nl:"Voor jou"},
+  "Alle Bereiche":{nl:"Alle onderdelen"},
+  "Einkauf":{nl:"Boodschappen"}, "Aufgabe":{nl:"Taak"}, "Termin":{nl:"Afspraak"},
+  "Woche":{nl:"Week"}, "Monat":{nl:"Maand"},
+  "Kommende Termine":{nl:"Komende afspraken"},
+  "Für heute ist nichts eingetragen.":{nl:"Voor vandaag staat niets gepland."},
+  "Zur aktuellen Woche":{nl:"Naar deze week"},
+  "Alles durchsuchen…":{nl:"Alles doorzoeken…"},
+  "offen":{nl:"open"}, "Rezepte":{nl:"Recepten"}, "Kisten":{nl:"Dozen"},
+  "Reisen":{nl:"Reizen"}, "Punkte":{nl:"Punten"}, "Ideen":{nl:"Ideeën"},
+  "heute":{nl:"vandaag"}, "morgen":{nl:"morgen"},
+  "Aufgabe":{nl:"Taak"}, "Reparatur":{nl:"Reparatie"}, "Reise":{nl:"Reis"},
+  "Ort":{nl:"Plaats"}, "Reservierung":{nl:"Reservering"},
+  "Wiederkehrend":{nl:"Terugkerend"}, "Essen":{nl:"Eten"},
+  "Geburtstag":{nl:"Verjaardag"}, "unterwegs":{nl:"onderweg"},
+  "Obst & Gemüse":{nl:"Groente & fruit"}, "Fleisch & Fisch":{nl:"Vlees & vis"},
+  "Milchprodukte":{nl:"Zuivel"}, "Brot & Backwaren":{nl:"Brood & gebak"},
+  "Vorräte":{nl:"Voorraad"}, "Getränke":{nl:"Dranken"},
+  "Tiefkühl":{nl:"Diepvries"}, "Haushalt":{nl:"Huishouden"},
+  "Süßes & Snacks":{nl:"Zoet & snacks"}, "Sonstiges":{nl:"Overig"},
+  "Montag":{nl:"maandag"}, "Dienstag":{nl:"dinsdag"}, "Mittwoch":{nl:"woensdag"},
+  "Donnerstag":{nl:"donderdag"}, "Freitag":{nl:"vrijdag"},
+  "Samstag":{nl:"zaterdag"}, "Sonntag":{nl:"zondag"},
+  "Januar":{nl:"januari"}, "Februar":{nl:"februari"}, "März":{nl:"maart"},
+  "April":{nl:"april"}, "Mai":{nl:"mei"}, "Juni":{nl:"juni"}, "Juli":{nl:"juli"},
+  "August":{nl:"augustus"}, "September":{nl:"september"}, "Oktober":{nl:"oktober"},
+  "November":{nl:"november"}, "Dezember":{nl:"december"}
+};
+// Übersetzt einzelne Wörter innerhalb von Zählertexten ("3 offen", "5 Rezepte")
+function zaehlerText(text){
+  if(SPRACHE === "de") return text;
+  return String(text||"").replace(/[A-Za-zÄÖÜäöüß]+/g, w => t(w));
+}
+// t() gibt bei unbekannten Texten das Original zurück – die App bleibt
+// dadurch immer bedienbar, auch wenn eine Übersetzung fehlt.
+function t(text){
+  if(SPRACHE === "de") return text;
+  const e = TEXTE[text];
+  return (e && e[SPRACHE]) ? e[SPRACHE] : text;
+}
+
 window.meMenu = () => {
   openSheet(`<h3>Angemeldet als ${esc(ME)}</h3>
     <div class="ml">Beiträge wie Ideen oder Reisen werden mit deinem Namen markiert. Der Nutzerwechsel ist mit einem PIN geschützt.</div>
+    <div class="fld"><label for="me_sprache">Sprache / Taal</label>
+      <select id="me_sprache" onchange="spracheSetzen(this.value)">
+        <option value="de" ${SPRACHE==="de"?"selected":""}>Deutsch</option>
+        <option value="nl" ${SPRACHE==="nl"?"selected":""}>Nederlands</option>
+      </select>
+      <div class="sprach-hinweis">Gilt nur für dich. Eingegebene Texte bleiben unverändert gespeichert.</div>
+    </div>
     <button class="btn ghost" onclick="switchUser()">Nutzer wechseln</button>`);
 };
 // ============================================================
@@ -1282,6 +1882,10 @@ function renderHome(){
   renderFuerDich();
   renderNachrichten();
   // Aufklapp-Zustand der Modulliste merken
+  const bl = document.getElementById("bereicheLabel");
+  if(bl) bl.textContent = t("Alle Bereiche");
+  const gs = document.getElementById("gsuche");
+  if(gs) gs.placeholder = t("Alles durchsuchen…");
   const bereiche = document.getElementById("bereiche");
   if(bereiche){
     bereiche.open = localStorage.getItem("familienapp.bereicheOffen") === "1";
@@ -1295,7 +1899,7 @@ function renderHome(){
   document.getElementById("tiles").innerHTML = sichtbar.map(m=>`
     <div class="tile" onclick="open_('${m.id}')">
       <div class="ic">${m.ic}</div>
-      <div><div class="nm">${m.nm}</div><div class="ct">${m.count()}</div></div>
+      <div><div class="nm">${t(m.nm)}</div><div class="ct">${zaehlerText(m.count())}</div></div>
     </div>`).join("");
 }
 // null = alle Module erlaubt; sonst Liste erlaubter Modul-IDs
@@ -1339,22 +1943,22 @@ function renderHeute(){
     ? `<button type="button" class="heute-mehr" onclick="open_('kalender')">
          ${eintraege.length - 6} weitere anzeigen</button>` : "";
 
-  const leer = `<div class="heute-leer">Für heute ist nichts eingetragen.</div>`;
+  const leer = `<div class="heute-leer">${t("Für heute ist nichts eingetragen.")}</div>`;
 
   // Schnellzugriff: die drei häufigsten Vorgänge, jeweils ein Tipp entfernt
   const schnell = [
     darf("einkauf") ? `<button type="button" class="qa" onclick="schnellEinkauf()">
-        ${ICON.cart}<span>Einkauf</span></button>` : "",
+        ${ICON.cart}<span>${t("Einkauf")}</span></button>` : "",
     darf("todos") ? `<button type="button" class="qa" onclick="schnellAufgabe()">
-        ${ICON.checkbox}<span>Aufgabe</span></button>` : "",
+        ${ICON.checkbox}<span>${t("Aufgabe")}</span></button>` : "",
     darf("kalender") ? `<button type="button" class="qa" onclick="schnellTermin()">
-        ${ICON.cal}<span>Termin</span></button>` : "",
+        ${ICON.cal}<span>${t("Termin")}</span></button>` : "",
   ].filter(Boolean).join("");
 
   slot.innerHTML = `
     <section class="heute" aria-labelledby="heuteTitel">
       <div class="heute-kopf">
-        <h2 id="heuteTitel">Heute</h2>
+        <h2 id="heuteTitel">${t("Heute")}</h2>
         <span class="heute-datum">${esc(heuteLang())}</span>
       </div>
       ${eintraege.length ? zeilen + mehr : leer}
@@ -1370,7 +1974,7 @@ function heuteLang(){
   const tage = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
   const monate = ["Januar","Februar","März","April","Mai","Juni","Juli",
                   "August","September","Oktober","November","Dezember"];
-  return `${tage[d.getDay()]}, ${d.getDate()}. ${monate[d.getMonth()]}`;
+  return `${t(tage[d.getDay()])}, ${d.getDate()}. ${t(monate[d.getMonth()])}`;
 }
 
 // ---- Schnellzugriff ----
@@ -2326,9 +2930,132 @@ function kalenderEintraege(von, bis){
   return out;
 }
 let KAL_MONAT = null;  // {jahr, monat} – null = aktueller Monat
+
+// Liste kommender Termine – wird von Monats- UND Wochenansicht genutzt
+function kalenderKommendeHtml(){
+  const _b = new Date(); _b.setDate(_b.getDate()+31);
+  const kommende = kalenderEintraege(heuteISO(), isoLokal(_b))
+    .filter(e=>!e.zwischentag)
+    .filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=31;})
+    .sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,15);
+  return `<div class="section-label">${t("Kommende Termine")}</div>
+    ${kommende.length? `<div class="list">${kommende.map(e=>{
+      const d=daysUntil(e.datum);
+      const wann=d===0?"heute":d===1?"morgen":"in "+d+" Tagen";
+      const loeschbar = e.typ==="Termin" && e.terminId;
+      const klick = loeschbar ? "" : (e.modul==="urlaub" ? "kalZuReise('"+(e.reiseId||"")+"')" : "open_('"+e.modul+"')");
+      return `<div class="card" onclick="${klick}">
+        ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}','${e.datum}')">×</div>`:""}
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
+          <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
+            <div class="cmeta"><span class="pill cat">${e.typ}</span><span class="pill due">${fmtDate(e.datum)} · ${wann}</span></div></div></div></div>`;
+    }).join("")}</div>` : empty("cal","Keine Termine in den nächsten 31 Tagen")}`;
+}
+
+// Ansichtsmodus des Kalenders: Monatsraster oder Wochenliste
+let KAL_MODUS = (()=>{ try{ return localStorage.getItem("familienapp.kalModus") || "monat"; }
+                       catch(e){ return "monat"; } })();
+let KAL_WOCHE = null;   // Montag der dargestellten Woche – null = aktuelle Woche
+
+window.kalModusSetzen = modus => {
+  KAL_MODUS = modus;
+  try{ localStorage.setItem("familienapp.kalModus", modus); }catch(e){}
+  RENDER.kalender();
+};
+// Montag der Woche, in der das übergebene Datum liegt.
+// ACHTUNG: Nicht "wochenStart" nennen – diesen Namen belegt bereits der
+// Essensplan mit anderer Signatur (Offset statt Datum). Die spätere
+// Deklaration hätte die frühere überschrieben.
+function kalWochenStart(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const wt = x.getDay() === 0 ? 6 : x.getDay() - 1;   // Mo = 0
+  x.setDate(x.getDate() - wt);
+  return x;
+}
+window.kalWoche = richtung => {
+  const basis = KAL_WOCHE || kalWochenStart(new Date());
+  const n = new Date(basis); n.setDate(basis.getDate() + richtung*7);
+  KAL_WOCHE = n; RENDER.kalender();
+};
+window.kalHeute = () => {
+  const h = new Date();
+  KAL_WOCHE = kalWochenStart(h);
+  KAL_MONAT = { jahr:h.getFullYear(), monat:h.getMonth() };
+  RENDER.kalender();
+};
+function kalModusUmschalter(){
+  return `<div class="kal-modus" role="group" aria-label="Ansicht wählen">
+    <button type="button" class="km ${KAL_MODUS==="woche"?"on":""}"
+      aria-pressed="${KAL_MODUS==="woche"}" onclick="kalModusSetzen('woche')">${t("Woche")}</button>
+    <button type="button" class="km ${KAL_MODUS==="monat"?"on":""}"
+      aria-pressed="${KAL_MODUS==="monat"}" onclick="kalModusSetzen('monat')">${t("Monat")}</button>
+  </div>`;
+}
+
+// ---- Wochenansicht ----
+// Auf dem Handy ist ein Stundenraster unbrauchbar. Stattdessen sieben Tage
+// untereinander mit ihren Einträgen: beantwortet "Was ist diese Woche?" auf
+// einen Blick, ohne dass man sieben Tage einzeln antippen muss.
+function kalenderWocheHtml(){
+  const heute = new Date();
+  const heuteIso = heuteISO();
+  const start = KAL_WOCHE || kalWochenStart(heute);
+  const ende  = new Date(start); ende.setDate(start.getDate()+6);
+  const vonIso = isoLokal(start), bisIso = isoLokal(ende);
+
+  const proTag = {};
+  kalenderEintraege(vonIso, bisIso).forEach(e => {
+    (proTag[e.datum] = proTag[e.datum] || []).push(e);
+  });
+
+  const wtage = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"].map(t);
+  let zeilen = "";
+  for(let i=0; i<7; i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const iso = isoLokal(d);
+    const alle = proTag[iso] || [];
+    const evs = alle.filter(e=>!e.zwischentag)
+      .sort((a,b)=>String(a.zeit||"~").localeCompare(String(b.zeit||"~")));
+    const unterwegs = alle.some(e=>e.zwischentag);
+    const inhalt = evs.length
+      ? evs.map(e=>`<span class="wt-eintrag">
+            <span class="kal-dot" style="background:${esc(e.farbe||"#0891b2")}"></span>
+            <span class="wt-tx">${esc(e.titel)}</span></span>`).join("")
+      : `<span class="wt-leer">${unterwegs ? t("unterwegs") : "–"}</span>`;
+    zeilen += `<button type="button" class="wtag ${iso===heuteIso?"heute":""} ${evs.length?"hat":""}"
+        onclick="kalTag('${iso}')">
+        <span class="wt-kopf"><span class="wt-name">${wtage[i]}</span>
+          <span class="wt-num">${d.getDate()}.${d.getMonth()+1}.</span></span>
+        <span class="wt-body">${inhalt}</span></button>`;
+  }
+
+  const spanne = `${start.getDate()}.${start.getMonth()+1}. – ${ende.getDate()}.${ende.getMonth()+1}.${ende.getFullYear()}`;
+  const aktuelle = isoLokal(kalWochenStart(heute)) === vonIso;
+
+  return kalModusUmschalter() + `
+    <div class="kal-nav">
+      <button onclick="kalWoche(-1)" aria-label="Vorherige Woche">‹</button>
+      <div>${esc(spanne)}</div>
+      <button onclick="kalWoche(1)" aria-label="Nächste Woche">›</button>
+    </div>
+    ${aktuelle ? "" : `<button type="button" class="kal-heute-btn" onclick="kalHeute()">${t("Zur aktuellen Woche")}</button>`}
+    <div class="wochenliste">${zeilen}</div>`;
+}
+
 RENDER.kalender = () => {
   setHead("Kalender", "", {label:"📅 Export", fn:kalAlleExport});
   const heute = new Date();
+
+  // Wochenansicht: eigener Aufbau, danach dieselbe Liste kommender Termine
+  if(KAL_MODUS === "woche"){
+    const _s = KAL_WOCHE || kalWochenStart(heute);
+    const _e = new Date(_s); _e.setDate(_s.getDate()+6);
+    document.getElementById("vsub").textContent =
+      `${_s.getDate()}.${_s.getMonth()+1}. – ${_e.getDate()}.${_e.getMonth()+1}.`;
+    vBody().innerHTML = kalenderWocheHtml() + kalenderKommendeHtml();
+    return;
+  }
   if(!KAL_MONAT) KAL_MONAT = {jahr:heute.getFullYear(), monat:heute.getMonth()};
   const {jahr,monat} = KAL_MONAT;
   const monatsName = new Date(jahr,monat,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
@@ -2357,15 +3084,11 @@ RENDER.kalender = () => {
 
   const wtage=["Mo","Di","Mi","Do","Fr","Sa","So"];
   // kommende Termine (Liste unter dem Kalender) – Reise-Zwischentage nicht einzeln auflisten
-  const kommende = eintraege.filter(e=>!e.zwischentag)
-    .filter(e=>{const d=daysUntil(e.datum);return d>=0&&d<=31;})
-    .sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,15);
-
-  vBody().innerHTML = `
+  vBody().innerHTML = kalModusUmschalter() + `
     <div class="kal-nav">
-      <button onclick="kalMonat(-1)">‹</button>
+      <button onclick="kalMonat(-1)" aria-label="Vorheriger Monat">‹</button>
       <div>${monatsName}</div>
-      <button onclick="kalMonat(1)">›</button>
+      <button onclick="kalMonat(1)" aria-label="Nächster Monat">›</button>
     </div>
     <div class="kal-grid kal-head">${wtage.map(w=>`<div class="kal-wt">${w}</div>`).join("")}</div>
     <div class="kal-grid">${zellen}</div>
@@ -2379,19 +3102,7 @@ RENDER.kalender = () => {
       <span><span class="kal-dot" style="background:#7c3aed"></span>Wiederkehrend</span>
       <span><span class="kal-dot" style="background:#b45309"></span>Essen</span>
     </div>
-    <div class="section-label">Kommende Termine</div>
-    ${kommende.length? `<div class="list">${kommende.map(e=>{
-      const d=daysUntil(e.datum);
-      const wann=d===0?"heute":d===1?"morgen":"in "+d+" Tagen";
-      const loeschbar = e.typ==="Termin" && e.terminId;
-      const klick = loeschbar ? "" : (e.modul==="urlaub" ? "kalZuReise('"+(e.reiseId||"")+"')" : "open_('"+e.modul+"')");
-      return `<div class="card" onclick="${klick}">
-        ${loeschbar?`<div class="cdel" style="position:absolute;top:10px;right:10px" onclick="event.stopPropagation();delTermin('${e.terminId}','${e.datum}')">×</div>`:""}
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="kal-dot" style="background:${e.farbe};width:11px;height:11px"></span>
-          <div style="flex:1"><div class="cttl" style="font-size:15px">${esc(e.titel)}</div>
-            <div class="cmeta"><span class="pill cat">${e.typ}</span><span class="pill due">${fmtDate(e.datum)} · ${wann}</span></div></div></div></div>`;
-    }).join("")}</div>` : empty("cal","Keine Termine in den nächsten 31 Tagen")}`;
+    `+ kalenderKommendeHtml();
   document.getElementById("addbar").style.display="none";
   showFab(()=>openTermin(null));
 };
@@ -2409,11 +3120,14 @@ window.kalMonat = delta => {
   KAL_MONAT={jahr:j,monat:m}; RENDER.kalender();
 };
 window.kalTag = t => {
-  const {jahr,monat}=KAL_MONAT;
-  const datum=isoLokal(new Date(jahr,monat,t));
+  // Akzeptiert eine Tageszahl (Monatsraster) oder ein ISO-Datum (Wochenliste)
+  const datum = (typeof t === "string" && t.includes("-"))
+    ? t
+    : isoLokal(new Date(KAL_MONAT.jahr, KAL_MONAT.monat, t));
   const evs=kalenderEintraege(datum, datum).filter(e=>e.datum===datum);
   window._kalTagDatum = datum;
-  const kopf=new Date(jahr,monat,t).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+  const kopf=new Date(datum+"T00:00:00")
+    .toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
   const liste = evs.length
     ? `<div class="list">${evs.map((e,i)=>{
         const loeschbar = e.typ==="Termin" && e.terminId;
@@ -2813,7 +3527,7 @@ function einRowRO(lid,a,editing,l){
   const herkunft = (l && l.zusammengefuehrt && a.von) ? `<small style="color:${farbe};font-weight:600">${esc(a.von)}</small>` : "";
   return `<div class="row ${a.d?'done':''}" style="margin-bottom:6px${farbe?`;border-left:3px solid ${farbe};padding-left:8px`:''}">
     <div class="cb ${a.d?'on':''}" onclick="toggleEinIn('${lid}','${a.id}')">${a.d?'✓':''}</div>
-    <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}${a.menge?` <span style="color:var(--ink2)">(${esc(a.menge)})</span>`:""} ${herkunft}</div>
+    <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(zutatAnzeige(a.tx))}${zutatZusatz(a.tx)}${a.menge?` <span style="color:var(--ink2)">(${esc(a.menge)})</span>`:""} ${herkunft}</div>
     ${editing?`<div class="del" onclick="delEinIn('${lid}','${a.id}')">×</div>`:""}</div>`;
 }
 
@@ -2841,9 +3555,9 @@ function schnellauswahlHtml(hinweisOnly, zielListe){
   const ordered = [...WARENGRUPPEN.map(g=>g.titel), "Sonstiges"].filter(t=>grouped[t]);
   const clickFn = s => hinweisOnly ? `neuerEntwurf('${esc(s)}')` : (zielListe ? `addEinTo('${zielListe}','${esc(s)}')` : `addEin('${esc(s)}',this)`);
   const inner = ordered.map(t=>`
-    <div class="wg-titel">${t}</div>
-    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="${clickFn(s)}"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(s)}</div>`).join("")}</div>`).join("");
-  return `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">Schnellauswahl
+    <div class="wg-titel">${warengruppeAnzeige(t)}</div>
+    <div class="chips">${grouped[t].map(s=>`<div class="chip" onclick="${clickFn(s)}"><span style="margin-right:5px">${foodIcon(s)}</span>${esc(zutatAnzeige(s))}</div>`).join("")}</div>`).join("");
+  return `<div class="section-label" style="display:flex;justify-content:space-between;align-items:center">${SPRACHE==="nl"?"Snelkeuze":"Schnellauswahl"}
       <span style="text-transform:none;font-weight:600;color:var(--accent)" onclick="editStamm()">Bearbeiten</span></div>${inner}`;
 }
 
@@ -2857,7 +3571,7 @@ window.neuerEntwurf = (ersterArtikel) => {
 
 const einRow = a => `<div class="row ${a.d?'done':''}">
   <div class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')">${a.d?'✓':''}</div>
-  <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(a.tx)}</div>
+  <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(zutatAnzeige(a.tx))}${zutatZusatz(a.tx)}</div>
   <div class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')">${a.menge?esc(a.menge):'+ Menge'}</div>
   <div class="del" onclick="delEin('${a.id}')">×</div></div>`;
 const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
@@ -4357,6 +5071,17 @@ function rezeptSheet(){
           <button class="btn" style="flex:1" onclick="rezImportSplit()">Aufteilen</button>
           <button class="btn ghost" style="flex:1" onclick="toggleRezImport()">Schließen</button>
         </div>
+        <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
+          <label for="rz_url" style="font-size:13px;font-weight:600">Oder direkt von einer Adresse laden</label>
+          <input id="rz_url" type="url" inputmode="url" placeholder="https://…"
+            style="width:100%;margin-top:6px;border:1px solid var(--line);background:var(--bg);
+                   color:var(--ink);border-radius:10px;padding:11px 12px;font:inherit">
+          <button class="btn ghost" id="rz_urlBtn" style="width:100%;margin-top:8px"
+            onclick="rezImportVonUrl()">Rezept von dieser Adresse holen</button>
+          <div style="color:var(--ink2);font-size:12px;margin-top:6px">
+            Klappt nur bei Seiten, die den direkten Abruf erlauben. Sonst die Seite im Browser
+            öffnen, den gesamten Text kopieren und oben einfügen.</div>
+        </div>
         <div style="color:var(--ink2);font-size:12px;margin-top:6px">Erkennt Mengenangaben automatisch als Zutaten. Ergebnis bitte vor dem Speichern prüfen.</div>
       </div>
     </div>
@@ -4375,7 +5100,7 @@ function rezeptSheet(){
 function renderZutaten(){
   const el=document.getElementById("zutatenSlot"); if(!el)return;
   el.innerHTML = REZEPT.zutaten.length
-    ? REZEPT.zutaten.map((z,i)=>`<div class="itemrow"><div class="it">${esc(z)}</div><div class="del" onclick="rmZutat(${i})">×</div></div>`).join("")
+    ? REZEPT.zutaten.map((z,i)=>`<div class="itemrow"><div class="it">${esc(zutatAnzeige(z))}${zutatZusatz(z)}</div><div class="del" onclick="rmZutat(${i})">×</div></div>`).join("")
     : `<div style="color:var(--ink2);font-size:13px;padding:4px 0">Noch keine Zutaten</div>`;
 }
 window.addZutat = () => { const inp=document.getElementById("rz_zutat"); const v=inp.value.trim(); if(!v)return; REZEPT.zutaten.push(v); inp.value=""; renderZutaten(); inp.focus(); };
@@ -4387,17 +5112,239 @@ window.toggleRezImport = () => {
   if(box.style.display==="block"){ const t=document.getElementById("rz_import"); if(t) t.focus(); }
 };
 
+// Rezept direkt von einer Adresse holen.
+// WICHTIG: Browser dürfen fremde Seiten nur abrufen, wenn diese es per
+// CORS-Kopfzeile ausdrücklich erlauben. Die meisten Rezeptseiten tun das
+// nicht – das ist eine Grenze des Browsers, kein Fehler der App. Deshalb
+// erklärt die Fehlermeldung den funktionierenden Weg, statt nur zu scheitern.
+window.rezImportVonUrl = async () => {
+  const feld = document.getElementById("rz_url");
+  const knopf = document.getElementById("rz_urlBtn");
+  const url = sichereUrl((feld && feld.value) || "");
+  if(!url){ toast("Bitte eine gültige Adresse eingeben (https://…)"); return; }
+  knopf.disabled = true; knopf.textContent = "Lade…";
+  try{
+    const antwort = await holeMitZeitlimit(url, { mode:"cors", credentials:"omit" }, 12000);
+    if(!antwort.ok) throw new Error("Status " + antwort.status);
+    const text = await antwort.text();
+    const erg = rezeptAusJsonLd(text) || rezeptAusMicrodata(text);
+    if(erg && erg.zutaten.length){
+      if(!erg.quelle) erg.quelle = url;
+      rezeptUebernehmen(erg);
+      return;
+    }
+    // Seite erreichbar, aber ohne maschinenlesbares Rezept: Text zum Prüfen anbieten
+    const ta = document.getElementById("rz_import");
+    if(ta){
+      ta.value = text.replace(/<script[\s\S]*?<\/script>/gi," ")
+                     .replace(/<style[\s\S]*?<\/style>/gi," ")
+                     .replace(/<[^>]+>/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+    }
+    toast("Kein strukturiertes Rezept gefunden – Text eingefügt, bitte „Aufteilen“ nutzen");
+  }catch(e){
+    Fehlerlog.erfasse("rezImportVonUrl", e);
+    toast("Diese Seite erlaubt keinen direkten Abruf. Bitte die Seite öffnen, den Text kopieren und oben einfügen.");
+  }finally{
+    knopf.disabled = false; knopf.textContent = "Rezept von dieser Adresse holen";
+  }
+};
+
+// ============================================================
+//  Strukturierter Rezeptimport (schema.org/Recipe)
+// ============================================================
+// Nahezu alle Rezeptseiten (Chefkoch, Essen & Trinken, Lecker, AllRecipes …)
+// betten ihr Rezept maschinenlesbar als JSON-LD nach schema.org/Recipe ein.
+// Wird der SEITENQUELLTEXT eingefügt, lesen wir daraus Titel, Portionen,
+// Zutaten und Zubereitung exakt aus – statt sie zu erraten.
+// Enthält der eingefügte Text kein JSON-LD, greift danach die bisherige
+// Heuristik für reinen Text.
+function rezeptAusJsonLd(text){
+  if(!text || text.indexOf("application/ld+json") === -1) return null;
+  const treffer = [...text.matchAll(
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  for(const m of treffer){
+    let daten;
+    try{ daten = JSON.parse(m[1].trim()); }catch(e){ continue; }
+    const gefunden = findeRezept(daten);
+    if(gefunden) return normalisiereRezept(gefunden);
+  }
+  return null;
+}
+
+// Rezept in verschachtelten JSON-LD-Strukturen aufspüren (@graph, Arrays …)
+function findeRezept(knoten, tiefe){
+  tiefe = tiefe || 0;
+  if(!knoten || typeof knoten !== "object" || tiefe > 6) return null;
+  if(Array.isArray(knoten)){
+    for(const k of knoten){ const t = findeRezept(k, tiefe+1); if(t) return t; }
+    return null;
+  }
+  const typ = knoten["@type"];
+  const istRezept = typ === "Recipe" ||
+    (Array.isArray(typ) && typ.includes("Recipe"));
+  if(istRezept) return knoten;
+  for(const feld of ["@graph","mainEntity","mainEntityOfPage","itemListElement"]){
+    if(knoten[feld]){ const t = findeRezept(knoten[feld], tiefe+1); if(t) return t; }
+  }
+  return null;
+}
+
+// Löst HTML-Entitäten auf. Deutsche Rezeptseiten liefern Umlaute regelmäßig
+// als &uuml; & Co. – ohne Auflösung stünde "w&uuml;rfeln" in der Zubereitung.
+const ENTITAETEN = {
+  nbsp:" ", amp:"&", lt:"<", gt:">", quot:'"', apos:"'",
+  auml:"ä", ouml:"ö", uuml:"ü", Auml:"Ä", Ouml:"Ö", Uuml:"Ü", szlig:"ß",
+  eacute:"é", egrave:"è", agrave:"à", ccedil:"ç", ntilde:"ñ",
+  deg:"°", euro:"€", frac12:"½", frac14:"¼", frac34:"¾",
+  ndash:"–", mdash:"—", hellip:"…", laquo:"«", raquo:"»",
+  bdquo:"„", ldquo:"“", rdquo:"”", sbquo:"‚", lsquo:"‘", rsquo:"’",
+  times:"×", middot:"·", bull:"•", shy:""
+};
+function entitaetenAufloesen(text){
+  return String(text||"")
+    // numerisch, dezimal und hexadezimal
+    .replace(/&#(\d+);/g, (_,n) => {
+      const c = parseInt(n,10);
+      return (c>0 && c<1114112) ? String.fromCodePoint(c) : "";
+    })
+    .replace(/&#[xX]([0-9a-fA-F]+);/g, (_,h) => {
+      const c = parseInt(h,16);
+      return (c>0 && c<1114112) ? String.fromCodePoint(c) : "";
+    })
+    // benannte
+    .replace(/&([a-zA-Z][a-zA-Z0-9]{1,9});/g,
+      (treffer,name) => Object.prototype.hasOwnProperty.call(ENTITAETEN,name)
+        ? ENTITAETEN[name] : treffer);
+}
+
+// Vereinheitlicht die sehr unterschiedlichen Ausprägungen des Formats
+function normalisiereRezept(r){
+  const text = v => {
+    if(v == null) return "";
+    if(typeof v === "string") return v;
+    if(Array.isArray(v)) return v.map(text).filter(Boolean).join("\n");
+    if(typeof v === "object") return text(v.text || v.name || v.itemListElement || "");
+    return String(v);
+  };
+  const entkodieren = t => entitaetenAufloesen(String(t||"").replace(/<[^>]+>/g," "))
+    .replace(/\s+/g," ").trim();
+
+  const zutaten = (Array.isArray(r.recipeIngredient) ? r.recipeIngredient
+                  : Array.isArray(r.ingredients)     ? r.ingredients : [])
+    .map(z => entkodieren(text(z))).filter(Boolean);
+
+  let schritte = [];
+  const anleitung = r.recipeInstructions;
+  if(Array.isArray(anleitung)){
+    anleitung.forEach(a => {
+      if(a && a["@type"] === "HowToSection" && Array.isArray(a.itemListElement)){
+        a.itemListElement.forEach(x => schritte.push(entkodieren(text(x))));
+      } else schritte.push(entkodieren(text(a)));
+    });
+  } else if(anleitung){
+    schritte = entkodieren(text(anleitung)).split(/\n+/);
+  }
+  schritte = schritte.map(x=>x.trim()).filter(Boolean);
+
+  // Portionsangabe kann Zahl, Zeichenkette oder Liste sein
+  let portionen = r.recipeYield;
+  if(Array.isArray(portionen)) portionen = portionen[0];
+  portionen = entkodieren(text(portionen));
+
+  // Sprache der Quelle merken: Ein niederländisches Rezept soll bei deutscher
+  // Anzeige übersetzt werden – und umgekehrt.
+  let sprache = entkodieren(text(r.inLanguage)).toLowerCase();
+  if(sprache.indexOf("nl") === 0) sprache = "nl";
+  else if(sprache.indexOf("de") === 0) sprache = "de";
+  else sprache = spracheRaten(zutaten.join(" ") + " " + schritte.join(" "));
+
+  return {
+    titel: entkodieren(text(r.name)),
+    zutaten,
+    zubereitung: schritte.join("\n"),
+    portionen,
+    sprache,
+    quelle: entkodieren(text(r.url)) || ""
+  };
+}
+
+// Grobe Spracherkennung anhand häufiger Funktionswörter. Reicht aus, um
+// Deutsch von Niederländisch zu unterscheiden, wenn die Seite keine
+// Sprachangabe mitliefert.
+function spracheRaten(text){
+  const w = " " + String(text||"").toLowerCase().replace(/[^a-zäöüßë]+/g," ") + " ";
+  const zaehle = liste => liste.reduce((n,x)=> n + (w.split(" "+x+" ").length-1), 0);
+  const nl = zaehle(["de","het","een","en","met","voor","van","toevoegen","snijden",
+                     "koken","roeren","ui","kaas","boter","eetlepel","theelepel"]);
+  const de = zaehle(["der","die","das","ein","eine","und","mit","für","von",
+                     "hinzufügen","schneiden","kochen","rühren","zwiebel","käse","butter"]);
+  return nl > de ? "nl" : "de";
+}
+
+// Rückfallebene: Microdata (itemprop) – seltener, aber noch verbreitet
+function rezeptAusMicrodata(text){
+  if(!text || text.indexOf("recipeIngredient") === -1) return null;
+  const hole = prop => [...text.matchAll(
+    new RegExp('itemprop=["\']'+prop+'["\'][^>]*>([\\s\\S]*?)<\\/', "gi"))]
+    .map(m => entitaetenAufloesen(m[1].replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim())
+    .filter(Boolean);
+  const zutaten = hole("recipeIngredient");
+  if(!zutaten.length) return null;
+  const titelTreffer = text.match(/itemprop=["']name["'][^>]*>([\s\S]*?)<\//i);
+  return {
+    titel: titelTreffer
+      ? entitaetenAufloesen(titelTreffer[1].replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim() : "",
+    zutaten,
+    zubereitung: hole("recipeInstructions").join("\n"),
+    portionen: "",
+    quelle: ""
+  };
+}
+
+// Übernimmt ein strukturiert erkanntes Rezept in das offene Formular
+function rezeptUebernehmen(erg){
+  REZEPT.zutaten = REZEPT.zutaten.concat(erg.zutaten);
+  if(erg.sprache) REZEPT.sprache = erg.sprache;
+  const titelFeld = document.getElementById("rz_titel");
+  if(titelFeld && !titelFeld.value.trim() && erg.titel) titelFeld.value = erg.titel;
+  const zubFeld = document.getElementById("rz_zub");
+  if(zubFeld && erg.zubereitung){
+    const vorspann = erg.portionen ? "Für " + erg.portionen + "\n\n" : "";
+    zubFeld.value = (zubFeld.value.trim() ? zubFeld.value.trim()+"\n\n" : "") + vorspann + erg.zubereitung;
+  }
+  const linkFeld = document.getElementById("rz_link");
+  if(linkFeld && !linkFeld.value.trim() && erg.quelle) linkFeld.value = erg.quelle;
+  renderZutaten();
+  const ta = document.getElementById("rz_import"); if(ta) ta.value = "";
+  toggleRezImport();
+  toast(erg.zutaten.length + " Zutaten übernommen – bitte prüfen");
+}
+
 // Heuristische Aufteilung eines eingefügten Rezepts in Zutaten + Zubereitung
 window.rezImportSplit = () => {
   const ta = document.getElementById("rz_import"); if(!ta) return;
   const raw = ta.value; if(!raw.trim()){ toast("Bitte zuerst ein Rezept einfügen."); return; }
 
-  const EINHEITEN = ["g","kg","mg","l","ml","el","tl","msp","prise","prisen","stück","stk","stange","stangen","zehe","zehen","bund","dose","dosen","packung","pck","pkg","tasse","tassen","becher","scheibe","scheiben","blatt","blätter","kopf","köpfe","zweig","zweige","cl","dl","tropfen","handvoll","portion","portionen"];
+  // Zuerst versuchen, das Rezept strukturiert zu lesen (Seitenquelltext).
+  // Das liefert exakte Werte statt geratener – inklusive Titel und Portionen.
+  try{
+    const strukturiert = rezeptAusJsonLd(raw) || rezeptAusMicrodata(raw);
+    if(strukturiert && strukturiert.zutaten.length){ rezeptUebernehmen(strukturiert); return; }
+  }catch(e){ Fehlerlog.erfasse("rezeptImportStruktur", e); }
+
+  // Einheiten in Deutsch UND Niederländisch – dieselbe Heuristik erkennt dadurch
+  // auch Rezepte niederländischer Seiten (ah.nl, Allerhande, 24Kitchen).
+  const EINHEITEN = ["g","kg","mg","l","ml","el","tl","msp","prise","prisen","stück","stk","stange","stangen","zehe","zehen","bund","dose","dosen","packung","pck","pkg","tasse","tassen","becher","scheibe","scheiben","blatt","blätter","kopf","köpfe","zweig","zweige","cl","dl","tropfen","handvoll","portion","portionen",
+    "gram","kilo","eetlepel","eetlepels","theelepel","theelepels","snufje","snufjes",
+    "teentje","teentjes","bosje","bosjes","stuk","stuks","blik","blikje","blikjes",
+    "pak","pakje","pakjes","zakje","zakjes","pot","potje","bakje","plak","plakken",
+    "krop","kroppen","druppel","druppels","mespunt","scheutje","handje",
+    "portie","porties","liter","kopje","kopjes"];
   const reMenge = /^\s*(?:[½¼¾⅓⅔⅛]|\d+[.,/]?\d*)\s*(?:[½¼¾⅓⅔⅛])?/;
   const reEinheitStart = new RegExp("^\\s*(?:"+EINHEITEN.join("|")+")\\b","i");
   // Überschriften, die einen Abschnittswechsel markieren
-  const reZubHead = /^\s*(zubereitung|anleitung|anweisung|zubereitungsschritte|schritte|so geht'?s|so wird'?s gemacht|kochanleitung|arbeitsschritte)\s*:?\s*$/i;
-  const reZutHead = /^\s*(zutaten|einkaufsliste|du brauchst|man braucht|für (?:das|die|den)\b.*)\s*:?\s*$/i;
+  const reZubHead = /^\s*(zubereitung|anleitung|anweisung|zubereitungsschritte|schritte|so geht'?s|so wird'?s gemacht|kochanleitung|arbeitsschritte|bereidingswijze|bereiding|zo maak je het|werkwijze|stappen|instructies)\s*:?\s*$/i;
+  const reZutHead = /^\s*(zutaten|einkaufsliste|du brauchst|man braucht|für (?:das|die|den)\b.*|ingredi[eë]nten|boodschappen|nodig|je hebt nodig|voor (?:de|het)\b.*)\s*:?\s*$/i;
   const reSchrittNr = /^\s*(?:schritt\s*)?\d+\s*[.):]\s+/i;
 
   // 1) normalisieren: Zeilen, Aufzählungszeichen entfernen
@@ -5036,6 +5983,9 @@ if(ME){
 } else {
   renderGate();
 }
+// Übersetzungsfilter aktivieren (wirkt nur bei niederländischer Anzeige)
+uebersetzungBeobachten();
+
 // Basis-Verlaufseintrag, damit die Zurück-Taste etwas zum Abfangen hat
 try{ history.replaceState({app:true, base:true}, ""); }catch(e){}
 // Die Oberflaeche ist bereits gezeichnet. Der Sync (und damit das Nachladen der
