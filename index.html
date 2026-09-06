@@ -391,6 +391,10 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .tag-zeile .tz-tx small{display:block;color:var(--ink2);font-size:11.5px}
 .tag-zeile .tz-del{color:var(--ink2);opacity:.5;cursor:pointer;font-size:15px;flex-shrink:0}
 .tag-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag-abreise{display:flex;align-items:center;gap:6px;margin-top:8px;padding:7px 10px;
+  border:1px dashed var(--accent);border-radius:10px;font-size:12.5px;font-weight:600;
+  color:var(--accent);cursor:pointer}
+.tag-abreise small{color:var(--ink2);font-weight:500}
 .tag-add button{font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer}
 .poi{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
 .poi:last-child{border-bottom:none}
@@ -676,7 +680,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "2.11.0";
+const APP_VERSION = "2.13.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -1046,9 +1050,21 @@ function tageAnzahl(von,bis){
   const diff=Math.round((b-a)/86400000)+1;
   return diff>0?diff:0;
 }
-function tageSuffix(von,bis){
+// Naechte = Tage minus 1 (Anreise- und Abreisetag zaehlen als ein Tag, aber
+// dazwischen liegt eine Nacht weniger). Ein eintaegiger Aufenthalt hat 0 Naechte.
+function naechteAnzahl(von,bis){
   const n=tageAnzahl(von,bis);
-  return n?` <span style="color:var(--ink2);font-weight:500">· ${n} ${n===1?"Tag":"Tage"}</span>`:"";
+  return n>1 ? n-1 : 0;
+}
+// Reiner Text, z.B. "3 Tage · 2 Nächte" – fuer Kopfzeilen ohne HTML
+function tageNaechteText(von,bis){
+  const n=tageAnzahl(von,bis); if(!n) return "";
+  const nn=naechteAnzahl(von,bis);
+  return `${n} ${n===1?"Tag":"Tage"}` + (nn?` · ${nn} ${nn===1?"Nacht":"Nächte"}`:"");
+}
+function tageSuffix(von,bis){
+  const txt=tageNaechteText(von,bis);
+  return txt?` <span style="color:var(--ink2);font-weight:500">· ${txt}</span>`:"";
 }
 // Liste der Datumsangaben (ISO) von–bis, für die Tagesplanung
 function datumsListe(von,bis){
@@ -1244,7 +1260,14 @@ const UI_NL = {
   "Gilt nur für dich. Eingegebene Texte bleiben unverändert gespeichert.": "Geldt alleen voor jou. Ingevoerde teksten blijven ongewijzigd bewaard.",
   "Halbjährlich": "Halfjaarlijks",
   "Handy-Benachrichtigungen": "Meldingen op je telefoon",
+  "Abreise bis": "Vertrek uiterlijk",
+  "Als Kalenderdatei (.ics) speichern": "Als agendabestand (.ics) opslaan",
+  "Die ganze Reise als ein Termin": "De hele reis als één afspraak",
+  "In Kalender eintragen": "In agenda zetten",
+  "Jede Station als eigener Termin": "Elke bestemming als eigen afspraak",
+  "Abreisezeit entfernen": "Vertrektijd verwijderen",
   "Einfügen": "Invoegen",
+  "Uhrzeit eintragen": "Tijd invullen",
   "Hinzufügen": "Toevoegen",
   "Hinzufügen…": "Toevoegen…",
   "Hoch": "Hoog",
@@ -4123,7 +4146,7 @@ window.openReiseDetail = id => {
   document.getElementById("home").style.display="none";
   document.getElementById("view").classList.add("active");
   document.getElementById("addbar").style.display="none";
-  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}${r.von?" · "+tageAnzahl(r.von,r.bis)+" "+(tageAnzahl(r.von,r.bis)===1?"Tag":"Tage"):""}`, {label:"⋯", fn:()=>reiseMenu(id)});
+  setHead(r.titel||"Reise", `${fmtDate(r.von)}${r.bis?" – "+fmtDate(r.bis):""}${r.von?" · "+tageNaechteText(r.von,r.bis):""}`, {label:"⋯", fn:()=>reiseMenu(id)});
   renderReiseDetail(r);
   showFab(()=>addCity(id));
   window.scrollTo(0,0);
@@ -4322,11 +4345,47 @@ function renderTagesplan(r,c,i){
     }
     html += `<div class="tag-add">
       ${TAGES_TYPEN.map(t=>`<button onclick="addTagEintrag('${r.id}',${i},'${d}','${t.key}')">+ ${t.ic} ${t.label}</button>`).join("")}
-    </div></div>`;
+    </div>`;
+    // Am letzten Tag der Station: Abreisezeit erfassen (z.B. Platz raeumen bis 11 Uhr)
+    if(di === tage.length-1){
+      html += `<div class="tag-abreise" onclick="setAbreise('${r.id}',${i})">🚐 ${c.abreiseZeit
+        ? `Abreise bis ${esc(c.abreiseZeit)} Uhr${c.abreiseHinweis?` <small>· ${esc(c.abreiseHinweis)}</small>`:""}`
+        : `Abreise bis … <small>Uhrzeit eintragen</small>`}</div>`;
+    }
+    html += `</div>`;
   });
   html += `</div>`;
   return html;
 }
+// Abreisezeit der Station (letzter Aufenthaltstag)
+window.setAbreise = (rid,ci) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[ci]; if(!c)return;
+  window._abreiseCtx={rid,ci};
+  openSheet(`<h3>Abreise – ${esc(c.name)}</h3>
+    <div class="ml">Bis wann muss der Platz am letzten Tag geräumt sein? Die Zeit erscheint unten in der Tagesplanung.</div>
+    <div class="fld"><label>Abreise bis</label><input id="ab_zeit" type="time" value="${esc(c.abreiseZeit||"")}"></div>
+    <div class="fld"><label>Hinweis (optional)</label>
+      <input id="ab_hinweis" value="${esc(c.abreiseHinweis||"")}" placeholder="z.B. Schlüsselkarte an der Rezeption abgeben"></div>
+    <button class="btn" onclick="saveAbreise()">Speichern</button>
+    ${c.abreiseZeit?`<button class="btn ghost" style="color:var(--danger);border-color:var(--danger)" onclick="loescheAbreise()">Abreisezeit entfernen</button>`:""}`);
+};
+window.saveAbreise = () => {
+  const {rid,ci}=window._abreiseCtx||{};
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[ci]; if(!c)return;
+  c.abreiseZeit=document.getElementById("ab_zeit").value;
+  c.abreiseHinweis=document.getElementById("ab_hinweis").value.trim();
+  c.updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+window.loescheAbreise = () => {
+  const {rid,ci}=window._abreiseCtx||{};
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[ci]; if(!c)return;
+  c.abreiseZeit=""; c.abreiseHinweis="";
+  c.updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
+};
+
 // Tagesplan-Eintrag hinzufügen / bearbeiten
 window.addTagEintrag = (rid,ci,datum,typ) => { tagEintragForm(rid,ci,datum,typ,null); };
 window.editTagEintrag = (rid,ci,datum,ei) => {
@@ -4632,11 +4691,27 @@ window.addCity = rid => { editCityForm(rid, null); };
 window.editCity = (rid, i) => { editCityForm(rid, i); };
 // Vollwertige Station an einer bestimmten Position einfuegen (zwischen zwei Stationen)
 window.insertCity = (rid, pos) => { editCityForm(rid, null, pos); };
+// Bis-Datum der Station, die vor dieser Position liegt (nur sichtbare Stationen).
+// Dient als Vorschlag fuer das Von-Datum der naechsten Station.
+function vorherigesBisDatum(r, i, insertAt){
+  const sicht = r.staedte.map((c,idx)=>({c,idx})).filter(x=>!x.c.deleted);
+  let pos;
+  if(insertAt!=null)      pos = sicht.filter(x=>x.idx < insertAt).length - 1;
+  else if(i!=null)        pos = sicht.findIndex(x=>x.idx===i) - 1;
+  else                    pos = sicht.length - 1;   // wird hinten angehaengt
+  if(pos < 0 || !sicht[pos]) return "";
+  const v = sicht[pos].c;
+  return v.bis || v.von || "";
+}
 function editCityForm(rid, i, insertAt){
   const r = DB.urlaub.find(x=>x.id===rid);
   const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null, von:"", bis:"", hinweis:"", foto:"" };
   window._cityCtx = { rid, i, insertAt };
   const hasCoords = c.lat!=null;
+  // Abreisetag der vorherigen Station ist der Anreisetag hier – aber nur
+  // vorschlagen, solange noch kein eigenes Datum eingetragen ist.
+  const vonVorschlag = (!c.von && !c.bis) ? vorherigesBisDatum(r, i, insertAt) : "";
+  const vonWert = c.von || vonVorschlag;
   openSheet(`<h3>${i!=null?"Stadt bearbeiten":(insertAt!=null?"Station einfügen":"Stadt / Ort hinzufügen")}</h3>
     <div class="ml">${insertAt!=null?"Die Station wird an dieser Stelle der Route eingefügt – mit Stellplätzen, Tagesplan und allem Weiteren. ":""}Stadtname genügt – Koordinaten werden gesucht. Maps-Link ist optional, nur zum Öffnen.</div>
     <div class="fld"><label>Stadt / Ort</label><input id="c_name" value="${esc(c.name)}" placeholder="z.B. München"></div>
@@ -4647,9 +4722,10 @@ function editCityForm(rid, i, insertAt){
       <input id="c_link" value="${esc(c.link||"")}" placeholder="https://maps.app.goo.gl/…"></div>
     <div class="fld"><label>Aufenthalt von – bis (optional)</label>
       <div style="display:flex;gap:10px">
-        <input id="c_von" type="date" value="${esc(c.von||"")}" style="flex:1" onchange="document.getElementById('c_bis').min=this.value; if(document.getElementById('c_bis').value && document.getElementById('c_bis').value<this.value) document.getElementById('c_bis').value=this.value;">
-        <input id="c_bis" type="date" value="${esc(c.bis||"")}" min="${esc(c.von||"")}" style="flex:1">
-      </div></div>
+        <input id="c_von" type="date" value="${esc(vonWert)}" style="flex:1" onchange="document.getElementById('c_bis').min=this.value; if(document.getElementById('c_bis').value && document.getElementById('c_bis').value<this.value) document.getElementById('c_bis').value=this.value;">
+        <input id="c_bis" type="date" value="${esc(c.bis||"")}" min="${esc(vonWert)}" style="flex:1">
+      </div>
+      ${vonVorschlag?`<small style="color:var(--ink2);font-size:11.5px">Vorgeschlagen: Abreisetag der vorherigen Station (${fmtDate(vonVorschlag)}). Einfach überschreiben, wenn es anders ist.</small>`:""}</div>
     <div class="fld"><label>Hinweis (optional)</label>
       <textarea id="c_hinweis" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(c.hinweis||"")}</textarea></div>
     <div class="fld"><label>Foto (optional)</label><div id="cityFotoSlot"></div></div>
@@ -4956,16 +5032,74 @@ window.delReise = id => {
 
 
 // ---- Packliste pro Reise ----
-window.reiseZuKalender = id => {
+// Dateiname ohne Sonderzeichen
+function dateiName(text, ersatz){
+  const n = (text||"").replace(/[^a-z0-9]+/gi,"_").replace(/^_+|_+$/g,"");
+  return n || ersatz || "termine";
+}
+// Ein ganztaegiger Termin je Station (von – bis). Stationen ohne Datum
+// koennen nicht eingetragen werden und werden uebersprungen.
+function stationsTermine(r){
+  const utyp = r.unterkunft==="wohnmobil" ? "Stellplatz" : "Hotel";
+  return aktiv(r.staedte).filter(c=>c.von).map(c=>{
+    const unterkunft = aktiv(c.stellplaetze).map(x=>x.name).filter(Boolean);
+    const details = [
+      unterkunft.length ? utyp+": "+unterkunft.join(", ") : "",
+      c.abreiseZeit ? "Abreise bis "+c.abreiseZeit+" Uhr" : "",
+      c.abreiseHinweis || "",
+      c.hinweis || ""
+    ].filter(Boolean).join(" · ");
+    return {
+      // Stations-ID als UID: ein erneuter Export aktualisiert den Termin,
+      // statt ihn ein zweites Mal anzulegen.
+      uid: c.id,
+      titel: (r.titel ? r.titel+" · " : "") + c.name,
+      start: c.von,
+      end: c.bis || c.von,
+      details
+    };
+  });
+}
+window.reiseStationenICS = id => {
+  const r=DB.urlaub.find(x=>x.id===id); if(!r)return;
+  const termine = stationsTermine(r);
+  if(!termine.length){ toast("Keine Station hat ein Aufenthaltsdatum."); return; }
+  downloadICS(termine, dateiName((r.titel||"reise")+"_stationen","reise_stationen"));
+  closeModal();
+};
+window.reiseGesamtICS = id => {
   const r=DB.urlaub.find(x=>x.id===id); if(!r||!r.von)return;
-  const orte=aktiv(r.staedte).map(s=>s.name).join(", ");
-  const details="Reise"+(orte?": "+orte:"");
-  const gl=gcalLink(r.titel||"Reise", r.von, r.bis||r.von, details);
+  const orte=aktiv(r.staedte).map(x=>x.name).join(", ");
+  downloadICS([{ uid:r.id, titel:r.titel||"Reise", start:r.von, end:r.bis||r.von,
+                 details:"Reise"+(orte?": "+orte:"") }], dateiName(r.titel||"reise","reise"));
+  closeModal();
+};
+window.reiseZuKalender = id => {
+  const r=DB.urlaub.find(x=>x.id===id); if(!r)return;
+  const termine = stationsTermine(r);
+  const ohneDatum = aktiv(r.staedte).filter(c=>!c.von).length;
+  const orte=aktiv(r.staedte).map(x=>x.name).join(", ");
+  const gl = r.von ? gcalLink(r.titel||"Reise", r.von, r.bis||r.von, "Reise"+(orte?": "+orte:"")) : "";
+  const liste = termine.length
+    ? `<div class="ml" style="margin-top:2px">${termine.map(t=>
+        `<div style="padding:2px 0">• ${esc(t.titel.split(" · ").slice(-1)[0])} – ${fmtDate(t.start)}${t.end!==t.start?" bis "+fmtDate(t.end):""}</div>`
+      ).join("")}</div>`
+    : "";
   openSheet(`<h3>In Kalender eintragen</h3>
-    <div class="ml">„${esc(r.titel||"Reise")}" – ${fmtDate(r.von)}${r.bis?" bis "+fmtDate(r.bis):""}</div>
-    <a class="btn" href="${esc(gl)}" target="_blank" rel="noopener" onclick="closeModal()" style="display:block;text-align:center;text-decoration:none">In Google Kalender öffnen</a>
-    <button class="btn ghost" onclick="downloadICS([{titel:'${esc((r.titel||'Reise').replace(/'/g,''))}',start:'${r.von}',end:'${r.bis||r.von}',details:'${esc(details.replace(/'/g,''))}'}],'${esc((r.titel||'reise').replace(/[^a-z0-9]/gi,'_'))}');closeModal()">Als Kalenderdatei (.ics) speichern</button>
-    <div class="ml" style="margin-top:10px">Tipp: Der Google-Link trägt die Reise direkt ein. Die .ics-Datei funktioniert mit jedem Kalender (Apple, Outlook …).</div>`);
+    <div class="ml">„${esc(r.titel||"Reise")}"${r.von?` – ${fmtDate(r.von)}${r.bis?" bis "+fmtDate(r.bis):""}`:""}</div>
+
+    <div class="ml" style="font-weight:700;color:var(--ink);margin-top:12px">Jede Station als eigener Termin</div>
+    ${liste}
+    ${ohneDatum?`<div class="ml" style="color:var(--warn,var(--ink2))">${ohneDatum} ${ohneDatum===1?"Station hat":"Stationen haben"} noch kein Aufenthaltsdatum und ${ohneDatum===1?"wird":"werden"} übersprungen.</div>`:""}
+    <button class="btn" ${termine.length?`onclick="reiseStationenICS('${r.id}')"`:"disabled style=\"opacity:.5\""}>
+      ${termine.length?`Alle ${termine.length} Stationen speichern (.ics)`:"Keine Station mit Datum"}</button>
+
+    <div class="ml" style="font-weight:700;color:var(--ink);margin-top:16px">Die ganze Reise als ein Termin</div>
+    ${r.von?`<a class="btn ghost" href="${esc(gl)}" target="_blank" rel="noopener" onclick="closeModal()" style="display:block;text-align:center;text-decoration:none">In Google Kalender öffnen</a>
+    <button class="btn ghost" onclick="reiseGesamtICS('${r.id}')">Als Kalenderdatei (.ics) speichern</button>`
+    :`<div class="ml">Für die Reise ist kein Von-Datum hinterlegt.</div>`}
+
+    <div class="ml" style="margin-top:12px">Die .ics-Datei enthält alle gewählten Termine auf einmal und lässt sich in jeden Kalender importieren (Google, Apple, Outlook). Ein erneuter Export überschreibt die vorhandenen Termine, statt sie zu verdoppeln.</div>`);
 };
 window.openPackliste = id => {
   const r = DB.urlaub.find(x=>x.id===id); if(!r) return;
