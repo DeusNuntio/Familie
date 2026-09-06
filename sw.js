@@ -18,7 +18,7 @@
    Nutzer über den Hinweis "Neue Version verfügbar".
    ============================================================ */
 
-const VERSION    = "2.9.0";
+const VERSION    = "2.11.0";
 const CACHE_NAME = "familie-nadig-" + VERSION;
 const NETZ_TIMEOUT_MS = 4000;
 
@@ -67,7 +67,10 @@ async function netzZuerst(request) {
   try {
     const steuerung = new AbortController();
     const uhr = setTimeout(() => steuerung.abort(), NETZ_TIMEOUT_MS);
-    const antwort = await fetch(request, { signal: steuerung.signal });
+    // cache:"reload" umgeht den HTTP-Zwischenspeicher des Browsers.
+    // GitHub Pages liefert index.html mit max-age=600 aus; ohne diesen Zusatz
+    // koennte hier bis zu zehn Minuten lang die alte Fassung zurueckkommen.
+    const antwort = await fetch(request, { signal: steuerung.signal, cache: "reload" });
     clearTimeout(uhr);
     if (antwort && antwort.ok) cache.put(request, antwort.clone());
     return antwort;

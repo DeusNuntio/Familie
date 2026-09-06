@@ -358,6 +358,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .stop .sn small{display:block;color:var(--ink2);font-size:11.5px;margin-top:1px;white-space:pre-wrap}
 .stop .sdel{color:var(--ink2);opacity:.5;cursor:pointer;font-size:15px;flex-shrink:0}
 .stop .smap{font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.stop .sconv{font-size:11.5px;color:var(--ink2);font-weight:600;cursor:pointer;margin-left:12px}
 .leg .stopadd{font-size:12px;color:var(--ink2);cursor:pointer;font-weight:600}
 .cdur{font-size:12.5px;color:var(--accent);font-weight:600;margin:6px 0 2px;display:flex;align-items:center;gap:6px}
 .chint{font-size:12.5px;color:var(--ink2);background:var(--line);padding:6px 9px;border-radius:8px;
@@ -429,6 +430,21 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
    ============================================================ */
 /* Elemente, die von <div>/<span> auf <button> umgestellt wurden, brauchen
    ein Zuruecksetzen der Browser-Standardstile. */
+/* ---- Wischgesten ---- */
+.wischbar{position:relative;overflow:hidden;touch-action:pan-y}
+.wischbar .row-inhalt{display:flex;align-items:center;gap:10px;width:100%;
+  background:var(--surface);position:relative;z-index:1}
+.wischbar.wischt{will-change:transform}
+.wisch-hint{position:absolute;top:0;bottom:0;display:flex;align-items:center;
+  padding:0 18px;font-size:13px;font-weight:700;color:#fff;z-index:0;
+  pointer-events:none;opacity:.85}
+.wisch-hint.rechts{left:0;background:var(--ok)}
+.wisch-hint.links{right:0;background:var(--danger);justify-content:flex-end}
+.wischbar.bereit .wisch-hint{opacity:1}
+.row .cb,.row .qty,.row .del{font:inherit;color:inherit;cursor:pointer}
+.row .cb{border:2px solid var(--line);background:var(--surface)}
+.row .cb.on{border-color:var(--accent)}
+.row .qty,.row .del{background:none;border:0}
 .kopf-rechts{display:flex;align-items:center;gap:8px}
 .flaggen{display:flex;gap:3px;background:rgba(255,255,255,.16);
   border-radius:999px;padding:3px}
@@ -660,7 +676,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "2.9.0";
+const APP_VERSION = "2.11.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -1171,6 +1187,7 @@ const UI_NL = {
   "+ Kiste": "+ Doos",
   "+ Neue Einkaufsliste beginnen": "+ Nieuwe boodschappenlijst",
   "+ Termin an diesem Tag": "+ Afspraak op deze dag",
+  "+ Station": "+ Station",
   "+ Zwischenstopp": "+ Tussenstop",
   "+ ✏️ Eigener Eintrag": "+ ✏️ Eigen invoer",
   "+ 🍳 Rezept": "+ 🍳 Recept",
@@ -1227,6 +1244,7 @@ const UI_NL = {
   "Gilt nur für dich. Eingegebene Texte bleiben unverändert gespeichert.": "Geldt alleen voor jou. Ingevoerde teksten blijven ongewijzigd bewaard.",
   "Halbjährlich": "Halfjaarlijks",
   "Handy-Benachrichtigungen": "Meldingen op je telefoon",
+  "Einfügen": "Invoegen",
   "Hinzufügen": "Toevoegen",
   "Hinzufügen…": "Toevoegen…",
   "Hoch": "Hoog",
@@ -1361,6 +1379,8 @@ const UI_NL = {
   "Zutaten": "Ingrediënten",
   "Zutaten der Woche": "Ingrediënten van de week",
   "Zutaten übernehmen": "Ingrediënten overnemen",
+  "Zur Station machen": "Omzetten naar station",
+  "Station einfügen": "Station invoegen",
   "Zwischenstopp hinzufügen": "Tussenstop toevoegen",
   "Zwischensumme": "Subtotaal",
   "berechne…": "berekenen…",
@@ -1463,6 +1483,74 @@ function uebersetzungBeobachten(){
     const el = document.getElementById(id);
     if(el) beob.observe(el, { childList:true, subtree:true, characterData:true });
   });
+}
+
+// ============================================================
+//  Wischgesten auf Artikelzeilen
+// ============================================================
+// Auf dem Handy ist Wischen die erwartete Bedienung: nach rechts abhaken,
+// nach links löschen. Das spart je Artikel einen zielgenauen Treffer auf ein
+// kleines Kästchen – beim Einkaufen mit vollen Händen der entscheidende
+// Unterschied. Die Knöpfe bleiben erhalten; die Geste ist ein zusätzlicher Weg.
+const WISCH_SCHWELLE = 72;      // Pixel bis zum Auslösen
+const WISCH_RICHTUNG = 12;      // ab hier gilt die Geste als horizontal
+
+function wischGestenAktivieren(behaelter){
+  if(!behaelter || behaelter._wischAktiv) return;
+  behaelter._wischAktiv = true;
+
+  let zeile = null, startX = 0, startY = 0, dx = 0, horizontal = null, id = null, lid = null;
+
+  const zuruecksetzen = () => {
+    if(zeile){ zeile.style.transition = "transform .18s ease"; zeile.style.transform = ""; 
+               zeile.classList.remove("wischt"); }
+    zeile = null; horizontal = null; dx = 0;
+  };
+
+  behaelter.addEventListener("pointerdown", e => {
+    if(e.pointerType === "mouse" && e.button !== 0) return;
+    const z = e.target.closest(".wischbar");
+    // Auf einem Knopf beginnt keine Geste – sonst würde jeder Tipp zum Wisch
+    if(!z || e.target.closest("button")) return;
+    zeile = z; startX = e.clientX; startY = e.clientY; dx = 0; horizontal = null;
+    id = z.dataset.artikel; lid = z.dataset.liste || null;
+    zeile.style.transition = "none";
+  }, { passive:true });
+
+  behaelter.addEventListener("pointermove", e => {
+    if(!zeile) return;
+    dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if(horizontal === null){
+      if(Math.abs(dx) < WISCH_RICHTUNG && Math.abs(dy) < WISCH_RICHTUNG) return;
+      // Senkrechte Bewegung gehört dem Scrollen – Geste verwerfen
+      horizontal = Math.abs(dx) > Math.abs(dy);
+      if(!horizontal){ zuruecksetzen(); return; }
+      zeile.classList.add("wischt");
+    }
+    // Nach links nur, wenn Löschen möglich ist (eigene Liste)
+    const begrenzt = (!lid && dx < 0) ? Math.max(dx, -140) : Math.min(Math.max(dx, lid?0:-140), 140);
+    zeile.style.transform = "translateX(" + begrenzt + "px)";
+    zeile.classList.toggle("bereit", Math.abs(begrenzt) >= WISCH_SCHWELLE);
+  }, { passive:true });
+
+  const beenden = () => {
+    if(!zeile || !horizontal){ zuruecksetzen(); return; }
+    const weit = Math.abs(dx) >= WISCH_SCHWELLE;
+    const zId = id, zLid = lid;
+    zuruecksetzen();
+    if(!weit) return;
+    if(dx > 0){
+      // nach rechts: abhaken bzw. wieder öffnen
+      if(zLid) toggleEinIn(zLid, zId); else toggleEin(zId);
+    } else if(!zLid){
+      // nach links: löschen (mit Rückgängig über den Toast)
+      delEin(zId);
+    }
+  };
+  behaelter.addEventListener("pointerup", beenden, { passive:true });
+  behaelter.addEventListener("pointercancel", zuruecksetzen, { passive:true });
+  behaelter.addEventListener("pointerleave", e => { if(zeile && horizontal) beenden(); }, { passive:true });
 }
 
 // ---- Zutaten- und Lebensmittelwörterbuch ----
@@ -3525,8 +3613,12 @@ function einRowRO(lid,a,editing,l){
   const fremd = a.von && a.von!==ME;
   const farbe = (l && l.zusammengefuehrt && a.von) ? autorFarbe(a.von) : null;
   const herkunft = (l && l.zusammengefuehrt && a.von) ? `<small style="color:${farbe};font-weight:600">${esc(a.von)}</small>` : "";
-  return `<div class="row ${a.d?'done':''}" style="margin-bottom:6px${farbe?`;border-left:3px solid ${farbe};padding-left:8px`:''}">
-    <div class="cb ${a.d?'on':''}" onclick="toggleEinIn('${lid}','${a.id}')">${a.d?'✓':''}</div>
+  return `<div class="row wischbar ${a.d?'done':''}" data-artikel="${esc(a.id)}" data-liste="${esc(lid)}"
+      style="margin-bottom:6px${farbe?`;border-left:3px solid ${farbe};padding-left:8px`:''}">
+    <div class="wisch-hint rechts" aria-hidden="true">${a.d?'Offen':'Erledigt'}</div>
+    <button type="button" class="cb ${a.d?'on':''}" onclick="toggleEinIn('${lid}','${a.id}')"
+      role="checkbox" aria-checked="${a.d?'true':'false'}"
+      aria-label="${esc(a.tx)} ${a.d?'als offen markieren':'abhaken'}">${a.d?'✓':''}</button>
     <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(zutatAnzeige(a.tx))}${zutatZusatz(a.tx)}${a.menge?` <span style="color:var(--ink2)">(${esc(a.menge)})</span>`:""} ${herkunft}</div>
     ${editing?`<div class="del" onclick="delEinIn('${lid}','${a.id}')">×</div>`:""}</div>`;
 }
@@ -3569,15 +3661,41 @@ window.neuerEntwurf = (ersterArtikel) => {
   AKT_LISTE=l.id; l.updatedAt=now(); save(); RENDER.einkauf();
 };
 
-const einRow = a => `<div class="row ${a.d?'done':''}">
-  <div class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')">${a.d?'✓':''}</div>
-  <div class="tx"><span style="margin-right:7px">${foodIcon(a.tx)}</span>${esc(zutatAnzeige(a.tx))}${zutatZusatz(a.tx)}</div>
-  <div class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')">${a.menge?esc(a.menge):'+ Menge'}</div>
-  <div class="del" onclick="delEin('${a.id}')">×</div></div>`;
+// Artikelzeile: echte Bedienelemente (tastaturbedienbar, für Screenreader
+// erkennbar) und wischbar. data-artikel dient dem Wischen und der punktuellen
+// Aktualisierung ohne vollständiges Neuzeichnen.
+const einRow = a => `<div class="row wischbar ${a.d?'done':''}" data-artikel="${esc(a.id)}">
+  <div class="wisch-hint links" aria-hidden="true">Löschen</div>
+  <div class="wisch-hint rechts" aria-hidden="true">${a.d?'Offen':'Erledigt'}</div>
+  <div class="row-inhalt">
+    <button type="button" class="cb ${a.d?'on':''}" onclick="toggleEin('${a.id}')"
+      role="checkbox" aria-checked="${a.d?'true':'false'}"
+      aria-label="${esc(a.tx)} ${a.d?'als offen markieren':'abhaken'}">${a.d?'✓':''}</button>
+    <div class="tx"><span style="margin-right:7px" aria-hidden="true">${foodIcon(a.tx)}</span>${esc(zutatAnzeige(a.tx))}${zutatZusatz(a.tx)}</div>
+    <button type="button" class="qty ${a.menge?'set':''}" onclick="editMenge('${a.id}')"
+      aria-label="Menge für ${esc(a.tx)}">${a.menge?esc(a.menge):'+ Menge'}</button>
+    <button type="button" class="del" onclick="delEin('${a.id}')"
+      aria-label="${esc(a.tx)} löschen">✕</button>
+  </div></div>`;
 const aktListe = () => DB.listen.find(l=>l.id===AKT_LISTE);
 
+// Legt bei Bedarf still einen Entwurf an. Bisher musste erst
+// "+ Neue Einkaufsliste beginnen" angetippt werden – ein Schritt, der für die
+// Nutzerin nichts bedeutet und nur das Datenmodell abbildet.
+function entwurfSicherstellen(){
+  let l = meinEntwurf();
+  if(!l){
+    l = { id:uid(), status:"entwurf", ersteller:ME, empfaenger:[], artikel:[],
+          createdAt:now(), updatedAt:now() };
+    DB.listen.push(l);
+  }
+  AKT_LISTE = l.id;
+  return l;
+}
+
 window.addEin = (tx, el) => {
-  const l=aktListe(); if(!l) return;
+  const l = aktListe() || entwurfSicherstellen();
+  if(!l) return;
   if(aktiv(l.artikel).some(a=>a.tx.toLowerCase()===tx.toLowerCase()&&!a.d)){
     if(el){ el.classList.add("chip-dup"); setTimeout(()=>el.classList.remove("chip-dup"),500); }
     return;
@@ -3589,9 +3707,19 @@ window.addEin = (tx, el) => {
   else RENDER.einkauf();
 };
 window.toggleEin = id => { const l=aktListe(); const a=l.artikel.find(x=>x.id===id); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now(); save(); RENDER.einkauf(); };
-window.delEin = id => { const l=aktListe(); if(!l)return; const a=l.artikel.find(x=>x.id===id);
-  if(a){ a.deleted=true; a.deletedAt=now(); a.updatedAt=now(); }
-  l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEin = id => {
+  const l=aktListe(); if(!l)return;
+  const a=l.artikel.find(x=>x.id===id); if(!a) return;
+  a.deleted=true; a.deletedAt=now(); a.updatedAt=now();
+  l.updatedAt=now(); save(); RENDER.einkauf();
+  // Rückgängig ist hier Pflicht: Seit v2.10.0 löscht auch eine Wischgeste nach
+  // links – ohne Rücknahme wäre ein versehentlicher Wisch nicht korrigierbar.
+  toast(`„${a.tx}" gelöscht`, { label:"Rückgängig", fn:()=>{
+    const z=(aktListe()||{artikel:[]}).artikel.find(x=>x.id===id);
+    if(z){ delete z.deleted; delete z.deletedAt; z.updatedAt=now();
+           save(); RENDER.einkauf(); }
+  }});
+};
 
 // Aktionen in abgeschickten Listen
 window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const a=l.artikel.find(x=>x.id===aid); a.d=!a.d; a.updatedAt=now(); l.updatedAt=now();
@@ -3599,9 +3727,17 @@ window.toggleEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); const
   const aktive=aktiv(l.artikel);
   if(aktive.length && aktive.every(x=>x.d)){ l.archiviert=true; if(window._openListe===lid)window._openListe=null; }
   save(); RENDER.einkauf(); };
-window.delEinIn = (lid,aid) => { const l=DB.listen.find(x=>x.id===lid); if(!l)return; const a=l.artikel.find(x=>x.id===aid);
-  if(a){ a.deleted=true; a.deletedAt=now(); a.updatedAt=now(); }
-  l.updatedAt=now(); save(); RENDER.einkauf(); };
+window.delEinIn = (lid,aid) => {
+  const l=DB.listen.find(x=>x.id===lid); if(!l)return;
+  const a=l.artikel.find(x=>x.id===aid); if(!a) return;
+  a.deleted=true; a.deletedAt=now(); a.updatedAt=now();
+  l.updatedAt=now(); save(); RENDER.einkauf();
+  toast(`„${a.tx}" gelöscht`, { label:"Rückgängig", fn:()=>{
+    const z=(DB.listen.find(x=>x.id===lid)||{artikel:[]}).artikel.find(x=>x.id===aid);
+    if(z){ delete z.deleted; delete z.deletedAt; z.updatedAt=now();
+           save(); RENDER.einkauf(); }
+  }});
+};
 window.addEinTo = (lid,tx) => { tx=(tx||"").trim(); if(!tx)return; const l=DB.listen.find(x=>x.id===lid);
   l.artikel.push({id:uid(),tx,menge:"",d:false,von:ME,createdAt:now(),updatedAt:now()}); l.updatedAt=now(); zaehleArtikel(tx);
   // Wenn ich der Ersteller bin und nachträglich etwas ergänze -> Empfänger informieren
@@ -4011,8 +4147,8 @@ function renderReiseDetail(r){
   } else {
     html += `<div class="list" id="cityList">`;
     sichtbareStaedte.forEach((x,pos)=>{
-      html += renderCity(r,x.c,x.i);
-      if(pos < sichtbareStaedte.length-1) html += renderLeg(r,x.i);
+      html += renderCity(r,x.c,x.i,pos);
+      if(pos < sichtbareStaedte.length-1) html += renderLeg(r,x.i,sichtbareStaedte[pos+1].i);
     });
     html += `</div>`;
   }
@@ -4030,7 +4166,7 @@ function renderReiseDetail(r){
     }
   });
 }
-function renderCity(r,c,i){
+function renderCity(r,c,i,pos){
   const stell=(c.stellplaetze||[]);
   const utype = r.unterkunft==="wohnmobil" ? "Stellplätze" : "Hotels";
   // Was öffnet die Karte? Eigener Maps-Link, sonst Koordinaten, sonst Name.
@@ -4039,7 +4175,7 @@ function renderCity(r,c,i){
   return `<div class="city ${c._open?'':'collapsed'}" data-i="${i}">
     <div class="chead">
       ${r.art==="tour"?`<div class="cdrag" data-drag="${i}">⠿</div>`:""}
-      <div class="cnum">${i+1}</div>
+      <div class="cnum">${(pos!=null?pos:i)+1}</div>
       <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}${warnAdresse(c.lat==null, "Adresse/Koordinaten fehlen – „Bearbeiten“ öffnen")}</div>
       <div class="cdel" onclick="event.stopPropagation();delCity('${r.id}',${i})">×</div>
     </div>
@@ -4351,27 +4487,31 @@ window.zoomFoto = (rid,ci,key,pi) => {
   const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi];
   if(p.foto) openSheet(`<h3>${esc(p.name)}</h3><img src="${p.foto}" style="width:100%;border-radius:12px"><button class="btn ghost" onclick="closeModal()" style="margin-top:12px">Schließen</button>`);
 };
-function renderLeg(r,i){
-  const a=r.staedte[i], b=r.staedte[i+1];
+function renderLeg(r,i,j){
+  if(j==null) j=i+1;                       // Fallback: direkter Nachbar
+  const a=r.staedte[i], b=r.staedte[j];
+  if(!a||!b) return "";
   r._legs = r._legs||{};
-  const stops = a.stopps||[];
+  // Nur nicht geloeschte Zwischenstopps, Originalindex fuer Aktionen mitfuehren
+  const stops = (a.stopps||[]).map((s,si)=>({s,si})).filter(x=>!x.s.deleted);
   const key = a.lat+","+a.lon+">"+b.lat+","+b.lon;
   const cached = r._legs[key];
   let info;
   if(a.lat==null||b.lat==null) info = `<span class="linfo">Etappe nicht berechenbar – Koordinaten fehlen</span>`;
-  else if(cached==="err") info = `<span class="linfo" id="leg_${i}" onclick="calcLeg('${r.id}',${i})" style="cursor:pointer;color:var(--accent)">Berechnung fehlgeschlagen – erneut ›</span>`;
+  else if(cached==="err") info = `<span class="linfo" id="leg_${i}" onclick="calcLeg('${r.id}',${i},${j})" style="cursor:pointer;color:var(--accent)">Berechnung fehlgeschlagen – erneut ›</span>`;
   else if(cached) info = `<span class="linfo">${ICON.car} ${cached.km.toFixed(0)} km · ${fmtDauer(cached.min)} <small>(${cached.profil})</small></span>`;
   else info = `<span class="linfo" id="leg_${i}" style="color:var(--ink2)">berechne…</span>`;
   // Google-Maps-Routenlink (führt optional über die Zwischenstopps)
-  const routeHref = mapsRouteLink(a, b, stops);
-  const stopsHtml = stops.length ? `<div class="stops">${stops.map((s,si)=>{
+  const routeHref = mapsRouteLink(a, b, stops.map(x=>x.s));
+  const stopsHtml = stops.length ? `<div class="stops">${stops.map(({s,si})=>{
     const tgt = openTarget(s) || (s.lat!=null?mapsLink(s.lat+","+s.lon):(s.name?mapsLink(s.name):""));
     const meta = [s.entfernung, s.dauer].filter(Boolean).join(" · ");
     return `<div class="stop"><span class="si">${ICON.pin}</span>
       <div class="sn">${esc(s.name)}${warnAdresse(s.lat==null && !cleanLink(s.link), "Adresse fehlt")}
         ${meta?`<small>${ICON.car?"":""}${esc(meta)}</small>`:""}
         ${s.hinweis?`<small>📌 ${esc(s.hinweis)}</small>`:""}
-        ${tgt?`<a class="smap" href="${esc(tgt)}" target="_blank" rel="noopener">Karte öffnen</a>`:""}</div>
+        ${tgt?`<a class="smap" href="${esc(tgt)}" target="_blank" rel="noopener">Karte öffnen</a>`:""}
+        <a class="sconv" onclick="stopZuStation('${r.id}',${i},${si},${j})">Zur Station machen</a></div>
       <span class="sdel" onclick="delStop('${r.id}',${i},${si})">×</span></div>`;
   }).join("")}</div>` : "";
   return `<div class="leg">
@@ -4379,15 +4519,17 @@ function renderLeg(r,i){
     ${stopsHtml}
     <div class="legacts">
       <a href="${esc(routeHref)}" target="_blank" rel="noopener">🗺️ Route in Google Maps</a>
-      <a onclick="addStop('${r.id}',${i})">+ Zwischenstopp</a>
+      <a onclick="insertCity('${r.id}',${j})">+ Station</a>
+      <a class="muted" onclick="addStop('${r.id}',${i})">+ Zwischenstopp</a>
     </div>
   </div>`;
 }
 // Alle noch nicht berechneten Etappen automatisch nacheinander rechnen
 window.autoCalcLegs = async rid => {
   const r=DB.urlaub.find(x=>x.id===rid); if(!r||!r.staedte)return;
-  for(let i=0;i<r.staedte.length-1;i++){
-    const a=r.staedte[i], b=r.staedte[i+1];
+  const sichtbar = r.staedte.filter(c=>!c.deleted);
+  for(let i=0;i<sichtbar.length-1;i++){
+    const a=sichtbar[i], b=sichtbar[i+1];
     if(a.lat==null||b.lat==null) continue;
     const key=a.lat+","+a.lon+">"+b.lat+","+b.lon;
     if(r._legs && r._legs[key] && r._legs[key]!=="err") continue;
@@ -4398,8 +4540,9 @@ window.autoCalcLegs = async rid => {
     if(CURRENT==="urlaub" && DETAIL_OPEN===rid) renderReiseDetail(r);
   }
 };
-window.calcLeg = async (rid,i) => {
-  const r=DB.urlaub.find(x=>x.id===rid); const a=r.staedte[i], b=r.staedte[i+1];
+window.calcLeg = async (rid,i,j) => {
+  const r=DB.urlaub.find(x=>x.id===rid); const a=r.staedte[i], b=r.staedte[j==null?i+1:j];
+  if(!a||!b) return;
   const el=document.getElementById("leg_"+i); if(el)el.textContent="berechne…";
   const key=a.lat+","+a.lon+">"+b.lat+","+b.lon;
   try{
@@ -4451,6 +4594,23 @@ window.saveStop = async () => {
   r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
   autoCalcLegs(rid);
 };
+// Bestehenden Zwischenstopp in eine vollwertige Station umwandeln
+window.stopZuStation = (rid,i,si,j) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[i]; if(!c||!c.stopps)return;
+  const s=c.stopps[si]; if(!s||s.deleted)return;
+  const neu = { id:uid(), name:s.name, plz:"", land:"", link:s.link||"",
+    lat:(s.lat!=null?s.lat:null), lon:(s.lon!=null?s.lon:null),
+    von:"", bis:"", hinweis:s.hinweis||"", foto:"",
+    stellplaetze:[], sehens:[], restaurants:[], stopps:[], tagesplan:{}, _open:true, updatedAt:now() };
+  const at = (j!=null && j>=0 && j<=r.staedte.length) ? j : i+1;
+  r.staedte.splice(at,0,neu);
+  // Zwischenstopp per Tombstone entfernen, damit die Aenderung auch auf andere Geraete syncht
+  s.deleted=true; s.deletedAt=now(); s.updatedAt=now();
+  c.updatedAt=now(); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r);
+  if(typeof toast==="function") toast(`„${s.name}“ ist jetzt eine eigene Station`);
+  autoCalcLegs(rid);
+};
 window.delStop = (rid,i,si) => {
   const r=DB.urlaub.find(x=>x.id===rid); if(!r)return; const c=r.staedte[i];
   if(!c || !c.stopps) return;
@@ -4470,13 +4630,15 @@ window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(!r)retur
 // Stadt hinzufügen – kombiniertes Formular
 window.addCity = rid => { editCityForm(rid, null); };
 window.editCity = (rid, i) => { editCityForm(rid, i); };
-function editCityForm(rid, i){
+// Vollwertige Station an einer bestimmten Position einfuegen (zwischen zwei Stationen)
+window.insertCity = (rid, pos) => { editCityForm(rid, null, pos); };
+function editCityForm(rid, i, insertAt){
   const r = DB.urlaub.find(x=>x.id===rid);
   const c = (i!=null) ? r.staedte[i] : { name:"", plz:"", land:"", link:"", lat:null, lon:null, von:"", bis:"", hinweis:"", foto:"" };
-  window._cityCtx = { rid, i };
+  window._cityCtx = { rid, i, insertAt };
   const hasCoords = c.lat!=null;
-  openSheet(`<h3>${i!=null?"Stadt bearbeiten":"Stadt / Ort hinzufügen"}</h3>
-    <div class="ml">Stadtname genügt – Koordinaten werden gesucht. Maps-Link ist optional, nur zum Öffnen.</div>
+  openSheet(`<h3>${i!=null?"Stadt bearbeiten":(insertAt!=null?"Station einfügen":"Stadt / Ort hinzufügen")}</h3>
+    <div class="ml">${insertAt!=null?"Die Station wird an dieser Stelle der Route eingefügt – mit Stellplätzen, Tagesplan und allem Weiteren. ":""}Stadtname genügt – Koordinaten werden gesucht. Maps-Link ist optional, nur zum Öffnen.</div>
     <div class="fld"><label>Stadt / Ort</label><input id="c_name" value="${esc(c.name)}" placeholder="z.B. München"></div>
     <div class="fld" style="display:flex;gap:10px">
       <div style="flex:1"><label>PLZ (optional)</label><input id="c_plz" value="${esc(c.plz||"")}" placeholder="80331"></div>
@@ -4492,7 +4654,7 @@ function editCityForm(rid, i){
       <textarea id="c_hinweis" rows="2" placeholder="z.B. Mautgebühr, mit Bus hinfahren …">${esc(c.hinweis||"")}</textarea></div>
     <div class="fld"><label>Foto (optional)</label><div id="cityFotoSlot"></div></div>
     <div class="geo-status" id="c_geo">${hasCoords?"✓ Koordinaten vorhanden ("+c.lat.toFixed(3)+", "+c.lon.toFixed(3)+")":"Noch keine Koordinaten"}</div>
-    <button class="btn" onclick="saveCity()">${i!=null?"Speichern":"Hinzufügen"}</button>`);
+    <button class="btn" onclick="saveCity()">${i!=null?"Speichern":(insertAt!=null?"Einfügen":"Hinzufügen")}</button>`);
   window._cityFoto = c.foto||"";
   renderCityFoto();
 }
@@ -4507,7 +4669,7 @@ function renderCityFoto(){
   }
 }
 window.saveCity = async () => {
-  const { rid, i } = window._cityCtx;
+  const { rid, i, insertAt } = window._cityCtx;
   const r = DB.urlaub.find(x=>x.id===rid);
   const name = document.getElementById("c_name").value.trim();
   const plz  = document.getElementById("c_plz").value.trim();
@@ -4531,8 +4693,10 @@ window.saveCity = async () => {
     if(lat!=null){ c.lat=lat; c.lon=lon; }
     c.updatedAt=now();
   } else {
-    r.staedte.push({ id:uid(), name, plz, land, link, lat, lon, von, bis, hinweis, foto,
-      stellplaetze:[], sehens:[], restaurants:[], stopps:[], tagesplan:{}, _open:true, updatedAt:now() });
+    const neu = { id:uid(), name, plz, land, link, lat, lon, von, bis, hinweis, foto,
+      stellplaetze:[], sehens:[], restaurants:[], stopps:[], tagesplan:{}, _open:true, updatedAt:now() };
+    if(insertAt!=null && insertAt>=0 && insertAt<=r.staedte.length) r.staedte.splice(insertAt,0,neu);
+    else r.staedte.push(neu);
   }
   r._legs = {};            // Etappen neu berechnen lassen
   r.updatedAt=now(); save(); closeModal();
