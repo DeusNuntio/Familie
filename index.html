@@ -58,6 +58,15 @@ window.ladeMsal = (function(){
   --line:#dde5f2; --accent:#1d4ed8; --accent-2:#2563eb; --accent-soft:#dfe9fd;
   --warm:#b45309; --warm-soft:#fef0dc; --ok:#15803d; --ok-soft:#dcf2e6;
   --danger:#b91c1c; --r:16px;
+  /* Stationsfarben: reihum je Position, damit sich benachbarte Stationen
+     beim Scrollen klar voneinander abheben. Alle Werte erreichen auf
+     weissem Grund mindestens 4,5:1 (WCAG 1.4.3 AA). */
+  --stat1:#1d4ed8; --stat2:#0f766e; --stat3:#b45309; --stat4:#6d28d9; --stat5:#15803d;
+  /* Kategorien der Tagesplanung */
+  --kat-sehen:#6d28d9;      --kat-sehen-soft:#ece2fd;
+  --kat-restaurant:#b45309; --kat-restaurant-soft:#fef0dc;
+  --kat-wanderung:#15803d;  --kat-wanderung-soft:#dcf2e6;
+  --kat-aktivitaet:#0f766e; --kat-aktivitaet-soft:#d6f2ee;
   --shadow:0 1px 3px rgba(23,32,51,.06),0 8px 22px rgba(29,78,216,.07);
 }
 /* Nutzer, die im Betriebssystem reduzierte Bewegung eingestellt haben,
@@ -71,6 +80,11 @@ window.ladeMsal = (function(){
   :root{--bg:#0e1626;--surface:#16203400;--surface:#172034;--ink:#e8edf7;--ink2:#8b97b0;
   --line:#26324a;--accent:#5b8def;--accent-2:#6d9bf5;--accent-soft:#1c2c4d;
   --warm:#e0934a;--warm-soft:#32261a;--ok:#5cc08a;--ok-soft:#1a2e24;--danger:#f06464;
+  --stat1:#5b8def;--stat2:#3fb5a8;--stat3:#e0934a;--stat4:#a78bfa;--stat5:#5cc08a;
+  --kat-sehen:#a78bfa;      --kat-sehen-soft:#2a2142;
+  --kat-restaurant:#e0934a; --kat-restaurant-soft:#32261a;
+  --kat-wanderung:#5cc08a;  --kat-wanderung-soft:#1a2e24;
+  --kat-aktivitaet:#3fb5a8; --kat-aktivitaet-soft:#122b29;
   --shadow:0 1px 3px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -328,6 +342,14 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .city .cnum{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
   font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .city .cname{font-weight:650;font-size:16px;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere}
+.city .cname .cdate{display:block;font-size:12px;font-weight:600;color:var(--accent);margin-top:2px}
+.city .cname .cdate.offen{color:var(--ink2);font-weight:500}
+/* Jede Station traegt ihre Positionsfarbe über --st */
+.city{border-left:4px solid var(--st,var(--accent))}
+.city .cnum{background:var(--st,var(--accent))}
+.city .cname .cdate{color:var(--st,var(--accent))}
+.city .tagesplan-h,.city .subgroup .sgh,.city .pdist-h{color:var(--st,var(--accent))}
+.city .city-actions .cbtn{color:var(--st,var(--accent))}
 .city .cdel{flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
   justify-content:center;color:var(--ink2);font-size:20px;cursor:pointer;background:var(--bg)}
 .city .cdel:active{background:var(--line)}
@@ -342,13 +364,20 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .cbtn:active{background:var(--accent-soft)}
 .city-actions .cbtn{flex:1}
-.leg{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 16px;margin:2px 0}
+.leg{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 16px;margin:0}
 .leg .legrow{display:flex;align-items:center;gap:10px;width:100%}
-.leg .lline{flex:1;height:0;border-top:2px dashed var(--line)}
-.leg .linfo{font-size:12.5px;color:var(--ink2);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.leg .lline{flex:1;height:0;border-top:1px dashed var(--line)}
+.leg .linfo{font-size:12px;color:var(--ink2);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px;opacity:.85}
 .leg .legacts{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-.leg .legacts a{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
-.leg .legacts a.muted{color:var(--ink2)}
+/* Etappen sind Verbindungen, keine Hauptelemente: dezent halten, damit die
+   Stationskarten und die rote Datumswarnung hervortreten. */
+.leg .legacts a{font-size:11.5px;color:var(--ink2);cursor:pointer;text-decoration:none;font-weight:600}
+.leg .legacts a:active{color:var(--accent)}
+.leg .legacts a.muted{color:var(--ink2);opacity:.75}
+.leg .legwarn{width:100%;display:flex;gap:7px;align-items:flex-start;border-radius:10px;
+  padding:7px 10px;font-size:12px;font-weight:600;line-height:1.35;
+  background:rgba(220,38,38,.10);border:1px solid var(--danger);color:var(--danger)}
+.leg .legwarn .lw-ic{flex-shrink:0}
 /* Zwischenstopps auf einer Etappe */
 .stops{width:100%;display:flex;flex-direction:column;gap:6px;margin:2px 0}
 .stop{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px dashed var(--line);
@@ -385,8 +414,11 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .tagesplan-h{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
 .tag-card{background:var(--line);border-radius:10px;padding:10px 11px;margin-bottom:10px}
 .tag-titel{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
-.tag-zeile{display:flex;gap:7px;align-items:flex-start;font-size:13px;padding:3px 0}
-.tag-zeile .tz-ic{flex-shrink:0;width:18px;text-align:center}
+/* Jede Kategorie traegt ihre Farbe über --kat / --kat-soft */
+.tag-zeile{display:flex;gap:7px;align-items:flex-start;font-size:13px;padding:4px 0 4px 8px;
+  border-left:3px solid var(--kat,var(--accent));margin-bottom:3px}
+.tag-zeile .tz-ic{flex-shrink:0;width:24px;text-align:center;border-radius:6px;
+  background:var(--kat-soft,var(--accent-soft));padding:2px 0}
 .tag-zeile .tz-tx{flex:1;min-width:0;word-break:break-word}
 .tag-zeile .tz-tx small{display:block;color:var(--ink2);font-size:11.5px}
 .tag-zeile .tz-del{color:var(--ink2);opacity:.5;cursor:pointer;font-size:15px;flex-shrink:0}
@@ -395,7 +427,9 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   border:1px dashed var(--accent);border-radius:10px;font-size:12.5px;font-weight:600;
   color:var(--accent);cursor:pointer}
 .tag-abreise small{color:var(--ink2);font-weight:500}
-.tag-add button{font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer}
+.tag-add button{font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;
+  border:1px solid var(--kat,var(--accent));background:var(--surface);
+  color:var(--kat,var(--accent));cursor:pointer}
 .poi{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
 .poi:last-child{border-bottom:none}
 .poi .pn{flex:1;font-size:14px}
@@ -680,7 +714,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 // ============================================================
 //  Datenhaltung — Prototyp: localStorage. Schema = OneDrive-JSON.
 // ============================================================
-const APP_VERSION = "2.13.0";
+const APP_VERSION = "2.15.0";
 const KEY = "familienapp.v2";
 const now = () => new Date().toISOString();
 // Setzt updatedAt + wer zuletzt geändert hat (für "zuletzt geändert von")
@@ -1260,7 +1294,11 @@ const UI_NL = {
   "Gilt nur für dich. Eingegebene Texte bleiben unverändert gespeichert.": "Geldt alleen voor jou. Ingevoerde teksten blijven ongewijzigd bewaard.",
   "Halbjährlich": "Halfjaarlijks",
   "Handy-Benachrichtigungen": "Meldingen op je telefoon",
+  "Abbrechen ": "Annuleren ",
   "Abreise bis": "Vertrek uiterlijk",
+  "Kein Aufenthaltsdatum": "Geen verblijfsdatum",
+  "Station löschen": "Bestemming verwijderen",
+  "Zwischenstopp löschen": "Tussenstop verwijderen",
   "Als Kalenderdatei (.ics) speichern": "Als agendabestand (.ics) opslaan",
   "Die ganze Reise als ein Termin": "De hele reis als één afspraak",
   "In Kalender eintragen": "In agenda zetten",
@@ -4195,11 +4233,16 @@ function renderCity(r,c,i,pos){
   // Was öffnet die Karte? Eigener Maps-Link, sonst Koordinaten, sonst Name.
   const mapHref = openTarget(c);
   const istLink = !!cleanLink(c.link);
-  return `<div class="city ${c._open?'':'collapsed'}" data-i="${i}">
+  // Positionsfarbe: reihum aus fuenf Toenen, damit Nachbarstationen sich unterscheiden
+  const farbNr = ((pos!=null?pos:i) % 5) + 1;
+  return `<div class="city ${c._open?'':'collapsed'}" data-i="${i}" style="--st:var(--stat${farbNr})">
     <div class="chead">
       ${r.art==="tour"?`<div class="cdrag" data-drag="${i}">⠿</div>`:""}
       <div class="cnum">${(pos!=null?pos:i)+1}</div>
-      <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}${warnAdresse(c.lat==null, "Adresse/Koordinaten fehlen – „Bearbeiten“ öffnen")}</div>
+      <div class="cname" onclick="toggleCity('${r.id}',${i})">${esc(c.name)}${warnAdresse(c.lat==null, "Adresse/Koordinaten fehlen – „Bearbeiten“ öffnen")}
+        ${(c.von||c.bis)
+          ? `<span class="cdate">${c.von&&c.bis?fmtDate(c.von)+" – "+fmtDate(c.bis):fmtDate(c.von||c.bis)}${tageNaechteText(c.von,c.bis)?" · "+tageNaechteText(c.von,c.bis):""}</span>`
+          : `<span class="cdate offen">Kein Aufenthaltsdatum</span>`}</div>
       <div class="cdel" onclick="event.stopPropagation();delCity('${r.id}',${i})">×</div>
     </div>
     <div class="cbody">
@@ -4208,7 +4251,6 @@ function renderCity(r,c,i,pos){
         <a class="cbtn" href="${esc(mapHref)}" target="_blank" rel="noopener">${ICON.pin} ${istLink?"Link öffnen":"Karte öffnen"}</a>
         <button class="cbtn" onclick="editCity('${r.id}',${i})">Bearbeiten</button>
       </div>
-      ${(c.von||c.bis)?`<div class="cdur">${ICON.clock||"🕒"} ${c.von&&c.bis?fmtDate(c.von)+" – "+fmtDate(c.bis):fmtDate(c.von||c.bis)}${tageSuffix(c.von,c.bis)}</div>`:""}
       ${c.hinweis?`<div class="chint"><span class="hi">📌</span><span>${esc(c.hinweis)}</span></div>`:""}
       ${c.lat==null?`<div class="geo-status">Koordinaten fehlen – für die Etappenberechnung „Bearbeiten" öffnen und Koordinaten suchen.</div>`:""}
       ${poiGroup(r.id,i,"stellplaetze",utype,stell)}
@@ -4322,7 +4364,7 @@ function renderTagesplan(r,c,i){
         const info=tagTypInfo(e.typ);
         const tgt=openTarget(e);
         const adrFehlt = !e.adresse && !cleanLink(e.link) && e.lat==null;
-        html += `<div class="tag-zeile">
+        html += `<div class="tag-zeile" style="--kat:var(--kat-${esc(e.typ)},var(--accent));--kat-soft:var(--kat-${esc(e.typ)}-soft,var(--accent-soft))">
           <span class="tz-ic">${info.ic}</span>
           <span class="tz-tx">${esc(e.name)}${warnAdresse(adrFehlt,"Adresse fehlt – bitte ergänzen")}
             ${e.adresse?`<small>${esc(e.adresse)}</small>`:""}
@@ -4344,7 +4386,7 @@ function renderTagesplan(r,c,i){
       html += `<div style="color:var(--ink2);font-size:12px;padding:2px 0">Noch nichts geplant.</div>`;
     }
     html += `<div class="tag-add">
-      ${TAGES_TYPEN.map(t=>`<button onclick="addTagEintrag('${r.id}',${i},'${d}','${t.key}')">+ ${t.ic} ${t.label}</button>`).join("")}
+      ${TAGES_TYPEN.map(t=>`<button style="--kat:var(--kat-${t.key},var(--accent))" onclick="addTagEintrag('${r.id}',${i},'${d}','${t.key}')">+ ${t.ic} ${t.label}</button>`).join("")}
     </div>`;
     // Am letzten Tag der Station: Abreisezeit erfassen (z.B. Platz raeumen bis 11 Uhr)
     if(di === tage.length-1){
@@ -4491,13 +4533,36 @@ window.saveTagEintrag = async () => {
   window._tagBuf=null;
   c._open=true; c.updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
+// Einheitliche Rueckfrage vor dem Loeschen. Der uebergebene Text darf HTML
+// enthalten und muss vom Aufrufer bereits maskiert sein.
+function bestaetigeLoeschen(titel, text, aktion){
+  window._loeschAktion = aktion;
+  openSheet(`<h3>${esc(titel)}</h3>
+    <div class="ml">${text}</div>
+    <button class="btn danger" onclick="loeschenBestaetigt()">Löschen</button>
+    <button class="btn ghost" onclick="loeschenAbbrechen()">Abbrechen</button>`);
+}
+window.loeschenBestaetigt = () => {
+  const fn = window._loeschAktion; window._loeschAktion = null;
+  closeModal();
+  if(typeof fn === "function") fn();
+};
+window.loeschenAbbrechen = () => { window._loeschAktion = null; closeModal(); };
+
 window.delTagEintrag = (rid,ci,datum,ei) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const e=(r.staedte[ci].tagesplan?.[datum]||[])[ei]; if(!e)return;
+  bestaetigeLoeschen("Eintrag löschen",
+    `„${esc(e.name||"Eintrag")}“ am ${fmtDate(datum)} aus der Tagesplanung entfernen?`,
+    ()=>delTagEintragAusfuehren(rid,ci,datum,ei));
+};
+function delTagEintragAusfuehren(rid,ci,datum,ei){
   const r=DB.urlaub.find(x=>x.id===rid); const arr=r.staedte[ci].tagesplan?.[datum];
   if(!arr)return;
   // Tombstone statt hart löschen, damit die Löschung auch auf andere Geräte synchronisiert
   const e=arr[ei]; if(e){ e.deleted=true; e.deletedAt=now(); e.updatedAt=now(); }
   r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r);
-};
+}
 window.setTagRes = (rid,ci,datum,ei,status) => {
   const r=DB.urlaub.find(x=>x.id===rid); const e=r.staedte[ci].tagesplan?.[datum]?.[ei];
   if(!e)return; e.resStatus=(e.resStatus===status)?"":status;
@@ -4546,6 +4611,24 @@ window.zoomFoto = (rid,ci,key,pi) => {
   const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi];
   if(p.foto) openSheet(`<h3>${esc(p.name)}</h3><img src="${p.foto}" style="width:100%;border-radius:12px"><button class="btn ghost" onclick="closeModal()" style="margin-top:12px">Schließen</button>`);
 };
+// Prueft die Datumskette zweier aufeinanderfolgender Stationen.
+// Konvention: Der Abreisetag einer Station ist der Anreisetag der naechsten.
+//   b.von > a.bis  -> Luecke, die Naechte dazwischen sind nicht verplant
+//   b.von < a.bis  -> Ueberschneidung, beide Stationen belegen dieselben Tage
+// Ohne Datum auf einer der beiden Seiten wird nicht geprueft.
+function datumsLuecke(a,b){
+  if(!a || !b) return null;
+  const ende = a.bis || a.von;
+  const start = b.von;
+  if(!ende || !start) return null;
+  const tage = Math.round(
+    (new Date(start+"T00:00:00") - new Date(ende+"T00:00:00")) / 86400000
+  );
+  if(tage === 0) return null;
+  return tage > 0
+    ? { art:"luecke", naechte:tage, von:ende, bis:start }
+    : { art:"ueberschneidung", tage:-tage };
+}
 function renderLeg(r,i,j){
   if(j==null) j=i+1;                       // Fallback: direkter Nachbar
   const a=r.staedte[i], b=r.staedte[j];
@@ -4573,8 +4656,15 @@ function renderLeg(r,i,j){
         <a class="sconv" onclick="stopZuStation('${r.id}',${i},${si},${j})">Zur Station machen</a></div>
       <span class="sdel" onclick="delStop('${r.id}',${i},${si})">×</span></div>`;
   }).join("")}</div>` : "";
+  const luecke = datumsLuecke(a,b);
+  const warnHtml = luecke ? `<div class="legwarn"><span class="lw-ic">⚠︎</span><span>${
+    luecke.art==="luecke"
+      ? `${luecke.naechte} ${luecke.naechte===1?"Nacht ist":"Nächte sind"} nicht verplant: ${fmtDate(luecke.von)} – ${fmtDate(luecke.bis)}`
+      : `Überschneidung: „${esc(b.name)}“ beginnt ${luecke.tage} ${luecke.tage===1?"Tag":"Tage"} vor der Abreise aus „${esc(a.name)}“`
+  }</span></div>` : "";
   return `<div class="leg">
     <div class="legrow"><div class="lline"></div>${info}<div class="lline"></div></div>
+    ${warnHtml}
     ${stopsHtml}
     <div class="legacts">
       <a href="${esc(routeHref)}" target="_blank" rel="noopener">🗺️ Route in Google Maps</a>
@@ -4671,20 +4761,37 @@ window.stopZuStation = (rid,i,si,j) => {
   autoCalcLegs(rid);
 };
 window.delStop = (rid,i,si) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const st=(r.staedte[i]?.stopps||[])[si]; if(!st)return;
+  bestaetigeLoeschen("Zwischenstopp löschen",
+    `„${esc(st.name||"Zwischenstopp")}“ von dieser Etappe entfernen?`,
+    ()=>delStopAusfuehren(rid,i,si));
+};
+function delStopAusfuehren(rid,i,si){
   const r=DB.urlaub.find(x=>x.id===rid); if(!r)return; const c=r.staedte[i];
   if(!c || !c.stopps) return;
   const st=c.stopps[si]; if(st){ st.deleted=true; st.deletedAt=now(); st.updatedAt=now(); }
   c.updatedAt=now(); r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r);
-};
+}
 
 window.toggleCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); r.staedte[i]._open=!r.staedte[i]._open; renderReiseDetail(r); };
-window.delCity = (rid,i) => { const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+window.delCity = (rid,i) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const c=r.staedte[i]; if(!c)return;
+  const anzahl = aktiv(c.stellplaetze).length + tagesEintraege(c).length + aktiv(c.stopps).length;
+  bestaetigeLoeschen("Station löschen",
+    `„${esc(c.name||"Station")}“ aus der Reise entfernen?` +
+    (anzahl ? ` Dazu ${anzahl===1?"gehört ein Eintrag":"gehören "+anzahl+" Einträge"} (Unterkunft, Tagesplanung, Zwischenstopps).` : "") +
+    ` Die Etappen werden neu berechnet.`,
+    ()=>delCityAusfuehren(rid,i));
+};
+function delCityAusfuehren(rid,i){ const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
   const c=r.staedte[i]; if(c){ c.deleted=true; c.deletedAt=now(); c.updatedAt=now(); }
   r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r);
   toast(`„${c?c.name:"Ort"}" entfernt`, { label:"Rückgängig", fn:()=>{
     if(c){ delete c.deleted; delete c.deletedAt; c.updatedAt=now();
            r._legs={}; r.updatedAt=now(); save(); renderReiseDetail(r); }
-  }}); };
+  }}); }
 
 // Stadt hinzufügen – kombiniertes Formular
 window.addCity = rid => { editCityForm(rid, null); };
@@ -4849,7 +4956,20 @@ window.doSavePoi = () => {
   }
   r.staedte[ci]._open=true; r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); closeModal(); renderReiseDetail(r);
 };
-window.delPoi = (rid,ci,key,pi) => { const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi]; if(p){ p.deleted=true; p.deletedAt=now(); p.updatedAt=now(); } r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r); };
+window.delPoi = (rid,ci,key,pi) => {
+  const r=DB.urlaub.find(x=>x.id===rid); if(!r)return;
+  const p=(r.staedte[ci]?.[key]||[])[pi]; if(!p)return;
+  const was = key==="stellplaetze" ? (r.unterkunft==="wohnmobil"?"Stellplatz":"Hotel")
+            : key==="restaurants"  ? "Restaurant" : "Sehenswürdigkeit";
+  bestaetigeLoeschen(was+" löschen",
+    `„${esc(p.name||was)}“ bei „${esc(r.staedte[ci].name||"dieser Station")}“ entfernen?`,
+    ()=>delPoiAusfuehren(rid,ci,key,pi));
+};
+function delPoiAusfuehren(rid,ci,key,pi){
+  const r=DB.urlaub.find(x=>x.id===rid); const p=r.staedte[ci][key][pi];
+  if(p){ p.deleted=true; p.deletedAt=now(); p.updatedAt=now(); }
+  r.staedte[ci].updatedAt=now(); r.updatedAt=now(); save(); renderReiseDetail(r);
+}
 
 // Drag&Drop Sortierung (nur Tour)
 function enableCityDrag(r){
